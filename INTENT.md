@@ -16,7 +16,7 @@ ColPool will be built as a native Kotlin Android app backed by Firebase:
 
 Address entry uses Google Places on the device. Route calculation uses the Google Routes API on the backend.
 
-The implementation delivers the MVP defined in SDD v0.3 §2.2, and nothing beyond it:
+The implementation delivers the MVP defined in SDD v0.4 §2.2, and nothing beyond it:
 
 - CBU student accounts created with data-sharing consent
 - profiles with a private starting address
@@ -30,7 +30,7 @@ The plan keeps the SDD's trust boundary throughout. The app reads permitted data
 
 ## 1.2 Source Design Artifacts
 
-- **Software Design Document:** ColPool SDD v0.3 (November 4, 2026), including RC-31 (hosting limits).
+- **Software Design Document:** ColPool SDD v0.4 (November 6, 2026), including RC-31 (hosting limits).
 - **Interactive UI/UX prototype:** ColPool Prototype v2, https://claude.ai/artifact/BfQnzLbSXie9qTrGaGk7wP (SDD §6.2). It's a reference for look and behavior, not an authority; the SDD wins where they differ. §6.2 lists the known differences.
 - **Architecture reference:** SDD Figure 1 and the technology table in §5.1.
 - **Experience-flow reference:** SDD Figure 2 and §6.1. Screen names in this plan follow Figure 2.
@@ -38,9 +38,10 @@ The plan keeps the SDD's trust boundary throughout. The app reads permitted data
 
 ## 1.3 Planning Assumptions & Scope Guardrails
 
-- **What's authoritative.** SDD v0.3 is the authoritative design. Prototype-only features are not built: copying a day's schedule, the splash screen waiting for a tap, the simulation panel, demo logins and sample data.
+- **What's authoritative.** SDD v0.4 is the authoritative design. Prototype-only features are not built: copying a day's schedule, the splash screen waiting for a tap, the simulation panel, demo logins and sample data.
 - **No open MVP questions.** Holidays (OQ-04) and notifications while away (OQ-05) have MVP answers. Holiday dates count as scheduled trips, and there are no push notifications. Agents must not build a no-class calendar, skippable dates or push notifications.
 - **Platform.** Android only and CBU only (RC-02, RC-25). Map display, GPS, in-app payments, messaging and editing a posted series stay out of scope (SDD §2.3).
+- **One environment.** The MVP uses a single Firebase project; its only users are the owner and student testers. Local development and automated tests (including CI) run on the Firebase Emulator Suite. Separate dev/staging/production projects are revisited only if ColPool goes past the MVP.
 - **Billing comes first.** Student sign-up runs in a Cloud Function, so Firebase's pay-as-you-go plan is needed in Phase 1. A Google Maps Platform billing account, restricted API keys and budget alerts must exist before address autocomplete is built in Phase 1 (RC-04, RC-28, RISK-08).
 - **Security Rules are tested, not assumed.** Because the app reads Firestore directly, a feature isn't done until its rules are tested in the Firebase Emulator Suite. Hiding something in the UI doesn't count as access control (RC-01, RC-05, RC-07).
 - **Server time decides time-based logic.** Ended series, whether a trip counts, and the export all use the server's clock in the university's time zone, America/Los_Angeles (RC-17, RC-18, RC-23, DD-14). The trip-counting rule is implemented once and shared.
@@ -114,7 +115,7 @@ Figure 1: Authentication, Cloud Functions, Firestore and Places. Figure 2: Entry
   - The student tab bar has placeholder tabs.
 - **Seed data.**
   - The five campus points with precise coordinates (RC-11).
-  - The predefined lists of interests, majors, years, traits and genders (RC-22).
+  - The predefined lists of interests, majors, years, traits and genders (RC-22). Interests, years, traits and genders follow the prototype's lists. The CBU majors list will be supplied by the project owner before this work starts, and agents must not invent one.
 - **Baseline Security Rules with emulator tests.**
   - Private details: owner only.
   - Public profiles: the owner or permitted viewers only.
@@ -167,10 +168,10 @@ Figure 2: Entry, Profile tab and University staff.
 - Add developer script to create institution accounts
 - Integrate Places autocomplete with a restricted API key
 - Build Onboarding screen
-- Build Profile screen
-- Build Edit Profile screen
+- Build Profile and Edit Profile screens
 - Seed campus points and profile option lists
 - Write baseline Security Rules with emulator tests
+- Set up CI to run tests on pull requests
 
 ## 3.2 Phase 2 – Hosting a Ride Series
 
@@ -283,15 +284,13 @@ Don't build "Copy schedule to the other days," which exists only in the prototyp
 
 ### Candidate GitHub Issues
 
-- Define series, draft and seat data model
+- Define series, draft and seat data model, with its Security Rules
 - Implement shared series validation, including RC-31 hosting limits
 - Implement route-preview function with the Routes API
-- Implement post-series function with rechecks
+- Implement post-series function with rechecks and host visibility
 - Build Create Series screen
 - Build Review Calculated Route screen
 - Build Hosting list and Hosted Series Details
-- Make active hosts' profiles visible to all students
-- Add Security Rules and emulator tests for series and drafts
 
 ## 3.3 Phase 3 – Search, Requests & Notifications
 
@@ -395,11 +394,10 @@ The prototype's Accept and Decline buttons belong to Phase 4.
 - Build Search screen with weekday filter and distance ranking
 - Implement preference panel and match percentage
 - Build Series Details with host profile and request day picker
-- Implement send-request function with one request per series
+- Implement send-request function with one request per series, with request Security Rules
 - Show incoming requests and requester profiles to the host
-- Build shared notification writer and notification records
+- Build shared notification writer and notification records, with notification Security Rules
 - Build notification banner, history and unread badges
-- Add Security Rules and emulator tests for requests and notifications
 
 ## 3.4 Phase 4 – Request & Series Lifecycle
 
@@ -508,15 +506,14 @@ The prototype's "Simulate other students" buttons describe events worth testing,
 ### Candidate GitHub Issues
 
 - Define per-weekday timestamp contract for trip counting
-- Implement per-weekday accept/decline with atomic seats and auto-decline
+- Implement per-weekday accept/decline with atomic seats and auto-decline, with seat concurrency tests
 - Implement remove-rider function
 - Implement leave and withdraw function
 - Add accept, decline and remove-rider actions to Hosted Series Details
 - Build Riding tab and Request Details
-- Maintain weekday rosters and profile permissions through the request lifecycle
+- Maintain weekday rosters and profile permissions through the request lifecycle, with their Security Rules
 - Implement cancel-series function and confirmation
 - Implement daily end-of-series job
-- Add seat concurrency and Security Rules tests for the lifecycle
 
 ## 3.5 Phase 5 – Institution Export
 
@@ -586,10 +583,9 @@ The prototype's on-screen table is only a preview (SDD §6.2). The deliverable i
 
 ### Candidate GitHub Issues
 
-- Implement shared trip-counting module using the departure-time rule
-- Implement institution export function and CSV output
+- Implement shared trip-counting module using the departure-time rule, with fixture tests
+- Implement institution export function and CSV output, with fixture tests
 - Build Export Carpool Data screen with Android share
-- Add trip-counting and export fixture tests
 
 ## 3.6 Phase 6 – Integrated Validation & MVP Hardening
 
@@ -609,7 +605,7 @@ US-01–US-17; RC-01–RC-31; DD-01–DD-14; RISK-01–RISK-11; all prototype fl
   - Try direct client writes to series, seats, requests, consent, permissions and notifications, and confirm they're blocked.
   - Confirm that no secrets are in the app or repository and that API keys are restricted.
 - **Concurrency tests.** Repeated tests of the last seat and of an accept racing a leave (RISK-03).
-- **Performance checks.** On a physical Android device, with a seeded dataset sized for the MVP:
+- **Performance checks.** On an Android Emulator device (Android Studio), with a seeded dataset sized for the MVP:
   - at least 95% of searches return within 3 seconds (RC-26)
   - at least 95% of notifications arrive within 10 seconds (RC-27)
 - **Maps usage check.** During a scripted session, the only Maps calls are address autocomplete and route calculation at review (RC-28), and the budget alerts are in place.
@@ -653,8 +649,7 @@ All prototype flows, especially:
 ### Candidate GitHub Issues
 
 - Create SDD acceptance checklist and record results
-- Run security and privacy review of rules, functions and keys
-- Run seat concurrency tests
+- Run security, privacy and concurrency review
 - Measure search and notification performance
 - Verify Maps usage and budget alerts
 - Fix highest-priority defects
@@ -719,7 +714,7 @@ A delay or change in any of these holds up everything after it. That's why each 
 
 # 5 GitHub Issue Decomposition Guidance
 
-Each candidate issue in Section 3 becomes one GitHub Issue, with the same title. The inventory in 5.1 gives each a temporary ID (TMP-01 to TMP-51), its own SDD sources, what it depends on, and the visual context and constraints an agent needs. Once the issues exist, the TMP IDs in the "Depends On" column are replaced with real issue numbers, and the same dependencies are recorded as GitHub "blocked by" relationships.
+Each candidate issue in Section 3 becomes one GitHub Issue, with the same title. The inventory in 5.1 gives each a temporary ID (TMP-01 to TMP-52; seven IDs were retired when small issues were merged into their neighbors, and TMP-52 was added for CI, leaving 45 issues), its own SDD sources, what it depends on, and the visual context and constraints an agent needs. Once the issues exist, the TMP IDs in the "Depends On" column are replaced with real issue numbers, and the same dependencies are recorded as GitHub "blocked by" relationships.
 
 **An agent-ready ColPool issue contains:**
 
@@ -765,50 +760,99 @@ Their bodies say so, and they get a `contract` label on the board. If an agent w
 | TMP-07 | Add developer script to create institution accounts | 1 | US-01; RC-06, RC-07 | TMP-04 | Figure 1: Firebase Authentication (custom claim: institution accounts). No app screen. |
 | TMP-08 | Integrate Places autocomplete with a restricted API key | 1 | RC-04, RC-13, RC-28 | TMP-01, TMP-02 | Prototype: address search sheet (search field and suggestions). Figure 1: app ↔ Places. |
 | TMP-09 | Build Onboarding screen | 1 | US-02; RC-03, RC-05, RC-13, RC-22, RC-30 | TMP-06, TMP-08, TMP-12, TMP-13 | Prototype: Onboarding. Figure 2: Entry (Onboarding). |
-| TMP-10 | Build Profile screen | 1 | US-02; RC-05, RC-29 | TMP-06, TMP-13 | Prototype: Profile (starting address and email cards, Edit profile, Log out). Figure 2: Profile tab. |
-| TMP-11 | Build Edit Profile screen | 1 | US-02; RC-03, RC-08, RC-22, RC-30 | TMP-09, TMP-10 | Prototype: Edit Profile. Figure 2: Profile tab (Profile ↔ Edit Profile). |
-| TMP-12 | Seed campus points and profile option lists | 1 | RC-11, RC-22 | TMP-04 | Prototype: Create Series campus-point chips; Onboarding and Edit Profile option chips. |
+| TMP-10 | Build Profile and Edit Profile screens | 1 | US-02; RC-03, RC-05, RC-08, RC-22, RC-29, RC-30 | TMP-06, TMP-09, TMP-13 | Prototype: Profile (starting address and email cards, Edit profile, Log out); Edit Profile. Figure 2: Profile tab (Profile ↔ Edit Profile). Absorbs former TMP-11. |
+| TMP-12 | Seed campus points and profile option lists | 1 | RC-11, RC-22 | TMP-04 | Prototype: Create Series campus-point chips; Onboarding and Edit Profile option chips. Needs human input before implementation: precise campus-point coordinates and the CBU majors list. |
 | TMP-13 | Write baseline Security Rules with emulator tests | 1 | RC-01, RC-03, RC-05, RC-07, RC-22, RC-30 | TMP-03, TMP-04 | Figure 1: Cloud Firestore + Security Rules. |
-| TMP-14 | Define series, draft and seat data model | 2 | US-03, US-05; RC-12, RC-15, RC-18 | TMP-04 | Prototype: Create Series and Hosted Series Details (what a series holds). Figure 1: Cloud Firestore. |
+| TMP-52 | Set up CI to run tests on pull requests | 1 | RC-04 | TMP-02, TMP-03 | No app screen. GitHub Actions runs the Android build and the Functions and Security Rules tests on the Emulator Suite for every pull request. No deploys and no secrets in CI. Added after the original inventory. |
+| TMP-14 | Define series, draft and seat data model, with its Security Rules | 2 | US-03, US-05; RC-01, RC-12, RC-15, RC-18 | TMP-04, TMP-13 | Prototype: Create Series and Hosted Series Details (what a series holds). Figure 1: Cloud Firestore; Security Rules. Absorbs former TMP-22. |
 | TMP-15 | Implement shared series validation, including RC-31 hosting limits | 2 | US-03; RC-12, RC-30, RC-31 | TMP-14 | Prototype: Create Series error box ("Fix these before continuing"). Figure 2: Create Series → Review Calculated Route. |
 | TMP-16 | Implement route-preview function with the Routes API | 2 | US-04; RC-04, RC-12, RC-14, RC-28; DD-07 | TMP-15 | Prototype: Review Calculated Route timelines. Figure 1: Cloud Functions ↔ Routes API. |
-| TMP-17 | Implement post-series function with rechecks | 2 | US-03, US-04; RC-12, RC-31; DD-06 | TMP-16 | Prototype: Review Calculated Route post confirmation sheet. Figure 2: Review → post → Hosting. |
+| TMP-17 | Implement post-series function with rechecks and host visibility | 2 | US-03, US-04; RC-01, RC-12, RC-31; DD-06 | TMP-13, TMP-16 | Prototype: Review Calculated Route post confirmation sheet; Series Details "Your host" card. Figure 2: Review → post → Hosting. Absorbs former TMP-21. |
 | TMP-18 | Build Create Series screen | 2 | US-03; RC-05, RC-11, RC-13, RC-30; DD-10 | TMP-08, TMP-12, TMP-14 | Prototype: Create Series (pickup-spot hint, weekday schedule card, add-stop sheet and stop warning, campus-point chips), without the "Copy schedule" button. Figure 2: Hosting tab. |
 | TMP-19 | Build Review Calculated Route screen | 2 | US-04; DD-06; RISK-02 | TMP-16, TMP-18 | Prototype: Review Calculated Route (warning note, day tabs, timelines, post confirmation sheet). Figure 2: Create Series ↔ Review Calculated Route. |
 | TMP-20 | Build Hosting list and Hosted Series Details | 2 | US-05; RC-18, RC-29 | TMP-17 | Prototype: Hosting (list and empty state); Hosted Series Details (summary card, day tabs, timelines). Figure 2: Hosting tab. |
-| TMP-21 | Make active hosts' profiles visible to all students | 2 | RC-01 | TMP-13, TMP-17 | Prototype: Series Details "Your host" card. Figure 1: Cloud Firestore + Security Rules. |
-| TMP-22 | Add Security Rules and emulator tests for series and drafts | 2 | RC-01, RC-12 | TMP-13, TMP-14 | Figure 1: Cloud Functions → Firestore writes; Security Rules. |
-| TMP-23 | Build Search screen with weekday filter and distance ranking | 3 | US-09; RC-17, RC-19, RC-26, RC-28 | TMP-09, TMP-14 | Prototype: Search (day row, result cards, "Nearest first", empty state, footnote). Figure 2: Search tab. |
+| TMP-23 | Build Search screen with weekday filter and distance ranking | 3 | US-09; RC-17, RC-19, RC-26, RC-28 | TMP-09, TMP-14, TMP-17 | Prototype: Search (day row, result cards, "Nearest first", empty state, footnote). Figure 2: Search tab. |
 | TMP-24 | Implement preference panel and match percentage | 3 | US-10; RC-20, RC-21; DD-04 | TMP-23 | Prototype: Search preferences panel; match badge on result cards; highlighted matches on the host card. |
-| TMP-25 | Build Series Details with host profile and request day picker | 3 | US-09, US-11, US-14; RISK-01 | TMP-21, TMP-23 | Prototype: Series Details (host card, summary tiles, schedule timelines, request day picker, safety note). Figure 2: Search → Series Details → Search. |
-| TMP-26 | Implement send-request function with one request per series | 3 | US-11; RC-01, RC-16; DD-13 | TMP-14, TMP-28 | Prototype: Series Details request button and "Request sent" banner. Figure 1: app → Cloud Functions → Firestore. |
+| TMP-25 | Build Series Details with host profile and request day picker | 3 | US-09, US-11, US-14; RISK-01 | TMP-17, TMP-23 | Prototype: Series Details (host card, summary tiles, schedule timelines, request day picker, safety note). Figure 2: Search → Series Details → Search. |
+| TMP-26 | Implement send-request function with one request per series, with request Security Rules | 3 | US-11; RC-01, RC-16; DD-13 | TMP-14, TMP-17, TMP-28 | Prototype: Series Details request button and "Request sent" banner. Figure 1: app → Cloud Functions → Firestore; Security Rules. Absorbs the request half of former TMP-30. |
 | TMP-27 | Show incoming requests and requester profiles to the host | 3 | US-07, US-14 | TMP-20, TMP-26 | Prototype: Hosted Series Details Requests section; Hosting tab badge; Requester Profile. Figure 2: Hosted Series Details → Requester / Rider Profile. |
-| TMP-28 | Build shared notification writer and notification records | 3 | US-15, US-16; RC-09, RC-27 | TMP-13 | Prototype: Notifications entries (title, text, series line). Figure 1: Cloud Functions → Firestore (notifications). |
+| TMP-28 | Build shared notification writer and notification records, with notification Security Rules | 3 | US-15, US-16; RC-09, RC-27 | TMP-13 | Prototype: Notifications entries (title, text, series line). Figure 1: Cloud Functions → Firestore (notifications); Security Rules. Absorbs the notification half of former TMP-30. |
 | TMP-29 | Build notification banner, history and unread badges | 3 | US-15, US-16; RC-27 | TMP-28 | Prototype: banner; Notifications screen with "New" tags; Notifications tab badge. Figure 1: app listens for notifications. Figure 2: Notifications tab. |
-| TMP-30 | Add Security Rules and emulator tests for requests and notifications | 3 | RC-01, RC-16 | TMP-26, TMP-28 | Figure 1: Cloud Firestore + Security Rules. |
 | TMP-31 | Define per-weekday timestamp contract for trip counting | 4 | RC-23; DD-14 | TMP-14 | Figure 1: Cloud Functions → Firestore (requests). No app screen. |
-| TMP-32 | Implement per-weekday accept/decline with atomic seats and auto-decline | 4 | US-08, US-15; RC-15; DD-05 | TMP-26, TMP-28, TMP-31 | Prototype: Hosted Series Details Accept / Decline and "Declined (full)"; "Day accepted" and "Day declined" notifications. Figure 1: Cloud Functions → Firestore. |
+| TMP-32 | Implement per-weekday accept/decline with atomic seats and auto-decline, with seat concurrency tests | 4 | US-08, US-15; RC-15; DD-05; RISK-03 | TMP-26, TMP-28, TMP-31 | Prototype: Hosted Series Details Accept / Decline and "Declined (full)"; "Day accepted" and "Day declined" notifications. Figure 1: Cloud Functions → Firestore. Absorbs the concurrency half of former TMP-40. |
 | TMP-33 | Implement remove-rider function | 4 | US-08, US-15; RC-15, RC-16 | TMP-32 | Prototype: "Remove from [day]" button and confirmation sheet; "Removed from [day]" notification. |
 | TMP-34 | Implement leave and withdraw function | 4 | US-12, US-15; RC-15, RC-16; DD-13 | TMP-32 | Prototype: Request Details "Your days" Leave / Withdraw buttons and confirmation sheets; "Rider left" and "Request withdrawn" notifications. |
 | TMP-35 | Add accept, decline and remove-rider actions to Hosted Series Details | 4 | US-05, US-08 | TMP-27, TMP-32, TMP-33 | Prototype: Hosted Series Details ("Riders by day" with Remove; Requests with Accept, Decline and Full). Figure 2: Hosting tab. |
 | TMP-36 | Build Riding tab and Request Details | 4 | US-12, US-13, US-14 | TMP-34, TMP-37 | Prototype: Riding (list and empty state); Request Details (status card, "People on [day]", "Your days", confirmation sheets); Host / Co-rider Profile. Figure 2: Riding tab, including the return to Riding. |
-| TMP-37 | Maintain weekday rosters and profile permissions through the request lifecycle | 4 | US-14; RC-01 | TMP-32, TMP-33, TMP-34 | Prototype: Request Details "People on [day]". Figure 1: Cloud Functions → Firestore (permissions). |
+| TMP-37 | Maintain weekday rosters and profile permissions through the request lifecycle, with their Security Rules | 4 | US-14; RC-01 | TMP-32, TMP-33, TMP-34 | Prototype: Request Details "People on [day]". Figure 1: Cloud Functions → Firestore (permissions); Security Rules. Absorbs the rules half of former TMP-40. |
 | TMP-38 | Implement cancel-series function and confirmation | 4 | US-06, US-15; RC-17, RC-24 | TMP-32, TMP-37 | Prototype: "Cancel this series" button and confirmation sheet; "Series cancelled" notification. Figure 2: Hosted Series Details → Hosting. |
 | TMP-39 | Implement daily end-of-series job | 4 | US-15; RC-17, RC-18, RC-24 | TMP-28, TMP-37 | Prototype: "Series ended" notification. Figure 1: Cloud Functions daily job. |
-| TMP-40 | Add seat concurrency and Security Rules tests for the lifecycle | 4 | RC-01, RC-15; RISK-03 | TMP-32, TMP-33, TMP-34, TMP-37, TMP-38 | Figure 1: Cloud Functions → Firestore; Security Rules. |
-| TMP-41 | Implement shared trip-counting module using the departure-time rule | 5 | US-17; RC-23; DD-14 | TMP-31 | Figure 1: Cloud Functions (CSV export). No app screen. |
-| TMP-42 | Implement institution export function and CSV output | 5 | US-17; RC-05, RC-07, RC-18, RC-23, RC-24, RC-28; DD-08 | TMP-06, TMP-07, TMP-41 | Prototype: Export Carpool Data table columns (Student through Mile type). Figure 1: app ↔ Cloud Functions (CSV file). |
+| TMP-41 | Implement shared trip-counting module using the departure-time rule, with fixture tests | 5 | US-17; RC-23; DD-14 | TMP-31 | Figure 1: Cloud Functions (CSV export). No app screen. Absorbs the trip-counting half of former TMP-44. |
+| TMP-42 | Implement institution export function and CSV output, with fixture tests | 5 | US-17; RC-05, RC-07, RC-18, RC-23, RC-24, RC-28; DD-08 | TMP-06, TMP-07, TMP-41 | Prototype: Export Carpool Data table columns (Student through Mile type). Figure 1: app ↔ Cloud Functions (CSV file). Absorbs the export half of former TMP-44. |
 | TMP-43 | Build Export Carpool Data screen with Android share | 5 | US-17; DD-08 | TMP-06, TMP-42 | Prototype: Export Carpool Data (date fields, Generate export, summary card, Share button); the on-screen table is only a preview. Figure 2: University staff. |
-| TMP-44 | Add trip-counting and export fixture tests | 5 | US-17; RC-23; DD-14 | TMP-41, TMP-42 | Prototype: Export Carpool Data sample rows (for reference only). |
 | TMP-45 | Create SDD acceptance checklist and record results | 6 | US-01–US-17 | Phases 1–5 | All prototype screens; Figure 2 (full flow). |
-| TMP-46 | Run security and privacy review of rules, functions and keys | 6 | RC-01, RC-04, RC-05, RC-07 | TMP-40, TMP-42 | Figure 1: trust boundaries (app ↔ Firestore with Security Rules; Cloud Functions). |
-| TMP-47 | Run seat concurrency tests | 6 | RC-15; RISK-03 | TMP-40 | Figure 1: Cloud Functions → Firestore. |
-| TMP-48 | Measure search and notification performance | 6 | RC-26, RC-27 | TMP-24, TMP-29 | Prototype: Search; banner and Notifications. Figure 1: app ↔ Firestore listeners. |
+| TMP-46 | Run security, privacy and concurrency review | 6 | RC-01, RC-04, RC-05, RC-07, RC-15; RISK-03 | TMP-37, TMP-38, TMP-42 | Figure 1: trust boundaries (app ↔ Firestore with Security Rules; Cloud Functions → Firestore). Absorbs former TMP-47. |
+| TMP-48 | Measure search and notification performance | 6 | RC-26, RC-27 | TMP-24, TMP-29 | Prototype: Search; banner and Notifications. Figure 1: app ↔ Firestore listeners. Runs on an Android Emulator device; no physical device is available. |
 | TMP-49 | Verify Maps usage and budget alerts | 6 | RC-28; RISK-08 | TMP-08, TMP-16, TMP-23 | Figure 1: app ↔ Places; Cloud Functions ↔ Routes API. |
 | TMP-50 | Fix highest-priority defects | 6 | As found | TMP-45–TMP-49 | Taken from each linked defect. |
 | TMP-51 | Final terminology, time-format and accessibility polish | 6 | RC-18, RC-29 | Phases 1–5 | All prototype screens (wording, times, labels). |
 
 *TMP IDs are temporary. Replace them with GitHub Issue numbers once the issues are created.*
+
+*Retired IDs (merged into neighbors): TMP-11 → TMP-10; TMP-21 → TMP-17; TMP-22 → TMP-14; TMP-30 → TMP-26 and TMP-28; TMP-40 → TMP-32 and TMP-37; TMP-44 → TMP-41 and TMP-42; TMP-47 → TMP-46. Merging keeps each Security Rules and test deliverable inside the feature it protects, as the "rules come with features" sequencing rule in Section 4 requires.*
+
+
+## 5.2 Created GitHub Issues
+
+The issues were created on November 6, 2026 in the [ColPool Project](https://github.com/users/EthanScottWalden/projects/1). Dependencies are recorded on GitHub as "blocked by" relationships.
+
+| TMP ID | Issue | Title |
+|---|---|---|
+| TMP-01 | #10 | Set up Firebase project and billing |
+| TMP-02 | #11 | Create Android app connected to Firebase |
+| TMP-03 | #12 | Configure Firebase Emulator Suite for local testing |
+| TMP-04 | #13 | Define core Firestore schema and profile-permission model |
+| TMP-05 | #14 | Implement sign-up function with CBU domain check and consent record |
+| TMP-06 | #19 | Implement sign-in, role routing and app shells |
+| TMP-07 | #15 | Add developer script to create institution accounts |
+| TMP-08 | #16 | Integrate Places autocomplete with a restricted API key |
+| TMP-09 | #22 | Build Onboarding screen |
+| TMP-10 | #27 | Build Profile and Edit Profile screens |
+| TMP-12 | #17 | Seed campus points and profile option lists |
+| TMP-13 | #18 | Write baseline Security Rules with emulator tests |
+| TMP-52 | #54 | Set up CI to run tests on pull requests |
+| TMP-14 | #20 | Define series, draft and seat data model, with its Security Rules |
+| TMP-15 | #23 | Implement shared series validation, including RC-31 hosting limits |
+| TMP-16 | #28 | Implement route-preview function with the Routes API |
+| TMP-17 | #30 | Implement post-series function with rechecks and host visibility |
+| TMP-18 | #24 | Build Create Series screen |
+| TMP-19 | #31 | Build Review Calculated Route screen |
+| TMP-20 | #33 | Build Hosting list and Hosted Series Details |
+| TMP-23 | #34 | Build Search screen with weekday filter and distance ranking |
+| TMP-24 | #37 | Implement preference panel and match percentage |
+| TMP-25 | #38 | Build Series Details with host profile and request day picker |
+| TMP-26 | #35 | Implement send-request function with one request per series, with request Security Rules |
+| TMP-27 | #39 | Show incoming requests and requester profiles to the host |
+| TMP-28 | #21 | Build shared notification writer and notification records, with notification Security Rules |
+| TMP-29 | #25 | Build notification banner, history and unread badges |
+| TMP-31 | #26 | Define per-weekday timestamp contract for trip counting |
+| TMP-32 | #40 | Implement per-weekday accept/decline with atomic seats and auto-decline, with seat concurrency tests |
+| TMP-33 | #41 | Implement remove-rider function |
+| TMP-34 | #42 | Implement leave and withdraw function |
+| TMP-35 | #43 | Add accept, decline and remove-rider actions to Hosted Series Details |
+| TMP-36 | #45 | Build Riding tab and Request Details |
+| TMP-37 | #44 | Maintain weekday rosters and profile permissions through the request lifecycle, with their Security Rules |
+| TMP-38 | #46 | Implement cancel-series function and confirmation |
+| TMP-39 | #47 | Implement daily end-of-series job |
+| TMP-41 | #29 | Implement shared trip-counting module using the departure-time rule, with fixture tests |
+| TMP-42 | #32 | Implement institution export function and CSV output, with fixture tests |
+| TMP-43 | #36 | Build Export Carpool Data screen with Android share |
+| TMP-45 | #48 | Create SDD acceptance checklist and record results |
+| TMP-46 | #49 | Run security, privacy and concurrency review |
+| TMP-48 | #50 | Measure search and notification performance |
+| TMP-49 | #51 | Verify Maps usage and budget alerts |
+| TMP-50 | #53 | Fix highest-priority defects |
+| TMP-51 | #52 | Final terminology, time-format and accessibility polish |
 
 # 6 Risks, Open Decisions & Agent Guardrails
 
