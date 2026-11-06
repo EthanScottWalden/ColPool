@@ -62,6 +62,7 @@ If you prefer the plan's 51 issues exactly, say so — each merged issue would b
 | 08 | Integrate Places autocomplete with a restricted API key | 1 | 3 | P1 | M | Android, Maps | 01, 02 |
 | 12 | Seed campus points and profile option lists | 1 | 3 | P1 | S | Data Model | 04 |
 | 13 | Write baseline Security Rules with emulator tests | 1 | 3 | P0 | M | Security Rules, Testing | 03, 04 |
+| 52 | Set up CI to run tests on pull requests | 1 | 3 | P1 | S | Infra, Testing | 02, 03 |
 | 06 | Implement sign-in, role routing and app shells | 1 | 4 | P0 | M | Android, Backend | 02, 04, 05 |
 | 14 | Define series, draft and seat data model (+ series/draft rules) | 2 | 4 | P0 | L | Data Model, Security Rules | 04, 13 |
 | 28 | Build shared notification writer and notification records (+ rules) | 3 | 4 | P0 | M | Backend, Security Rules | 13 |
@@ -122,7 +123,7 @@ Prototype = https://claude.ai/artifact/BfQnzLbSXie9qTrGaGk7wP. Plan = `INTENT.md
 - **Depends on:** none.
 - **Testing:** Manual verification checklist in the setup doc; `git grep` for key patterns returns nothing.
 - **Constraints:** RC-04 — no secrets committed.
-- **Open question (resolve in Human Review):** one Firebase project, or separate projects per environment (for example dev/staging/production to match the board's "In dev" and "In staging" columns)? Default if not decided otherwise: one Firebase project for the MVP, with local development and tests on the Emulator Suite.
+- **Environments (decided):** one Firebase project for the MVP. Local development and all automated tests use the Firebase Emulator Suite. No separate dev/staging/production projects; the MVP has only test users (the owner and student testers). Revisit only if ColPool goes past the MVP.
 
 #### TMP-02 · Create Android app connected to Firebase
 - **Fields:** Phase 1 · Seq 2 · P0 · M · Android, Infra
@@ -240,6 +241,18 @@ Prototype = https://claude.ai/artifact/BfQnzLbSXie9qTrGaGk7wP. Plan = `INTENT.md
 - **Depends on:** TMP-03, TMP-04.
 - **Testing:** Emulator rules tests (the deliverable).
 - **Constraints:** Default-deny stays in place for everything not explicitly allowed.
+
+---
+
+#### TMP-52 · Set up CI to run tests on pull requests
+- **Fields:** Phase 1 · Seq 3 · P1 · S · Infra, Testing
+- **Outcome:** A GitHub Actions workflow that runs on every pull request (and on pushes to `dev`, `staging` and `main`): builds the Android app and runs its unit tests, runs the Cloud Functions unit tests and the Security Rules tests against the Firebase Emulator Suite, and reports pass/fail as a status check that can be required before merging.
+- **SDD:** RC-04. Plan §1.3 "Security Rules are tested, not assumed", §4 "Rules come with features".
+- **Implementation context:** Uses the one-command test entry point from TMP-03 and the Gradle build from TMP-02. Runs entirely against emulators: **no real Firebase project, service-account key, API key or other secret is used or stored in CI**. If a build step needs a `google-services.json`, use a non-secret placeholder generated in the workflow. Cache Gradle and npm. Document how to make the check required in branch rules (the owner applies it).
+- **Acceptance criteria:** A PR with a failing rules test or failing build shows a failed check; a clean PR passes; workflow uses pinned action versions; no secrets referenced; README section describes what CI runs.
+- **Depends on:** TMP-02, TMP-03.
+- **Testing:** Demonstrate one intentionally failing run and one passing run on a throwaway branch.
+- **Constraints:** No deployment from CI for the MVP (deploys stay manual to the single Firebase project). Later feature issues add their tests to the same entry point rather than new workflows.
 
 ---
 
@@ -540,8 +553,8 @@ Prototype = https://claude.ai/artifact/BfQnzLbSXie9qTrGaGk7wP. Plan = `INTENT.md
 | D-3 | Option lists | Prototype lists for interests, years, traits and genders. **Majors list to be supplied by the project owner** before TMP-12 is implemented. |
 | D-4 | Age limits | **18 or older** (SDD v0.4 RC-30; RISK-11 updated). |
 | D-5 | Campus-point coordinates | **Open.** The project owner is still working these out; TMP-12 is labelled `human-task` and blocked on this input. |
-| D-6 | Environments (one Firebase project vs dev/staging/prod) | **Open.** Recorded on TMP-01 for Human Review; default is one project plus the Emulator Suite. |
-| D-7 | CI on pull requests | **Not added yet.** Pending the owner's answer after an explanation. |
+| D-6 | Environments (one Firebase project vs dev/staging/prod) | **One Firebase project** for the MVP, plus the Emulator Suite for development and tests. The MVP has only test users. |
+| D-7 | CI on pull requests | **Added** as TMP-52 (GitHub Actions running builds and emulator tests on PRs; no deploys, no secrets). |
 | D-8 | Profile access after leaving | **Revoke immediately** when the RC-01 case stops holding (SDD v0.4 RC-01). |
 | D-9 | Staff email domain | Institution accounts are assumed to use `@calbaptist.edu` (SDD v0.4 RC-07). |
 | D-10 | Prototype images | Captured from the prototype into `docs/issue-assets/prototype/` and embedded in issues. |
@@ -591,6 +604,7 @@ The issues were created on November 6, 2026 in the [ColPool Project](https://git
 | TMP-10 | #27 | Build Profile and Edit Profile screens |
 | TMP-12 | #17 | Seed campus points and profile option lists |
 | TMP-13 | #18 | Write baseline Security Rules with emulator tests |
+| TMP-52 | #54 | Set up CI to run tests on pull requests |
 | TMP-14 | #20 | Define series, draft and seat data model, with its Security Rules |
 | TMP-15 | #23 | Implement shared series validation, including RC-31 hosting limits |
 | TMP-16 | #28 | Implement route-preview function with the Routes API |

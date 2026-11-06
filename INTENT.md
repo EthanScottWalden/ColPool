@@ -41,6 +41,7 @@ The plan keeps the SDD's trust boundary throughout. The app reads permitted data
 - **What's authoritative.** SDD v0.4 is the authoritative design. Prototype-only features are not built: copying a day's schedule, the splash screen waiting for a tap, the simulation panel, demo logins and sample data.
 - **No open MVP questions.** Holidays (OQ-04) and notifications while away (OQ-05) have MVP answers. Holiday dates count as scheduled trips, and there are no push notifications. Agents must not build a no-class calendar, skippable dates or push notifications.
 - **Platform.** Android only and CBU only (RC-02, RC-25). Map display, GPS, in-app payments, messaging and editing a posted series stay out of scope (SDD §2.3).
+- **One environment.** The MVP uses a single Firebase project; its only users are the owner and student testers. Local development and automated tests (including CI) run on the Firebase Emulator Suite. Separate dev/staging/production projects are revisited only if ColPool goes past the MVP.
 - **Billing comes first.** Student sign-up runs in a Cloud Function, so Firebase's pay-as-you-go plan is needed in Phase 1. A Google Maps Platform billing account, restricted API keys and budget alerts must exist before address autocomplete is built in Phase 1 (RC-04, RC-28, RISK-08).
 - **Security Rules are tested, not assumed.** Because the app reads Firestore directly, a feature isn't done until its rules are tested in the Firebase Emulator Suite. Hiding something in the UI doesn't count as access control (RC-01, RC-05, RC-07).
 - **Server time decides time-based logic.** Ended series, whether a trip counts, and the export all use the server's clock in the university's time zone, America/Los_Angeles (RC-17, RC-18, RC-23, DD-14). The trip-counting rule is implemented once and shared.
@@ -170,6 +171,7 @@ Figure 2: Entry, Profile tab and University staff.
 - Build Profile and Edit Profile screens
 - Seed campus points and profile option lists
 - Write baseline Security Rules with emulator tests
+- Set up CI to run tests on pull requests
 
 ## 3.2 Phase 2 – Hosting a Ride Series
 
@@ -712,7 +714,7 @@ A delay or change in any of these holds up everything after it. That's why each 
 
 # 5 GitHub Issue Decomposition Guidance
 
-Each candidate issue in Section 3 becomes one GitHub Issue, with the same title. The inventory in 5.1 gives each a temporary ID (TMP-01 to TMP-51; seven IDs were retired when small issues were merged into their neighbors, leaving 44 issues), its own SDD sources, what it depends on, and the visual context and constraints an agent needs. Once the issues exist, the TMP IDs in the "Depends On" column are replaced with real issue numbers, and the same dependencies are recorded as GitHub "blocked by" relationships.
+Each candidate issue in Section 3 becomes one GitHub Issue, with the same title. The inventory in 5.1 gives each a temporary ID (TMP-01 to TMP-52; seven IDs were retired when small issues were merged into their neighbors, and TMP-52 was added for CI, leaving 45 issues), its own SDD sources, what it depends on, and the visual context and constraints an agent needs. Once the issues exist, the TMP IDs in the "Depends On" column are replaced with real issue numbers, and the same dependencies are recorded as GitHub "blocked by" relationships.
 
 **An agent-ready ColPool issue contains:**
 
@@ -761,6 +763,7 @@ Their bodies say so, and they get a `contract` label on the board. If an agent w
 | TMP-10 | Build Profile and Edit Profile screens | 1 | US-02; RC-03, RC-05, RC-08, RC-22, RC-29, RC-30 | TMP-06, TMP-09, TMP-13 | Prototype: Profile (starting address and email cards, Edit profile, Log out); Edit Profile. Figure 2: Profile tab (Profile ↔ Edit Profile). Absorbs former TMP-11. |
 | TMP-12 | Seed campus points and profile option lists | 1 | RC-11, RC-22 | TMP-04 | Prototype: Create Series campus-point chips; Onboarding and Edit Profile option chips. Needs human input before implementation: precise campus-point coordinates and the CBU majors list. |
 | TMP-13 | Write baseline Security Rules with emulator tests | 1 | RC-01, RC-03, RC-05, RC-07, RC-22, RC-30 | TMP-03, TMP-04 | Figure 1: Cloud Firestore + Security Rules. |
+| TMP-52 | Set up CI to run tests on pull requests | 1 | RC-04 | TMP-02, TMP-03 | No app screen. GitHub Actions runs the Android build and the Functions and Security Rules tests on the Emulator Suite for every pull request. No deploys and no secrets in CI. Added after the original inventory. |
 | TMP-14 | Define series, draft and seat data model, with its Security Rules | 2 | US-03, US-05; RC-01, RC-12, RC-15, RC-18 | TMP-04, TMP-13 | Prototype: Create Series and Hosted Series Details (what a series holds). Figure 1: Cloud Firestore; Security Rules. Absorbs former TMP-22. |
 | TMP-15 | Implement shared series validation, including RC-31 hosting limits | 2 | US-03; RC-12, RC-30, RC-31 | TMP-14 | Prototype: Create Series error box ("Fix these before continuing"). Figure 2: Create Series → Review Calculated Route. |
 | TMP-16 | Implement route-preview function with the Routes API | 2 | US-04; RC-04, RC-12, RC-14, RC-28; DD-07 | TMP-15 | Prototype: Review Calculated Route timelines. Figure 1: Cloud Functions ↔ Routes API. |
@@ -817,6 +820,7 @@ The issues were created on November 6, 2026 in the [ColPool Project](https://git
 | TMP-10 | #27 | Build Profile and Edit Profile screens |
 | TMP-12 | #17 | Seed campus points and profile option lists |
 | TMP-13 | #18 | Write baseline Security Rules with emulator tests |
+| TMP-52 | #54 | Set up CI to run tests on pull requests |
 | TMP-14 | #20 | Define series, draft and seat data model, with its Security Rules |
 | TMP-15 | #23 | Implement shared series validation, including RC-31 hosting limits |
 | TMP-16 | #28 | Implement route-preview function with the Routes API |
