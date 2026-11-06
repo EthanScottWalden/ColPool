@@ -572,3 +572,54 @@ Merged away: TMP-11 → 10; TMP-21 → 17; TMP-22 → 14; TMP-30 → 26 + 28; TM
 | Withdrawn | Request withdrawn | "[Rider] withdrew their request for [days]." |
 | Cancelled | Series cancelled | "[Host] cancelled a series you were in." |
 | Ended | Series ended | "[Host]'s series reached its end date on [date]." |
+
+## Appendix C — Created GitHub Issues
+
+The issues were created on November 6, 2026 in the [ColPool Project](https://github.com/users/EthanScottWalden/projects/1). Dependencies are recorded on GitHub as "blocked by" relationships.
+
+| TMP ID | Issue | Title |
+|---|---|---|
+| TMP-01 | #10 | Set up Firebase project and billing |
+| TMP-02 | #11 | Create Android app connected to Firebase |
+| TMP-03 | #12 | Configure Firebase Emulator Suite for local testing |
+| TMP-04 | #13 | Define core Firestore schema and profile-permission model |
+| TMP-05 | #14 | Implement sign-up function with CBU domain check and consent record |
+| TMP-06 | #19 | Implement sign-in, role routing and app shells |
+| TMP-07 | #15 | Add developer script to create institution accounts |
+| TMP-08 | #16 | Integrate Places autocomplete with a restricted API key |
+| TMP-09 | #22 | Build Onboarding screen |
+| TMP-10 | #27 | Build Profile and Edit Profile screens |
+| TMP-12 | #17 | Seed campus points and profile option lists |
+| TMP-13 | #18 | Write baseline Security Rules with emulator tests |
+| TMP-14 | #20 | Define series, draft and seat data model, with its Security Rules |
+| TMP-15 | #23 | Implement shared series validation, including RC-31 hosting limits |
+| TMP-16 | #28 | Implement route-preview function with the Routes API |
+| TMP-17 | #30 | Implement post-series function with rechecks and host visibility |
+| TMP-18 | #24 | Build Create Series screen |
+| TMP-19 | #31 | Build Review Calculated Route screen |
+| TMP-20 | #33 | Build Hosting list and Hosted Series Details |
+| TMP-23 | #34 | Build Search screen with weekday filter and distance ranking |
+| TMP-24 | #37 | Implement preference panel and match percentage |
+| TMP-25 | #38 | Build Series Details with host profile and request day picker |
+| TMP-26 | #35 | Implement send-request function with one request per series, with request Security Rules |
+| TMP-27 | #39 | Show incoming requests and requester profiles to the host |
+| TMP-28 | #21 | Build shared notification writer and notification records, with notification Security Rules |
+| TMP-29 | #25 | Build notification banner, history and unread badges |
+| TMP-31 | #26 | Define per-weekday timestamp contract for trip counting |
+| TMP-32 | #40 | Implement per-weekday accept/decline with atomic seats and auto-decline, with seat concurrency tests |
+| TMP-33 | #41 | Implement remove-rider function |
+| TMP-34 | #42 | Implement leave and withdraw function |
+| TMP-35 | #43 | Add accept, decline and remove-rider actions to Hosted Series Details |
+| TMP-36 | #45 | Build Riding tab and Request Details |
+| TMP-37 | #44 | Maintain weekday rosters and profile permissions through the request lifecycle, with their Security Rules |
+| TMP-38 | #46 | Implement cancel-series function and confirmation |
+| TMP-39 | #47 | Implement daily end-of-series job |
+| TMP-41 | #29 | Implement shared trip-counting module using the departure-time rule, with fixture tests |
+| TMP-42 | #32 | Implement institution export function and CSV output, with fixture tests |
+| TMP-43 | #36 | Build Export Carpool Data screen with Android share |
+| TMP-45 | #48 | Create SDD acceptance checklist and record results |
+| TMP-46 | #49 | Run security, privacy and concurrency review |
+| TMP-48 | #50 | Measure search and notification performance |
+| TMP-49 | #51 | Verify Maps usage and budget alerts |
+| TMP-50 | #53 | Fix highest-priority defects |
+| TMP-51 | #52 | Final terminology, time-format and accessibility polish |
