@@ -72,7 +72,7 @@ If you prefer the plan's 51 issues exactly, say so — each merged issue would b
 | 29 | Build notification banner, history and unread badges | 3 | 5 | P1 | M | Android | 28 |
 | 31 | Define per-weekday timestamp contract for trip counting | 4 | 5 | P0 | S | Data Model | 14 |
 | 10 | Build Profile and Edit Profile screens | 1 | 6 | P1 | M | Android | 06, 09, 13 |
-| 16 | Implement route-preview function with the Routes API | 2 | 6 | P0 | L | Backend, Maps | 15 |
+| 16 | Implement route-preview function with the Routes API | 2 | 6 | P0 | L | Backend, Maps | 15, 05 |
 | 41 | Implement shared trip-counting module (+ fixture tests) | 5 | 6 | P0 | L | Backend, Testing | 31 |
 | 17 | Implement post-series function with rechecks (+ host visibility) | 2 | 7 | P0 | M | Backend, Security Rules | 13, 16 |
 | 19 | Build Review Calculated Route screen | 2 | 7 | P1 | M | Android | 16, 18 |
@@ -162,23 +162,24 @@ Prototype = https://claude.ai/artifact/BfQnzLbSXie9qTrGaGk7wP. Plan = `INTENT.md
 - **Fields:** Phase 1 · Seq 3 · P0 · M · Backend
 - **Outcome:** A callable Cloud Function that validates `@calbaptist.edu`, password ≥ 8, first/last name 1–30 chars, consent = true; then creates the Auth account, user records and consent record (server timestamp) together, and deletes the Auth account if any later step fails (logging the failure).
 - **SDD:** US-01; RC-02, RC-06, RC-10, RC-30; DD-01, DD-09. Plan §3.1 "Sign-up function", §6.1 "A sign-up that fails partway".
+- **Accounts created outside ColPool's sign-up (SDD RC-06, §5.2):** Plain Firebase Authentication still lets someone create an account directly (for example with the client SDK), skipping this function and the consent checkbox. That account has no consent record and must not be able to use the app. This issue also delivers the shared backend check for it: a helper that every student-facing callable function runs first, which rejects the caller unless a consent record exists for them. (The export function checks the institution claim instead; institution accounts are exempt from consent per RC-06.) Enforcement lives in three places: this helper (functions), the baseline Security Rules in TMP-13 (#18: no reads or writes without a consent record), and sign-in routing in TMP-06 (#19: the account cannot get past sign-in). Route preview, TMP-16 (#28), is the first function after sign-up, so it is blocked by this issue and every later function inherits the dependency.
 - **Implementation context:** No email verification, no password reset. Logs must not contain the email or password (plan §6.3 "Private data stays private").
-- **Acceptance criteria:** Rejects non-CBU email, short password, missing/over-long name, unchecked consent — each with a distinct error code the app can display; success creates account + consent record; induced failure after Auth creation removes the Auth account.
+- **Acceptance criteria:** Rejects non-CBU email, short password, missing/over-long name, unchecked consent — each with a distinct error code the app can display; success creates account + consent record; induced failure after Auth creation removes the Auth account; the shared consent check rejects an account created directly in the Auth emulator (no consent record) and accepts a student who signed up through this function.
 - **UI/UX:** Prototype: Sign up / Sign in (Create account form, consent statement). Figure 1 (app → Functions → Auth); Figure 2 Entry.
 - **Depends on:** TMP-03, TMP-04.
-- **Testing:** Unit tests against emulator for every rejection path and the rollback path.
+- **Testing:** Unit tests against emulator for every rejection path, the rollback path, and the consent check (allowed and rejected callers).
 - **Constraints:** RC-06 — an account never exists without its consent record (except the logged rollback-failure case, which RC-06 makes unusable).
 
 #### TMP-06 · Implement sign-in, role routing and app shells
 - **Fields:** Phase 1 · Seq 4 · P0 · M · Android, Backend
-- **Outcome:** Splash, Sign up / Sign in screen (consent checkbox + "no password reset" note), routing: student with starting address → Search (placeholder); student without → Onboarding; institution claim → Export Carpool Data (placeholder, no footer, log out); student without consent record → blocked. Student footer with five placeholder tabs (Search, Hosting, Riding, Notifications, Profile).
+- **Outcome:** Splash, Sign up / Sign in screen (consent checkbox + "no password reset" note), routing: student with starting address → Search (placeholder); student without → Onboarding; institution claim → Export Carpool Data (placeholder, no footer, log out); student without a consent record (for example an account created directly in Firebase Authentication) → signed out and shown an error on Sign in; it never reaches a student or staff screen. Student footer with five placeholder tabs (Search, Hosting, Riding, Notifications, Profile).
 - **SDD:** US-01, US-02; RC-06, RC-07, RC-10, RC-29. Figure 2 Entry + University staff.
 - **Implementation context:** Signed-in users skip the splash (no tap-to-continue — prototype-only). Sign-up calls TMP-05; sign-in uses Firebase Auth directly. The consent checkbox uses the exact statement in SDD §2.2. Institution accounts are assumed to use `@calbaptist.edu` emails (SDD RC-07).
 - **Acceptance criteria:** Each routing case demonstrated on device; an account created directly in Firebase Auth without consent cannot get past sign-in; staff sees no tabs; log out returns to Sign in.
 - **UI/UX:** Prototype: Splash; Sign up / Sign in; student tab bar; Export Carpool Data header + log out.
 - **Depends on:** TMP-02, TMP-04, TMP-05.
 - **Testing:** Instrumented/UI tests for routing; device check vs prototype.
-- **Constraints:** Hiding UI is not access control — consent enforcement also lives in rules (TMP-13).
+- **Constraints:** Hiding UI is not access control — consent enforcement also lives in rules (TMP-13) and in the shared function check (TMP-05).
 
 #### TMP-07 · Add developer script to create institution accounts
 - **Fields:** Phase 1 · Seq 3 · P1 · S · Backend, Infra
@@ -205,7 +206,7 @@ Prototype = https://claude.ai/artifact/BfQnzLbSXie9qTrGaGk7wP. Plan = `INTENT.md
 - **Outcome:** After sign-up (or sign-in without a starting address), Onboarding requires a starting address via TMP-08 and offers optional age, gender, interests, major, current year, commute-style traits and about me (≤ 300). Finishing saves the profile and goes to Search.
 - **SDD:** US-02; RC-03, RC-05, RC-13, RC-22, RC-30.
 - **Implementation context:** Starting address goes to the private-details record; other fields to the public profile; option chips come from seeded lists (TMP-12). Age, if entered, must be a whole number of 18 or older (RC-30, SDD v0.4).
-- **Acceptance criteria:** Cannot finish without a chosen starting address; optional fields skippable; quitting and signing in again returns here; values outside RC-30 or not in seeded lists are blocked in UI and rejected by rules.
+- **Acceptance criteria:** Cannot finish without a chosen starting address; optional fields skippable; quitting before finishing and signing in again returns here; once onboarding is completed (a starting address is saved), signing in goes straight to Search and never back to Onboarding; values outside RC-30 or not in seeded lists are blocked in UI and rejected by rules.
 - **UI/UX:** Prototype: Onboarding. Figure 2 Entry (Onboarding).
 - **Depends on:** TMP-06, TMP-08, TMP-12, TMP-13.
 - **Testing:** UI tests; device check vs prototype.
@@ -234,7 +235,7 @@ Prototype = https://claude.ai/artifact/BfQnzLbSXie9qTrGaGk7wP. Plan = `INTENT.md
 
 #### TMP-13 · Write baseline Security Rules with emulator tests
 - **Fields:** Phase 1 · Seq 3 · P0 · M · Security Rules, Testing
-- **Outcome:** Rules + tests for: private details owner-only; public profiles readable by owner or permitted viewers only; students write only their own profile within RC-30 and predefined values; no client writes to consent or permission records; institution accounts cannot read profiles; accounts without consent (and without institution claim) can read nothing.
+- **Outcome:** Rules + tests for: private details owner-only; public profiles readable by owner or permitted viewers only; students write only their own profile within RC-30 and predefined values; no client writes to consent or permission records; institution accounts cannot read profiles; accounts without a consent record (and without the institution claim), such as one created directly in Firebase Authentication outside ColPool's sign-up, can read or write nothing (RC-06).
 - **SDD:** RC-01, RC-03, RC-05, RC-06, RC-07, RC-22, RC-30.
 - **Acceptance criteria:** Every bullet above has a passing allow test and deny test.
 - **UI/UX:** Figure 1 (Firestore + Security Rules).
@@ -282,10 +283,13 @@ Prototype = https://claude.ai/artifact/BfQnzLbSXie9qTrGaGk7wP. Plan = `INTENT.md
 - **Fields:** Phase 2 · Seq 6 · P0 · L · Backend, Maps
 - **Outcome:** Callable function: validates the draft (TMP-15), calls Routes API Compute Routes once per weekday per direction (to campus: pickup → stops → drop-off; return: campus pickup → stops → pickup spot) without live traffic, computes per-leg miles/minutes and expected times (departure + earlier legs + earlier stop minutes), stores results on the server-side draft with a reviewed marker, and returns them. Names the failing address if a route can't be computed.
 - **SDD:** US-04; RC-04, RC-12, RC-14, RC-28; DD-07.
-- **Acceptance criteria:** Unit tests with fixed leg data confirm the expected-time formula; failing route returns the specific address; Routes key read only from secret storage; campus-departure check runs after times are known.
+- **Acceptance criteria:** Unit tests with fixed leg data confirm the expected-time formula; failing route returns the specific address; Routes key read only from secret storage; campus-departure check runs after times are known; the request-format test and the saved-response parsing test pass; the live check (layer 3 below) passes and its output is recorded in the PR.
 - **UI/UX:** Prototype: Review Calculated Route timelines. Figure 1 (Functions ↔ Routes API).
-- **Depends on:** TMP-15.
-- **Testing:** Unit tests with a mocked Routes client; one manual call against the real API documented.
+- **Depends on:** TMP-15, TMP-05 (shared consent check).
+- **Testing:** Three layers.
+  1. **Fake Routes client (runs in CI).** A stand-in for the Routes API that returns fixed leg miles and minutes. It checks the logic ColPool owns exactly and cheaply, with no key or network: waypoint order for both directions, the expected-time formula, the campus-departure check and the failing-address error.
+  2. **Matching the real API's format (runs in CI).** One test checks that the request ColPool builds (waypoint order, travel mode DRIVE, traffic-unaware routing, field mask) matches the documented Compute Routes request. Another feeds a real Routes API response through the parser: it is captured once from a manual call and saved as a test fixture, with no key in it. Together they catch wrong field names, units or response shape, which a fake alone cannot.
+  3. **Live check against the real API (run by hand, never in CI).** A small script, using the Routes key from Secret Manager, computes a known Riverside route to a campus point and checks that the miles and minutes fall in a plausible range. It also checks that an address with no driving route (for example one in Hawaii) returns the specific-address error. It needs access to the real Firebase project, so the owner may need to run it.
 - **Constraints:** The only place the Routes API is called (plan §4).
 
 #### TMP-17 · Implement post-series function with rechecks  *(merges TMP-21)*

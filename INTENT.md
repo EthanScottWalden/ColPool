@@ -97,6 +97,7 @@ Figure 1: Authentication, Cloud Functions, Firestore and Places. Figure 2: Entry
   - It checks the `@calbaptist.edu` domain, password length, name lengths and that consent was given.
   - It creates the Auth account, the user records and the consent record (with a server timestamp) in one step.
   - It removes the Auth account if any later part fails (RC-06).
+  - It provides a shared check that every student-facing function runs first, rejecting any account without a consent record, for example one created directly in Firebase Authentication outside ColPool's sign-up (RC-06).
 - **Sign-in and routing.**
   - A student with a starting address goes to Search, which is a placeholder for now.
   - A student without one goes back to Onboarding.
@@ -122,12 +123,13 @@ Figure 1: Authentication, Cloud Functions, Firestore and Places. Figure 2: Entry
   - Students can write only their own profile, within the RC-30 limits and predefined values.
   - No client writes to consent or permission records.
   - Institution accounts can't read profiles.
+  - An account without a consent record and without the institution claim can't read or write anything.
 
 ### Phase Acceptance Criteria
 
 - **Sign-up rules.** Sign-up fails for a non-CBU email, a password under 8 characters, a missing name, or unchecked consent. A successful sign-up creates the account and its consent record together.
 - **Consent is enforced.** An account created directly in Firebase Authentication, without a consent record, can't use the app.
-- **Onboarding.** A new student can't finish onboarding without choosing a starting address from the suggestions; typed free text is rejected. A student who quits onboarding and signs in later is sent back to it.
+- **Onboarding.** A new student can't finish onboarding without choosing a starting address from the suggestions; typed free text is rejected. A student who quits onboarding and signs in later is sent back to it. A student who has completed onboarding goes to Search when signing in, never back to Onboarding.
 - **Staff routing.** A staff account reaches only Export Carpool Data, with no tabs, and emulator tests show it can't read profiles.
 - **Privacy.** Emulator tests show:
   - another student can't read a student's starting address or email
@@ -766,7 +768,7 @@ Their bodies say so, and they get a `contract` label on the board. If an agent w
 | TMP-52 | Set up CI to run tests on pull requests | 1 | RC-04 | TMP-02, TMP-03 | No app screen. GitHub Actions runs the Android build and the Functions and Security Rules tests on the Emulator Suite for every pull request. No deploys and no secrets in CI. Added after the original inventory. |
 | TMP-14 | Define series, draft and seat data model, with its Security Rules | 2 | US-03, US-05; RC-01, RC-12, RC-15, RC-18 | TMP-04, TMP-13 | Prototype: Create Series and Hosted Series Details (what a series holds). Figure 1: Cloud Firestore; Security Rules. Absorbs former TMP-22. |
 | TMP-15 | Implement shared series validation, including RC-31 hosting limits | 2 | US-03; RC-12, RC-30, RC-31 | TMP-14 | Prototype: Create Series error box ("Fix these before continuing"). Figure 2: Create Series → Review Calculated Route. |
-| TMP-16 | Implement route-preview function with the Routes API | 2 | US-04; RC-04, RC-12, RC-14, RC-28; DD-07 | TMP-15 | Prototype: Review Calculated Route timelines. Figure 1: Cloud Functions ↔ Routes API. |
+| TMP-16 | Implement route-preview function with the Routes API | 2 | US-04; RC-04, RC-12, RC-14, RC-28; DD-07 | TMP-15, TMP-05 | Prototype: Review Calculated Route timelines. Figure 1: Cloud Functions ↔ Routes API. |
 | TMP-17 | Implement post-series function with rechecks and host visibility | 2 | US-03, US-04; RC-01, RC-12, RC-31; DD-06 | TMP-13, TMP-16 | Prototype: Review Calculated Route post confirmation sheet; Series Details "Your host" card. Figure 2: Review → post → Hosting. Absorbs former TMP-21. |
 | TMP-18 | Build Create Series screen | 2 | US-03; RC-05, RC-11, RC-13, RC-30; DD-10 | TMP-08, TMP-12, TMP-14 | Prototype: Create Series (pickup-spot hint, weekday schedule card, add-stop sheet and stop warning, campus-point chips), without the "Copy schedule" button. Figure 2: Hosting tab. |
 | TMP-19 | Build Review Calculated Route screen | 2 | US-04; DD-06; RISK-02 | TMP-16, TMP-18 | Prototype: Review Calculated Route (warning note, day tabs, timelines, post confirmation sheet). Figure 2: Create Series ↔ Review Calculated Route. |
