@@ -757,7 +757,7 @@ Their bodies say so, and they get a `contract` label on the board. If an agent w
 | TMP-02 | Create Android app connected to Firebase | 1 | US-01; RC-04, RC-25 | TMP-01 | Figure 1: Android device (ColPool app). |
 | TMP-03 | Configure Firebase Emulator Suite for local testing | 1 | RC-01, RC-05, RC-07 | TMP-01 | Figure 1: Firebase Authentication, Cloud Functions, Cloud Firestore + Security Rules. |
 | TMP-04 | Define core Firestore schema and profile-permission model | 1 | US-01, US-02; RC-01, RC-05, RC-06 | TMP-01 | Figure 1: Cloud Firestore + Security Rules. Prototype: Profile and Edit Profile (fields a profile holds). |
-| TMP-05 | Implement sign-up function with CBU domain check and consent record | 1 | US-01; RC-02, RC-06, RC-30; DD-01, DD-09 | TMP-04 | Prototype: Sign up / Sign in (Create account form, consent statement). Figure 1: app → Cloud Functions → Authentication. Figure 2: Entry. |
+| TMP-05 | Implement sign-up function with CBU domain check and consent record | 1 | US-01; RC-02, RC-06, RC-30; DD-01, DD-09 | TMP-03, TMP-04 | Prototype: Sign up / Sign in (Create account form, consent statement). Figure 1: app → Cloud Functions → Authentication. Figure 2: Entry. |
 | TMP-06 | Implement sign-in, role routing and app shells | 1 | US-01, US-02; RC-06, RC-07, RC-10 | TMP-02, TMP-04, TMP-05 | Prototype: Splash; Sign up / Sign in; student tab bar; Export Carpool Data header and log out. Figure 2: Entry and University staff routing. |
 | TMP-07 | Add developer script to create institution accounts | 1 | US-01; RC-06, RC-07 | TMP-04 | Figure 1: Firebase Authentication (custom claim: institution accounts). No app screen. |
 | TMP-08 | Integrate Places autocomplete with a restricted API key | 1 | RC-04, RC-13, RC-28 | TMP-01, TMP-02 | Prototype: address search sheet (search field and suggestions). Figure 1: app ↔ Places. |
@@ -909,3 +909,14 @@ None of these are product decisions. Each is settled in its first issue and reco
   - The Routes key exists only in the backend's secret storage, and the Places key is restricted to the ColPool app.
   - No key or credential is committed to the repository (RC-04).
 - **Wording.** User-facing text uses the SDD's terms ("ride series", "host", "rider", "request", "seat", "pickup spot", "stop") and never database or code names (RC-29). Times use the 12-hour format in Pacific time (RC-18).
+
+# 7 Handoff to GitHub Project
+
+Any candidate issues from this plan that are not yet represented as GitHub Issues will be created as GitHub Issues and added to the existing GitHub Project. The Project/Issues become the authoritative source for detailed work tracking, while this Implementation Plan remains the human-readable explanation of why the phases are ordered as they are and how the implementation maps back to the approved design.
+
+## 7.1 Final Readiness Checklist
+- Every MVP user story is represented by at least one implementation phase and candidate Issue.
+- Every phase has concrete deliverables and objective acceptance criteria.
+- Dependencies and sequencing are explicit enough that an agent should not guess the order of high-risk work.
+- Relevant UI/UX and architecture references are identified for future Issues.
+- The candidate Issue inventory is detailed enough to create GitHub Issues without redesigning the project from scratch.
