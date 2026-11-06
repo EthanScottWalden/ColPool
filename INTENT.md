@@ -909,3 +909,14 @@ None of these are product decisions. Each is settled in its first issue and reco
   - The Routes key exists only in the backend's secret storage, and the Places key is restricted to the ColPool app.
   - No key or credential is committed to the repository (RC-04).
 - **Wording.** User-facing text uses the SDD's terms ("ride series", "host", "rider", "request", "seat", "pickup spot", "stop") and never database or code names (RC-29). Times use the 12-hour format in Pacific time (RC-18).
+
+# 7 Handoff to GitHub Project
+
+Any candidate issues from this plan that are not yet represented as GitHub Issues will be created as GitHub Issues and added to the existing GitHub Project. The Project/Issues become the authoritative source for detailed work tracking, while this Implementation Plan remains the human-readable explanation of why the phases are ordered as they are and how the implementation maps back to the approved design.
+
+## 7.1 Final Readiness Checklist
+- Every MVP user story is represented by at least one implementation phase and candidate Issue.
+- Every phase has concrete deliverables and objective acceptance criteria.
+- Dependencies and sequencing are explicit enough that an agent should not guess the order of high-risk work.
+- Relevant UI/UX and architecture references are identified for future Issues.
+- The candidate Issue inventory is detailed enough to create GitHub Issues without redesigning the project from scratch.
