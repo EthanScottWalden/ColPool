@@ -5,8 +5,8 @@ CSCI 5520 – AI-Driven Software Development
 | | |
 |---|---|
 | **Student Name** | Ethan Walden |
-| **Date** | November 4, 2026 |
-| **Document Version** | v0.3 |
+| **Date** | November 6, 2026 |
+| **Document Version** | v0.4 |
 | **Project Repository / URL** | N/A |
 
 ---
@@ -60,7 +60,7 @@ The university receives an **institution account** that exports a weekly spreads
 **Accounts and consent**
 - University-based login, starting with California Baptist University (`@calbaptist.edu` emails only).
 - Students create their own accounts. Institution accounts belong to university staff. They are created by ColPool's developers, not through sign-up, and can only export data.
-- At sign-up, students must agree to a data-sharing consent statement: their scheduled carpool activity, including names, ride partners, days, pickup spots and estimated miles, will be shared with their university. Agreeing is required to create an account.
+- At sign-up, students must agree to a data-sharing consent statement: their scheduled carpool activity, including names, ride partners, days, pickup spots and estimated miles, will be shared with their university. Agreeing is required to create an account. The statement reads: "**Data-sharing consent.** I agree that my scheduled carpool activity (my name, email, who I ride with, which days, pickup spots and estimated miles) will be shared with my university."
 
 **Profiles and onboarding**
 - First and last name are required.
@@ -257,7 +257,7 @@ The university receives an **institution account** that exports a weekly spreads
 - the host of a series the user has requested or joined
 - other riders accepted on a weekday that the user is also accepted on, in the same series
 
-Users cannot view any other profiles. A student's email is visible only to that student, never to other students; the institution export is the only other place it appears. Institution accounts cannot view profiles in the app.
+Users cannot view any other profiles. Access lasts only while one of these cases holds: when it stops holding, for example because a rider leaves or is removed from a weekday, a weekday is declined or withdrawn, or a series is cancelled or ends, access ends immediately unless another case still applies. A student's email is visible only to that student, never to other students; the institution export is the only other place it appears. Institution accounts cannot view profiles in the app.
 
 **RC-02 – University-Scoped Access:** The MVP covers only CBU, so only `@calbaptist.edu` emails can be used to create a student account or sign in. If ColPool later supports other universities, students from different universities must never see, search for or interact with each other, and an institution account must only ever export data about its own university's students.
 
@@ -269,7 +269,7 @@ Users cannot view any other profiles. A student's email is visible only to that 
 
 **RC-06 – Data-Sharing Consent:** A student account cannot be created unless the student agrees to the data-sharing consent statement. The account and the record of when the student agreed are created together by the backend, so an account never exists without its consent record. Any student account without a consent record, for example one created outside ColPool's sign-up, cannot use the app. Institution accounts are created by ColPool's developers and carry the institution claim; they are exempt from this rule, since the consent statement covers students' data. There is no separate terms of service or privacy policy.
 
-**RC-07 – Institution Account Limits:** Institution accounts are created by ColPool's developers and belong to university staff. They can only export carpool data. They cannot view profiles, browse or search series, create or join series, or change any data.
+**RC-07 – Institution Account Limits:** Institution accounts are created by ColPool's developers and belong to university staff. For the MVP, institution accounts are assumed to use `@calbaptist.edu` emails, so the RC-02 sign-in rule applies to them unchanged. They can only export carpool data. They cannot view profiles, browse or search series, create or join series, or change any data.
 
 **RC-08 – No Media Uploads:** Profiles and all other app screens must not support uploading or displaying photos, videos or any other non-text or file-based media.
 
@@ -333,6 +333,7 @@ Users cannot view any other profiles. A student's email is visible only to that 
 - first name and last name: up to 30 characters each
 - about me: up to 300 characters
 - vehicle description: up to 60 characters
+- age (optional): a whole number, 18 or older
 
 ---
 
@@ -633,7 +634,7 @@ This prototype is a UI/UX reference for agentic developers. It is a design artif
 
 **RISK-10 – Riders Locked Out of Days:** Because of DD-13, a rider accepted only for Monday cannot ask to add Wednesday later, and a rider whose weekday was declined automatically cannot get back on when a seat opens. Riders in this position have to find another series. This is accepted for the MVP; revisit it if testing shows it frustrates riders.
 
-**RISK-11 – Students Under 18:** ColPool does not require or verify age (it is an optional profile field), so a student under 18 with a CBU email, such as a dual-enrollment student, could ride with or host adults they don't know. Almost all university students are 18 or older, so this is accepted as a risk for the MVP.
+**RISK-11 – Students Under 18:** ColPool does not require or verify age. Age is an optional profile field, and an entered age must be 18 or older (RC-30), but a student can leave it blank, so a student under 18 with a CBU email, such as a dual-enrollment student, could ride with or host adults they don't know. Almost all university students are 18 or older, so this is accepted as a risk for the MVP.
 
 ---
 
