@@ -1,6 +1,6 @@
 # ColPool Prototype v2 — screen captures
 
-These screenshots come from the interactive UI/UX prototype (SDD §6.2, https://claude.ai/artifact/BfQnzLbSXie9qTrGaGk7wP). They were captured on 2026-11-06 so that implementation agents can see the design without access to the prototype itself.
+These screenshots come from the interactive UI/UX prototype (SDD §6.2, https://claude.ai/artifact/BfQnzLbSXie9qTrGaGk7wP). They were captured on 2026-11-06 so that the design is visible directly in each issue. The prototype is public, so the link above can also be opened directly.
 
 **They are a reference, not an authority.** The SDD (`SPEC.md`) wins wherever the two disagree. In particular:
 
