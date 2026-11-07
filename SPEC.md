@@ -5,8 +5,8 @@ CSCI 5520 – AI-Driven Software Development
 | | |
 |---|---|
 | **Student Name** | Ethan Walden |
-| **Date** | November 6, 2026 |
-| **Document Version** | v0.4 |
+| **Date** | November 7, 2026 |
+| **Document Version** | v0.5 |
 | **Project Repository / URL** | N/A |
 
 ---
@@ -104,6 +104,8 @@ The university receives an **institution account** that exports a weekly spreads
 **Requests and riding**
 - A rider sends one request per series, listing the weekdays they want. The host accepts or declines each requested weekday separately. For example, a rider who asks for Monday and Wednesday can be declined for Monday and accepted for Wednesday. Riders can request a series that has already started, as long as seats are open, and ride each accepted weekday from its first trip that departs after the weekday is accepted.
 - A weekday can be accepted only if it has an open seat. When a weekday fills up, that weekday is declined automatically in every pending request that includes it; the request's other weekdays are not affected.
+- A weekday with no trips left (its last departure before the end date has passed) can't be found in search, requested or accepted (RC-33).
+- A student can't be scheduled in two places on the same weekday. They can't be accepted on a weekday they already ride in another series or host, during overlapping dates. When one of their weekdays is accepted, any conflicting pending weekday in their other requests is declined automatically (RC-32).
 - The rider can leave any accepted weekday, or withdraw any pending weekday, at any time, one weekday at a time or all at once. The host can remove a rider from any of their accepted weekdays at any time, one weekday at a time. A rider cannot request the same series twice, and cannot rejoin a weekday they left, were removed from, or were declined for.
 - A rider is assumed to ride every scheduled trip on each accepted weekday that departs from the pickup spot after the weekday was accepted, and before the rider leaves that weekday, the host removes them from it, or the series is cancelled or ends. For example, a Monday accepted on Monday evening starts with the next Monday's trip, and a rider who leaves Monday at noon is still counted for that morning's trip.
 - Hosts can see each of their series, the riders on each weekday, incoming requests, and the profiles of requesters and accepted riders.
@@ -113,7 +115,7 @@ The university receives an **institution account** that exports a weekly spreads
 **Notifications**
 - In-app banner notifications, plus a notification history with unread indicators, for:
   - a new request
-  - a requested weekday being accepted, declined or automatically declined
+  - a requested weekday being accepted, declined or automatically declined (because it filled up, or because of a schedule conflict)
   - a rider being removed from a weekday by the host
   - a rider leaving an accepted weekday
   - a rider withdrawing a pending weekday from their request
@@ -121,7 +123,7 @@ The university receives an **institution account** that exports a weekly spreads
   - a series reaching its end date
 
 **Institution data export**
-- The institution account can export a CSV file that opens in Excel, covering any date range the staff member chooses. Each row covers one student, one series and one week, and includes:
+- The institution account can export a CSV file that opens in Excel, covering any date range the staff member chooses that ends no later than today. Each row covers one student, one series and one week, and includes:
   - the student's name and email
   - whether they hosted or rode in the series
   - the host's name
@@ -174,7 +176,7 @@ The university receives an **institution account** that exports a weekly spreads
 
 **US-03 – Host a Ride Series**
 - **User Story:** As a student with a car, I can post a recurring round trip between my pickup spot and campus, so that nearby students with compatible schedules can join it.
-- **Pass/Fail Check:** A series can be posted only with a pickup spot (entered with address autocomplete), a start and end date, a flat cash price per round trip, a vehicle description, a maximum number of riders, at least one weekday, and, for each weekday, a departure time from the pickup spot, a campus drop-off point, a campus pickup point for the return trip, and a departure time from that campus pickup point. Campus drop-off and pickup points are chosen from the university's list and can differ by weekday and by direction. Each weekday and direction can have its own ordered stops, each with an address and the minutes the host expects to spend there. While entering the pickup spot and stops, the host sees a note recommending public places rather than a home or school, since these addresses are visible to every student who searches. A series cannot be posted if a required field is missing or outside its allowed range (RC-30), if its start date is in the past, if its end date is before its start date, if no date in its range falls on one of its weekdays, if on any weekday the departure time from campus is earlier than the expected arrival at campus, or if it would break the hosting limits in RC-31. A posted series cannot be edited. Open seats are tracked separately for each weekday.
+- **Pass/Fail Check:** A series can be posted only with a pickup spot (entered with address autocomplete), a start and end date, a flat cash price per round trip, a vehicle description, a maximum number of riders, at least one weekday, and, for each weekday, a departure time from the pickup spot, a campus drop-off point, a campus pickup point for the return trip, and a departure time from that campus pickup point. Campus drop-off and pickup points are chosen from the university's list and can differ by weekday and by direction. Each weekday and direction can have its own ordered stops, each with an address and the minutes the host expects to spend there. While entering the pickup spot and stops, the host sees a note recommending public places rather than a home or school, since these addresses are visible to every student who searches. A series cannot be posted if a required field is missing or outside its allowed range (RC-30), if its start date is in the past, if its end date is before its start date, if no date in its range falls on one of its weekdays, if on any weekday the departure time from campus is earlier than the expected arrival at campus, if it would break the hosting limits in RC-31, or if it runs on a weekday the host is accepted on as a rider during overlapping dates (RC-32). A posted series cannot be edited. Open seats are tracked separately for each weekday.
 
 **US-04 – Calculated Route and Times**
 - **User Story:** As a student, I can see how far each trip goes and when it reaches each point, so that I know when to be ready and how long the commute takes.
@@ -186,7 +188,7 @@ The university receives an **institution account** that exports a weekly spreads
 
 **US-06 – Cancel a Ride Series**
 - **User Story:** As a student, I can cancel a ride series I host, so that riders do not expect trips that will not happen.
-- **Pass/Fail Check:** Cancelling requires confirmation. A cancelled series disappears from search and from the host's and riders' lists, all of its remaining trips end, and every rider with a pending or accepted request is notified. Trips that departed before the cancellation remain in the institution export.
+- **Pass/Fail Check:** Cancelling requires confirmation. A cancelled series disappears from search and from the host's and riders' lists, all of its remaining trips end, its pending weekdays become declined, and every rider with a pending or accepted request gets one cancellation notification (not a separate decline notification for each weekday). Trips that departed before the cancellation remain in the institution export.
 
 **US-07 – View Incoming Requests**
 - **User Story:** As a student, I can view all requests for each series I host, so that I know who wants to join and who is already riding.
@@ -194,13 +196,13 @@ The university receives an **institution account** that exports a weekly spreads
 
 **US-08 – Manage Requests**
 - **User Story:** As a student, I can accept, decline or remove riders on a series I host, so that I control who rides with me.
-- **Pass/Fail Check:** The host accepts or declines each pending weekday of a request separately; deciding one weekday does not change the others. A weekday can be accepted only if it has an open seat, and accepting it reduces that weekday's open seats by one. A request leaves the host's list of requests once none of its weekdays are pending. The host can remove a rider from any one of their accepted weekdays at any time, which reopens one seat on that weekday and leaves the rider's other weekdays unchanged. When a weekday reaches its maximum riders, that weekday is declined automatically in every pending request that includes it.
+- **Pass/Fail Check:** The host accepts or declines each pending weekday of a request separately; deciding one weekday does not change the others. A weekday can be accepted only if it has an open seat, has trips left (RC-33) and doesn't conflict with the rider's schedule (RC-32), and accepting it reduces that weekday's open seats by one. A request leaves the host's list of requests once none of its weekdays are pending. The host can remove a rider from any one of their accepted weekdays at any time, which reopens one seat on that weekday and leaves the rider's other weekdays unchanged. When a weekday reaches its maximum riders, that weekday is declined automatically in every pending request that includes it.
 
 ### 3.3 Riding
 
 **US-09 – Search for Ride Series**
 - **User Story:** As a student, I can find ride series that leave near me on the days I need, so that I can get to campus and back home.
-- **Pass/Fail Check:** The rider selects one or more weekdays. Results include only series with an open seat on at least one selected weekday, and mark which of the selected weekdays have seats. Results are ordered by straight-line distance from the rider's starting address to each pickup spot, nearest first, and each result shows that distance. Results never include the rider's own series, series the rider has already requested, cancelled series, or series whose end date has passed. The rider can open any result to see its full schedule and the host's profile.
+- **Pass/Fail Check:** The rider selects one or more weekdays. Results include only series with an open seat and trips left (RC-33) on at least one selected weekday, and mark which of the selected weekdays are available. Results are ordered by straight-line distance from the rider's starting address to each pickup spot, nearest first, and each result shows that distance. Results never include the rider's own series, series the rider has already requested, cancelled series, or series whose end date has passed. The rider can open any result to see its full schedule and the host's profile.
 
 **US-10 – Preference Match**
 - **User Story:** As a student, I can choose the interests, major, year and commute style I would like in a host, so that I can see which nearby rides suit me best.
@@ -208,7 +210,7 @@ The university receives an **institution account** that exports a weekly spreads
 
 **US-11 – Request to Join**
 - **User Story:** As a student, I can request to join a series on the weekdays that fit my schedule, so that I have a regular ride to campus and back.
-- **Pass/Fail Check:** The rider selects one or more of the series' weekdays and sends a request. A request can be sent only if each selected weekday has an open seat, the series is not the rider's own, and the rider has never requested this series before. A series that has already started can be requested; the rider rides each accepted weekday from its first trip that departs after the weekday is accepted.
+- **Pass/Fail Check:** The rider selects one or more of the series' weekdays and sends a request. A request can be sent only if each selected weekday has an open seat and trips left (RC-33), no selected weekday conflicts with a weekday the rider is already accepted on or hosts (RC-32), the series is not the rider's own, and the rider has never requested this series before. A series that has already started can be requested; the rider rides each accepted weekday from its first trip that departs after the weekday is accepted.
 
 **US-12 – Leave Days or Cancel a Request**
 - **User Story:** As a student, I can leave or withdraw individual weekdays of a series, or all of them at once, so that I am not committed to rides I no longer need.
@@ -228,12 +230,14 @@ The university receives an **institution account** that exports a weekly spreads
 - **User Story:** As a user, I receive in-app notifications about changes to my series and requests, so that I stay informed about my commute.
 - **Pass/Fail Check:** A banner appears at the top of the screen and disappears automatically after a short time when any of these events occur:
   - a new request arrives on one of the user's series (host)
-  - a weekday of the user's request is accepted, declined, or automatically declined because it filled up (rider); each weekday decision sends its own notification, even when the host decides several weekdays at once
+  - a weekday of the user's request is accepted, declined, or automatically declined because it filled up or because of a schedule conflict (RC-32) (rider); each weekday decision sends its own notification, even when the host decides several weekdays at once
   - the host removes the user from a weekday (rider)
   - a rider leaves one of their accepted weekdays (host)
   - a rider withdraws a pending weekday from their request (host)
   - a series the user has a pending or accepted request on is cancelled (rider)
-  - a series the user hosts or rides in reaches its end date (host and riders)
+  - a series the user hosts, or has a pending or accepted request on, reaches its end date (host and riders)
+
+  When a series is cancelled or ends, its pending weekdays become declined without separate decline notifications; the single cancellation or end notification covers them.
 
 **US-16 – Notification History**
 - **User Story:** As a user, I can view my past notifications, so that I can catch up on updates I missed while away from the app.
@@ -243,7 +247,7 @@ The university receives an **institution account** that exports a weekly spreads
 
 **US-17 – Export Carpool Data**
 - **User Story:** As a university staff member, I can export student carpool data for a date range I choose, so that the university can use it for parking, sustainability reporting and transportation planning.
-- **Pass/Fail Check:** The staff member chooses any start and end date and exports a CSV file that opens in Excel. The file has one row for each student, series and calendar week (Monday to Sunday) within the range that has at least one scheduled round trip. Each row contains the student's name and email, whether they hosted or rode, the host's name, the series' pickup spot, the dates of scheduled round trips that week, the number of scheduled round trips, and the estimated miles (the series' round-trip route miles for each scheduled trip), labelled as passenger miles on rider rows and vehicle miles on host rows so the two are not added together. A host's trip counts only if at least one accepted rider is scheduled on it. Trips count according to RC-23, so trips from cancelled and ended series are included if they departed before the series was cancelled or ended. The file states that it lists scheduled trips, not verified ones. It can be shared through Android's standard share menu. Only institution accounts can export.
+- **Pass/Fail Check:** The staff member chooses a start date and an end date no later than today (in the university's time zone) and exports a CSV file that opens in Excel. A range with a start date after its end date, or an end date after today, is rejected. The file has one row for each student, series and calendar week (Monday to Sunday) within the range that has at least one scheduled round trip. Each row contains the student's name and email, whether they hosted or rode, the host's name, the series' pickup spot, the dates of scheduled round trips that week, the number of scheduled round trips, and the estimated miles (the series' round-trip route miles for each scheduled trip), labelled as passenger miles on rider rows and vehicle miles on host rows so the two are not added together. A host's trip counts only if at least one accepted rider is scheduled on it. Trips count according to RC-23, so trips from cancelled and ended series are included if they departed before the series was cancelled or ended. The file states that it lists scheduled trips, not verified ones. It can be shared through Android's standard share menu. Only institution accounts can export.
 
 ---
 
@@ -291,11 +295,21 @@ Users cannot view any other profiles. Access lasts only while one of these cases
 
 **RC-16 – One Request Per Series:** A student cannot send more than one request to the same series. Once a request is sent, the student can never send another request to that series, and cannot rejoin any weekday they withdrew, left, were removed from, or were declined for (including automatically).
 
-**RC-17 – Series Availability:** Cancelled series, and series whose end date has passed, are removed from search and from users' lists. Series that have started but not ended stay searchable while they have open seats. The backend's clock decides what has ended, not the device's.
+**RC-17 – Series Availability:** Cancelled series, and series whose end date has passed, are removed from search and from users' lists. When a series is cancelled or ends, its pending weekdays become declined. Series that have started but not ended stay searchable while they have a weekday with an open seat and trips left (RC-33). The backend's clock decides what has ended, not the device's.
 
 **RC-18 – Time Zone Consistency:** All times, including departures, stop times and expected arrivals, are entered and displayed in 12-hour format in the time zone of the university's location, following daylight saving time. Export dates use the same time zone.
 
 **RC-31 – Hosting Limits:** A student can host at most five active series at once (posted, not cancelled and not ended). No two active series they host can share a weekday during overlapping date ranges, so a host is never scheduled to drive two series on the same day. Series hosted back to back, such as one per semester, can use the same weekdays. The backend checks both limits when the host continues to review and again when posting. (Numbered RC-31 so that existing rule numbers stay the same.)
+
+**RC-32 – Rider Schedule Conflicts:** A student is never scheduled for two trips on the same weekday. Two series conflict on a weekday when both run on it and their date ranges overlap. Then:
+- A rider cannot be accepted on a weekday if they are already accepted on a conflicting weekday of another active series, or host an active series that conflicts on it.
+- A rider may have pending requests for the same weekday on several series. When one of those weekdays is accepted, the backend declines the rider's conflicting pending weekdays in their other requests automatically, in the same atomic step, and notifies the rider for each one. As with every decline, those weekdays cannot be rejoined (RC-16).
+- A request is rejected if any chosen weekday conflicts with a weekday the rider is already accepted on or hosts.
+- A host cannot review or post a series on a weekday they are accepted on as a rider in a conflicting series.
+
+Series hosted or ridden back to back can use the same weekdays. The backend checks these rules on every request, acceptance, review and posting.
+
+**RC-33 – Weekdays With No Trips Left:** A weekday of a series has trips left while at least one date on that weekday, on or before the end date, has a departure from the pickup spot that is still in the future by the backend's clock. A weekday with no trips left is unavailable even if it has open seats: search does not show it as available or use it to include the series, and it cannot be requested or accepted. It stays pending in any existing request until it is declined or the series ends.
 
 ### 4.3 Search and Matching
 
@@ -309,7 +323,7 @@ Users cannot view any other profiles. Access lasts only while one of these cases
 
 ### 4.4 Institution Export
 
-**RC-23 – Export Content:** The export is a CSV file that opens in Excel. It is built on the backend from stored series and request records, using the stored route distances. Miles and trip counts follow US-17. A rider's trip on an accepted weekday counts if the weekday was accepted before that trip's scheduled departure from the pickup spot, and the rider had not left or been removed from that weekday, nor the series been cancelled, before that departure. Trips after the series' end date never count. A host's trip counts only if at least one rider's trip counts on it. Rider rows report passenger miles and host rows report vehicle miles, labelled so they are not added together. The file is labelled as scheduled trips, not verified trips.
+**RC-23 – Export Content:** The export is a CSV file that opens in Excel. Its date range must end no later than today in the university's time zone. It is built on the backend from stored series and request records, using the stored route distances. Miles and trip counts follow US-17. A rider's trip on an accepted weekday counts if the weekday was accepted before that trip's scheduled departure from the pickup spot, and the rider had not left or been removed from that weekday, nor the series been cancelled, before that departure. Trips after the series' end date never count. A host's trip counts only if at least one rider's trip counts on it. Rider rows report passenger miles and host rows report vehicle miles, labelled so they are not added together. The file is labelled as scheduled trips, not verified trips.
 
 **RC-24 – Data Retention:** Series, request and consent records are kept after a series ends or is cancelled, so that past date ranges can still be exported. The MVP does not delete accounts or carpool records, and consent cannot be withdrawn once given.
 
@@ -602,6 +616,11 @@ This prototype is a UI/UX reference for agentic developers. It is a design artif
 - **Hosting limits (v0.2 OQ-01):** at most five active series per host, and no shared weekdays during overlapping dates (RC-31).
 - **Required profile fields (v0.2 OQ-02):** only first name, last name and starting address. Every other profile field stays optional.
 - **Combining notifications (v0.2 OQ-03):** no combining. Each weekday decision sends its own notification (US-15).
+- **Rider schedule conflicts (v0.5):** a student can't be accepted on two series, or ride and host, on the same weekday during overlapping dates. Conflicting pending weekdays are declined automatically when one is accepted (RC-32).
+- **Weekdays with no trips left (v0.5):** unavailable for search, requests and acceptance (RC-33).
+- **Pending weekdays at cancellation or end (v0.5):** they become declined, covered by the single cancellation or end notification, which also reaches riders whose weekdays were all pending (US-06, US-15).
+- **Export date range (v0.5):** the range must end no later than today; future dates are rejected (US-17, RC-23).
+- **Moderation, eligibility and payment wording (v0.5):** no report, block or content filter; any `@calbaptist.edu` address may create a student account; no extra wording about cash or insurance. Recorded as RISK-12, RISK-13 and RISK-14.
 - **Campus points (v0.2 OQ-06):** developers maintain the list. For CBU the MVP list is Yeager Center, Music Building, Health Science, Lancer Plaza and Events Center (RC-11). Points near residence halls can be added later.
 
 **Open questions:** none remain for the MVP.
@@ -635,6 +654,12 @@ This prototype is a UI/UX reference for agentic developers. It is a design artif
 **RISK-10 – Riders Locked Out of Days:** Because of DD-13, a rider accepted only for Monday cannot ask to add Wednesday later, and a rider whose weekday was declined automatically cannot get back on when a seat opens. Riders in this position have to find another series. This is accepted for the MVP; revisit it if testing shows it frustrates riders.
 
 **RISK-11 – Students Under 18:** ColPool does not require or verify age. Age is an optional profile field, and an entered age must be 18 or older (RC-30), but a student can leave it blank, so a student under 18 with a CBU email, such as a dual-enrollment student, could ride with or host adults they don't know. Almost all university students are 18 or older, so this is accepted as a risk for the MVP.
+
+**RISK-12 – No Moderation or Reporting:** Users write free text (names, about me, vehicle descriptions) and ride with people they don't know, but ColPool has no way to report or block a user and no content filter, and institution accounts cannot moderate. This is accepted for the MVP.
+
+**RISK-13 – Non-Students With CBU Emails:** Sign-up checks only the email domain, so CBU faculty and staff can also create student accounts and appear in the export as students. This is accepted for the MVP.
+
+**RISK-14 – Cash Payments and Insurance:** Hosts collect cash from riders, and a driver's personal car insurance may not cover rides they are paid for. ColPool shows no wording about payments or insurance beyond the note that drivers aren't verified. This is accepted for the MVP.
 
 ---
 

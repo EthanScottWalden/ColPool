@@ -16,7 +16,7 @@ ColPool will be built as a native Kotlin Android app backed by Firebase:
 
 Address entry uses Google Places on the device. Route calculation uses the Google Routes API on the backend.
 
-The implementation delivers the MVP defined in SDD v0.4 §2.2, and nothing beyond it:
+The implementation delivers the MVP defined in SDD v0.5 §2.2, and nothing beyond it:
 
 - CBU student accounts created with data-sharing consent
 - profiles with a private starting address
@@ -30,7 +30,7 @@ The plan keeps the SDD's trust boundary throughout. The app reads permitted data
 
 ## 1.2 Source Design Artifacts
 
-- **Software Design Document:** ColPool SDD v0.4 (November 6, 2026), including RC-31 (hosting limits).
+- **Software Design Document:** ColPool SDD v0.5 (November 7, 2026), including RC-31 (hosting limits), RC-32 (rider schedule conflicts) and RC-33 (weekdays with no trips left).
 - **Interactive UI/UX prototype:** ColPool Prototype v2, https://claude.ai/artifact/BfQnzLbSXie9qTrGaGk7wP (SDD §6.2). It's a reference for look and behavior, not an authority; the SDD wins where they differ. §6.2 lists the known differences.
 - **Architecture reference:** SDD Figure 1 and the technology table in §5.1.
 - **Experience-flow reference:** SDD Figure 2 and §6.1. Screen names in this plan follow Figure 2.
@@ -38,7 +38,7 @@ The plan keeps the SDD's trust boundary throughout. The app reads permitted data
 
 ## 1.3 Planning Assumptions & Scope Guardrails
 
-- **What's authoritative.** SDD v0.4 is the authoritative design. Prototype-only features are not built: copying a day's schedule, the splash screen waiting for a tap, the simulation panel, demo logins and sample data.
+- **What's authoritative.** SDD v0.5 is the authoritative design. Prototype-only features are not built: copying a day's schedule, the splash screen waiting for a tap, the simulation panel, demo logins and sample data.
 - **No open MVP questions.** Holidays (OQ-04) and notifications while away (OQ-05) have MVP answers. Holiday dates count as scheduled trips, and there are no push notifications. Agents must not build a no-class calendar, skippable dates or push notifications.
 - **Platform.** Android only and CBU only (RC-02, RC-25). Map display, GPS, in-app payments, messaging and editing a posted series stay out of scope (SDD §2.3).
 - **One environment.** The MVP uses a single Firebase project; its only users are the owner and student testers. Local development and automated tests (including CI) run on the Firebase Emulator Suite. Separate dev/staging/production projects are revisited only if ColPool goes past the MVP.
@@ -211,6 +211,7 @@ Figure 1: Cloud Functions and the Routes API. Figure 2: Hosting tab.
   - at least one matching date
   - leaving campus no earlier than the expected arrival
   - the RC-31 hosting limits
+  - no weekday the host is accepted on as a rider in a conflicting series (RC-32)
 - **Route-preview function.**
   - It calls the Routes API once for each weekday and direction, without live traffic.
   - It calculates expected times as RC-14 describes.
@@ -244,6 +245,7 @@ Figure 1: Cloud Functions and the Routes API. Figure 2: Hosting tab.
   - no date falls on its weekdays
   - it leaves campus before arriving
   - it breaks RC-31
+  - it runs on a weekday the host is accepted on as a rider during overlapping dates (RC-32)
 
   RC-31 tests show that cancelled and ended series don't count, using seeded data.
 - **Route calculation.**
@@ -318,6 +320,7 @@ Figure 1: the app reading Firestore directly, Cloud Functions, and Firestore lis
 - **Search.**
   - The rider picks weekdays. The search finds active series with an open seat on at least one of them, using the copied open-weekday field from Phase 2.
   - It excludes the rider's own series and any series they've already requested.
+  - A weekday with no trips left doesn't count as available (RC-33). Search can work this out from the series' schedule and end date; the request and accept functions enforce it on the server's clock.
   - Results are ranked on the device by straight-line distance from the rider's starting coordinates. No Maps call is made (RC-19, RC-28).
   - Each result shows its distance, weekday chips (open, full or not needed), the times for the first matching day, and the price.
 - **Preferences and match percentage.**
@@ -331,7 +334,7 @@ Figure 1: the app reading Firestore directly, Cloud Functions, and Firestore lis
   - A weekday picker for the request, with full days and days the series doesn't run disabled.
   - The note that drivers aren't verified (RISK-01).
 - **Send-request function.**
-  - It checks that each chosen weekday has an open seat, that the series isn't the rider's own, and that the rider has never requested it before. That last check is enforced with one request record per rider and series (RC-16).
+  - It checks that each chosen weekday has an open seat and trips left (RC-33), that no chosen weekday conflicts with one the rider is accepted on or hosts (RC-32), that the series isn't the rider's own, and that the rider has never requested it before. That last check is enforced with one request record per rider and series (RC-16).
   - It creates the pending request.
   - It lets the host view the requester's profile (RC-01).
   - It notifies the host.
@@ -360,7 +363,7 @@ Figure 1: the app reading Firestore directly, Cloud Functions, and Firestore lis
   - No Maps call is made during search.
 - **Match percentage.** It appears only when preferences are set, follows RC-21 and the Section 6 formula, and doesn't change the order. Clearing preferences removes it.
 - **Request rules.**
-  - A request is accepted only when every chosen weekday has an open seat, the series isn't the rider's own, and it's their first request to that series.
+  - A request is accepted only when every chosen weekday has an open seat and trips left, no chosen weekday conflicts with one the rider is accepted on or hosts, the series isn't the rider's own, and it's their first request to that series (RC-16, RC-32, RC-33).
   - A second request is rejected by the backend even if the UI is bypassed.
 - **Host view and privacy.** The host sees the new request with each weekday's status and can open the requester's profile. A rules test shows an unrelated student can't read that profile.
 - **Notifications.**
@@ -423,7 +426,8 @@ Figure 1: Cloud Functions writing seats, requests, permissions and notifications
 ### Deliverables
 
 - **Accept/decline function**, for one pending weekday at a time.
-  - A weekday can be accepted only if it has an open seat.
+  - A weekday can be accepted only if it has an open seat, has trips left (RC-33) and doesn't conflict with a weekday the rider is already accepted on or hosts (RC-32).
+  - In the same transaction as an acceptance, the rider's conflicting pending weekdays in other series are declined automatically, with one notification each (RC-32).
   - In one transaction it updates the seat count, the request's weekday status, the acceptance timestamp and the series' open-weekday field (RC-15).
   - When the accepted weekday fills up, that weekday is declined automatically in every other pending request that includes it. Each affected rider is notified, and their other weekdays are left alone.
   - The rider is notified of each decision, one notification per weekday (US-15).
@@ -437,12 +441,12 @@ Figure 1: Cloud Functions writing seats, requests, permissions and notifications
   - Nothing a rider leaves, withdraws, is removed from or is declined for can be rejoined (RC-16, DD-13).
 - **Cancel-series function.**
   - The host confirms, and the cancellation time is recorded.
-  - The series leaves search and every list, and pending weekdays are closed.
-  - Everyone with a pending or accepted request is notified (US-06).
+  - The series leaves search and every list, and pending weekdays become declined.
+  - Everyone with a pending or accepted request gets one cancellation notification, with no separate decline notifications (US-06).
   - The host stays visible to all students only if they still host another active series.
 - **Daily end-of-series job.**
   - It runs on the server's clock in the university's time zone (RC-17, RC-18).
-  - It marks series ended once their end date has passed, notifies the host and riders, and updates search fields and permissions.
+  - It marks series ended once their end date has passed, declines pending weekdays, notifies the host and every rider with a pending or accepted request (one notification each, US-15), and updates search fields and permissions.
   - It's safe to run twice.
   - The ended series' records are kept (RC-24).
 - **Hosted Series Details, completed.**
@@ -472,6 +476,8 @@ Figure 1: Cloud Functions writing seats, requests, permissions and notifications
   - Removing or leaving reopens exactly one seat on that weekday.
 - **Last seat.** In emulator tests, two accepts racing for the last seat on a weekday result in exactly one success. An accept racing a rider leaving also stays consistent (RC-15, RISK-03).
 - **Auto-decline.** When a weekday fills, its pending entries in other requests are declined automatically and those riders are notified. Their other weekdays are unchanged.
+- **Schedule conflicts and trips left.** A rider can't be accepted on a weekday that conflicts with one they ride or host (RC-32), or on a weekday with no trips left (RC-33). Accepting a weekday auto-declines the rider's conflicting pending weekdays in other series, with a notification for each. Tests cover overlapping and back-to-back date ranges.
+- **Cancel and end.** Pending weekdays become declined, and each affected rider gets only the one cancellation or end notification.
 - **No rejoining.** A rider can't rejoin a weekday they left, withdrew, were removed from or were declined for, and can't send a second request. The backend enforces this.
 - **Riding view.**
   - The Riding tab shows every pending and accepted request on active series, with each weekday's status.
@@ -537,7 +543,7 @@ Figure 1: the app calling Cloud Functions and receiving the CSV file. Figure 2: 
   - There is one implementation, used by the export and by any later check.
   - It's structured so a no-class-days filter could be added later (OQ-04), but none is built now.
 - **Export function.**
-  - It accepts calls only from accounts with the institution claim, and checks the date range.
+  - It accepts calls only from accounts with the institution claim, and checks the date range: the start can't be after the end, and the end can't be after today in Pacific time (US-17, RC-23).
   - It builds one row per student, series and Monday–Sunday week that has at least one counted trip, using dates in the university's time zone (RC-18).
   - Each row has: name, email, role (host or rider), host name, pickup spot, trip dates, trip count, estimated miles and mile type (passenger or vehicle).
   - The file is labelled as scheduled trips, not verified ones.
@@ -566,6 +572,7 @@ Figure 1: the app calling Cloud Functions and receiving the CSV file. Figure 2: 
   - No starting address appears anywhere.
 - **Date handling.**
   - Rows are grouped into Monday–Sunday weeks in Pacific time.
+  - A range ending after today (Pacific) is rejected.
   - Trips from cancelled and ended series appear only for departures before the cancellation or end.
 - **Sharing.** The file can be shared through Android's share menu, for example to email or Google Drive.
 
