@@ -1,20 +1,19 @@
-You are helping me create docs/POLICY.md for this software project.
+You are helping me create docs/ROADMAP.md for this software project.
 
-Use the SDD user roles/stories, acceptance criteria, requirements/constraints, scope/non-goals, relevant design decisions/open questions, and the applicable Implementation Plan guardrails. Do not invent new product policy. Treat SDD and implementation plan as authoritative.
+Use the approved MVP scope, Implementation Plan phase summary, major phase goals/deliverables, cross-phase dependencies, and the GitHub Project link as the authoritative inputs.
 
-Create a concise, durable policy document containing rules that should remain true across many implementation tasks. Organize it around the categories that actually apply to this project, such as:
-- User roles, permissions, and authorization expectations
-- Domain/business rules and required workflows
-- User-facing terminology and meaning of important domain concepts
-- Validation/data-handling rules
-- Privacy/security rules that are policy rather than architecture
-- Legal, ethical, organizational, or compliance constraints
-- Important non-goals or prohibited behavior that implementation must preserve
-- Unresolved policy questions that must NOT be guessed
-- Traceability to relevant US-## / RC-## / DD-## items where useful
+Create a concise high-level roadmap that lets a human developer or AI agent understand where the project is going without duplicating the detailed GitHub backlog.
 
-Keep architecture structure and technology boundaries OUT unless they are necessary to state the policy; those belong in docs/ARCHITECTURE.md. Keep coding style, test commands, and personal developer preferences OUT; those belong in CLAUDE.md, skills/rules, or development documentation later.
+The roadmap should:
+- State the current MVP/product direction in a few sentences
+- List the major implementation phases/modules/features in their intended order
+- Give each phase a short goal or outcome, not a task-by-task checklist
+- Mention only important dependencies or sequencing relationships
+- Link to the GitHub Project and, where useful, major phase/epic Issues
+- Explicitly state that GitHub Projects/Issues are the authoritative source for detailed task definitions, acceptance criteria, sequencing, status, and day-to-day work tracking
+- Avoid copying every Issue, acceptance criterion, status field, or sub-task into Markdown
+- Identify high-level future/post-MVP directions separately if they are already approved; do not invent speculative features
 
-After producing the initial draft, identify missing or ambiguous product/domain policies and INTERVIEW ME with focused questions. Do not invent answers. Incorporate my answers only after I respond.
+Keep ROADMAP.md short enough to scan quickly and stable enough that it changes when high-level direction changes, not every time an individual Issue moves columns.
 
-Aim for a document that a future implementation agent can consult to answer, "What enduring rules must my implementation obey?"
+Before finalizing, flag any mismatch you see between the Implementation Plan and GitHub Project rather than silently choosing one.
