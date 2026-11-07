@@ -1,8 +1,8 @@
 # ColPool — Architecture
 
-> **Status:** Draft v0.1 (2026-11-07). Derived from SDD v0.4 (`SPEC.md`) and the Implementation Plan (`INTENT.md`).
+> **Status:** Draft v0.2 (2026-11-07). Derived from SDD v0.5 (`SPEC.md`) and the Implementation Plan (`INTENT.md`).
 > **Authority:** `SPEC.md` wins on product behavior and rules; `INTENT.md` wins on sequencing and agent guardrails. This file summarizes the architecture those documents approve. If this file disagrees with them, they win and this file is fixed. If an issue seems to conflict with any of them, **stop and flag it** — don't pick an answer.
-> **Scope:** Architecture only. Feature tasks live in GitHub Issues; domain policies will live in `docs/POLICY.md`.
+> **Scope:** Architecture only. Feature tasks live in GitHub Issues; domain policies live in `docs/POLICY.md`.
 
 ---
 
@@ -62,6 +62,7 @@ Not in the approved stack (don't add without a documented human decision): Cloud
 | Exact Firestore collection layout | #13 (TMP-04), #20 (TMP-14) | _TBD_ |
 | How rules recognize a consented student (custom claim vs reading the consent record) | #13 (TMP-04) | _TBD_ |
 | How profile permissions and weekday rosters are stored | #13 (TMP-04), #44 (TMP-37) | _TBD_ |
+| How the backend finds a student's accepted and hosted weekdays across series for RC-32 conflict checks (e.g. a per-student schedule record kept in the same transactions) | #13 (TMP-04), #20 (TMP-14) | _TBD_ |
 | Phase 6 performance dataset size | #50 (TMP-48) | _TBD_ |
 
 ---
@@ -85,13 +86,13 @@ Not in the approved stack (don't add without a documented human decision): Cloud
 |---|---|---|
 | Sign-up | Checks `@calbaptist.edu`, password, name lengths, consent; creates Auth account + user records + consent record (server timestamp) in one step; deletes the Auth account if a later step fails, and logs failures. | RC-06, INTENT §3.1 |
 | Route preview | Runs shared validation; calls Routes once per weekday × direction; computes expected times; stores result on a **server-side draft** with a "what was reviewed" marker; names the failing address. | RC-12, RC-14, RC-28 |
-| Post series | Re-runs shared validation (start date, matching date, RC-31); confirms draft unchanged since review; saves exactly the reviewed results; idempotent on duplicate tap; makes host profile visible. | RC-12, RC-31, RC-01 |
-| Send request | One request per rider × series; open-seat check; grants host view of requester; notifies host. | RC-16, RC-01 |
-| Accept / decline | One weekday at a time; atomic seat + request state + timestamp + search fields; auto-declines that weekday in other pending requests when full; updates permissions/rosters; one notification per weekday decision. | RC-15, US-08, US-15 |
+| Post series | Re-runs shared validation (start date, matching date, RC-31, no weekday the host rides in a conflicting series per RC-32); confirms draft unchanged since review; saves exactly the reviewed results; idempotent on duplicate tap; makes host profile visible. | RC-12, RC-31, RC-01 |
+| Send request | One request per rider × series; checks open seat, trips left and schedule conflicts for each chosen weekday; grants host view of requester; notifies host. | RC-16, RC-01, RC-32, RC-33 |
+| Accept / decline | One weekday at a time; accept only with an open seat, trips left and no schedule conflict; atomic seat + request state + timestamp + search fields; auto-declines that weekday in other pending requests when full, **and** the rider's conflicting pending weekdays in other series, all in the same transaction; updates permissions/rosters; one notification per weekday decision. | RC-15, RC-32, RC-33, US-08, US-15 |
 | Remove rider / leave / withdraw | Reuse the shared seat-update path; record timestamps; update permissions/rosters; notify. No rejoining. | RC-15, RC-16 |
-| Cancel series | Status change (never delete); close pending weekdays; record cancel time; update permissions; notify everyone with a pending/accepted request. | US-06, RC-24 |
-| Daily end-of-series job | Scheduled, shortly after midnight America/Los_Angeles; marks ended series by server clock; notifies; updates search fields/permissions; **idempotent**. | RC-17, INTENT §6.1 |
-| Export | Institution claim only; builds CSV from stored records via the trip-counting module; returns the file to the app. | US-17, RC-07, RC-23 |
+| Cancel series | Status change (never delete); pending weekdays become declined (no per-weekday notifications); record cancel time; update permissions; notify everyone with a pending/accepted request. | US-06, RC-24 |
+| Daily end-of-series job | Scheduled, shortly after midnight America/Los_Angeles; marks ended series by server clock; pending weekdays become declined; notifies host and every rider with a pending or accepted request (one notification each); updates search fields/permissions; **idempotent**. | RC-17, INTENT §6.1 |
+| Export | Institution claim only; rejects a range whose start is after its end or whose end is after today (Pacific); builds CSV from stored records via the trip-counting module; returns the file to the app. | US-17, RC-07, RC-23 |
 | Institution account script | **Developer-run, outside the app.** Creates the account and sets the claim. | RC-07, #15 |
 
 ### 3.3 Shared backend modules ("contracts")
@@ -135,10 +136,10 @@ Institution accounts read nothing in the app; they only call the export function
 1. **Sign-up:** app → sign-up function → Auth account + records + consent in one step → app signs in. Plain Auth sign-ups outside the app are possible, so rules and functions treat consent-less student accounts as unusable. (§5.2 ¶1)
 2. **Address entry:** app ↔ Places (session tokens) → place ID + coordinates stored with the address. (RC-13, INTENT §6.1)
 3. **Host a series:** Create Series → route-preview function (validation → Routes API × weekday × direction → draft) → Review screen reads the draft → post function (revalidate, check draft unchanged, save exactly what was reviewed). Never recalculated after posting. (RC-12, RC-14)
-4. **Search:** app queries active series with an open seat on a chosen weekday (copied open-weekday field + status filter + index) → excludes own and already-requested → sorts on device by straight-line distance. No Maps call. (RC-19, RC-26)
+4. **Search:** app queries active series with an open seat on a chosen weekday (copied open-weekday field + status filter + index) → excludes own and already-requested → drops weekdays with no trips left, worked out from the schedule and end date (RC-33; the request and accept functions enforce it on the server clock) → sorts on device by straight-line distance. No Maps call. (RC-19, RC-26)
 5. **Request lifecycle:** every state change is a function call running a Firestore transaction that updates seats, request state, timestamps, search fields, permissions/rosters **together**, then writes notifications via the writer. (RC-15, INTENT §6.1)
 6. **Notifications:** functions write notification docs → app listener shows a banner (~4.5 s) and history with unread badge. Target: 95% within 10 s with the app open. (RC-27)
-7. **Export:** staff picks a date range → export function checks claim → trip-counting module → CSV (UTF-8 with BOM, quoted fields) → app → Android share sheet. No Maps call. (US-17, INTENT §3.5)
+7. **Export:** staff picks a date range ending no later than today → export function checks claim and range → trip-counting module → CSV (UTF-8 with BOM, quoted fields) → app → Android share sheet. No Maps call. (US-17, INTENT §3.5)
 
 ---
 
@@ -189,6 +190,8 @@ Institution accounts read nothing in the app; they only call the export function
 - **Nothing is deleted.** Cancel and end change status; series, requests, consent and notifications are kept. (RC-24)
 - A posted series is **immutable**. Stored routes are **never recalculated**. (RC-12, DD-06)
 - Exactly **one request per rider × series**, ever; no rejoining a weekday. Enforced by record structure, not just a check. (RC-16)
+- A student is never accepted on two conflicting weekdays (same weekday, overlapping dates), whether as rider or host; conflict checks run in the backend on request, accept, review and post. (RC-32)
+- A weekday with no trips left can't be requested or accepted, decided by the server clock. (RC-33)
 - Seats are per weekday; the backend is the single source of truth; changes are **atomic** — two riders can never take the last seat. (RC-15)
 - Every address has coordinates from Places. (RC-13)
 - Interests, majors, years, traits and genders come from seeded predefined lists. Agents must **not invent** the CBU majors list or campus-point coordinates. (RC-22, INTENT §3.1)
@@ -218,7 +221,9 @@ Institution accounts read nothing in the app; they only call the export function
 | CBU majors list | Waiting on project owner | #17 (TMP-12), `human-task` |
 | Precise campus-point coordinates | Waiting on project owner | #17 (TMP-12), `human-task` |
 | Android UI toolkit, min SDK, app structure | Decide in issue, record in §2 | #11 |
-| Firestore layout, permission/roster storage, consent check in rules | Decide in issue, record in §2 | #13, #20, #44 || Performance dataset size | Decide in issue | #50 |
+| Firestore layout, permission/roster storage, consent check in rules | Decide in issue, record in §2 | #13, #20, #44 |
+| How RC-32 conflict checks find a student's weekdays across series | Decide in issue, record in §2 | #13, #20 |
+| Performance dataset size | Decide in issue | #50 |
 
 **Accepted architectural risks** (don't "fix" by adding scope): stale permissions if a function fails mid-update (mitigated by same-transaction updates); late series ending of up to a day; partial sign-up leaving a consent-less Auth account (unusable by RC-06, logged); search won't scale past MVP without geo-filtering; unverified emails (RISK-04); estimated, not live, route times (RISK-09). See SDD §7.2 and INTENT §6.1.
 
@@ -232,6 +237,7 @@ Institution accounts read nothing in the app; they only call the export function
 | Architecture diagram and narrative | `SPEC.md` §5 (Figure 1) |
 | Screen flow | `SPEC.md` §6.1 (Figure 2) |
 | Design decisions, risks | `SPEC.md` §7 |
+| Enduring product and domain rules | `docs/POLICY.md` |
 | Phase order, critical path, sequencing rules | `INTENT.md` §2, §4, §4.1 |
 | Match formula, agent guardrails | `INTENT.md` §6.3 |
 | Issue ↔ TMP mapping | `INTENT.md` §5.2 |
