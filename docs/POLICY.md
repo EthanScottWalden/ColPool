@@ -115,7 +115,7 @@ A user can always see their own profile. They can see another student's profile 
   - A host can't post a series on a weekday they ride in a conflicting series.
   - Back-to-back date ranges don't conflict.
 - Two riders can never take the last seat on the same weekday. Seat counts and request states change together, atomically, on the backend. (RC-15, RISK-03)
-- Leaving, withdrawing, removing and cancelling all require confirmation from the user doing it. (US-06, US-12)
+- A rider's leave or withdraw, and a host's cancellation, require confirmation from the user doing it. (US-06, US-12)
 - A request leaves the host's request list once none of its weekdays are pending. (US-08)
 
 ## 7. When a trip counts, and the institution export

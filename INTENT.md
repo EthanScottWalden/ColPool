@@ -62,11 +62,11 @@ ColPool is split into six phases. Each one builds on the data and trust boundari
 | Phase | Goal / Increment | Primary SDD Sources | Key Deliverables | Depends On | Candidate Issues |
 |---|---|---|---|---|---|
 | 1 | **Foundation: accounts, consent and profiles.** A student can sign up, onboard and edit their profile; staff can sign in. | US-01, US-02; RC-01–RC-08, RC-10, RC-13, RC-22, RC-25, RC-30; DD-01, DD-09, DD-10 | Firebase project on pay-as-you-go; Android app shell with student tabs and staff screen; sign-up function that creates the account and consent record together; sign-in routing (student, staff, back to onboarding); public profile kept apart from private details; onboarding and Edit Profile with Places autocomplete; seeded campus points and option lists; profile-permission model; baseline Security Rules with emulator tests | None | Project setup; sign-up + consent function; sign-in routing; profile data split; onboarding/profile screens; address autocomplete; seed data; rules baseline |
-| 2 | **Hosting a ride series.** A host can create, review, post and view a series with its calculated route. | US-03, US-04, US-05; RC-11, RC-12, RC-14, RC-18, RC-28, RC-30, RC-31; DD-02, DD-03, DD-06, DD-07, DD-12 | Series data model, including seats per weekday and the copied fields search needs; Create Series screen; route-preview function with a server-side draft; Review Calculated Route screen; post function with the posting rechecks and RC-31 limits; Hosting list; Hosted Series Details (schedule and seats); host profile visible to all students while the series is active | Phase 1 | Series data model; Create Series form; route preview (Routes API); review screen; post + rechecks + RC-31; Hosting list and details |
-| 3 | **Search, requests and notifications.** A rider can find nearby series and send a request; the host sees it and is notified. | US-07, US-09, US-10, US-11, US-14, US-15, US-16; RC-01, RC-09, RC-16, RC-19–RC-21, RC-26, RC-27; DD-04, DD-11 | Search screen with weekday filter and on-device distance ranking; preference match percentage; Series Details with the host's profile; send-request function (one request per series); host's incoming-requests list with requester profiles; shared notification writer; banner, notification history and unread badge | Phases 1–2 | Search query + ranking; preference match; Series Details; send-request function; incoming requests; notification writer; banner + history |
-| 4 | **Request and series lifecycle.** Hosts decide each weekday and riders ride, leave or withdraw. Series can be cancelled or end, and everyone affected is notified. | US-05, US-06, US-08, US-12, US-13, US-14, US-15; RC-01, RC-15–RC-17, RC-24; DD-05, DD-13, DD-14 | Accept/decline function per weekday, with seat changes and request states updated in one atomic step and auto-decline; remove-rider function; Riding tab and Request Details; leave and withdraw; weekday rosters and co-rider profile permissions; cancel series; daily job that ends series; the remaining notification events | Phase 3 | Timestamp contract; accept/decline + auto-decline; remove rider; Riding + Request Details; leave/withdraw; rosters + co-rider permissions; cancel series; daily end job |
+| 2 | **Hosting a ride series.** A host can create, review, post and view a series with its calculated route. | US-03, US-04, US-05; RC-11, RC-12, RC-14, RC-18, RC-28, RC-30, RC-31, RC-32; DD-02, DD-03, DD-06, DD-07, DD-12 | Series data model, including seats per weekday and the copied fields search needs; Create Series screen; route-preview function with a server-side draft; Review Calculated Route screen; post function with the posting rechecks, RC-31 limits and RC-32 conflict check; Hosting list; Hosted Series Details (schedule and seats); host profile visible to all students while the series is active | Phase 1 | Series data model; Create Series form; route preview (Routes API); review screen; post + rechecks + RC-31; Hosting list and details |
+| 3 | **Search, requests and notifications.** A rider can find nearby series and send a request; the host sees it and is notified. | US-07, US-09, US-10, US-11, US-14, US-15, US-16; RC-01, RC-09, RC-16, RC-19–RC-21, RC-26, RC-27, RC-32, RC-33; DD-04, DD-11 | Search screen with weekday filter and on-device distance ranking; preference match percentage; Series Details with the host's profile; send-request function (one request per series); host's incoming-requests list with requester profiles; shared notification writer; banner, notification history and unread badge | Phases 1–2 | Search query + ranking; preference match; Series Details; send-request function; incoming requests; notification writer; banner + history |
+| 4 | **Request and series lifecycle.** Hosts decide each weekday and riders ride, leave or withdraw. Series can be cancelled or end, and everyone affected is notified. | US-05, US-06, US-08, US-12, US-13, US-14, US-15; RC-01, RC-15–RC-17, RC-24, RC-32, RC-33; DD-05, DD-13, DD-14 | Accept/decline function per weekday, with seat changes and request states updated in one atomic step and auto-decline; remove-rider function; Riding tab and Request Details; leave and withdraw; weekday rosters and co-rider profile permissions; cancel series; daily job that ends series; the remaining notification events | Phase 3 | Timestamp contract; accept/decline + auto-decline; remove rider; Riding + Request Details; leave/withdraw; rosters + co-rider permissions; cancel series; daily end job |
 | 5 | **Institution export.** Staff can export scheduled trips for any date range as a CSV and share it. | US-17; RC-05, RC-07, RC-18, RC-23, RC-24; DD-08, DD-14 | Shared trip-counting module (departure-time rule); export function checking the institution claim; CSV with scheduled-trip, passenger-mile and vehicle-mile labels; Export Carpool Data screen with Android share menu; edge-case tests with fixed sample data | Phase 4 (request and series timestamps); Phase 1 (staff routing) | Trip-counting module; export function + CSV; Export screen + share |
-| 6 | **Integrated validation and MVP hardening.** Every pass/fail check is demonstrated and the main risks are tested. | US-01–US-17; RC-01–RC-31 | Acceptance checklist covering all user stories; Security Rules and access review; last-seat concurrency test; search and notification timing checks; Maps usage check; terminology and polish | Phases 1–5 | Acceptance checklist; rules/access review; concurrency test; performance checks; polish/fixes |
+| 6 | **Integrated validation and MVP hardening.** Every pass/fail check is demonstrated and the main risks are tested. | US-01–US-17; RC-01–RC-33 | Acceptance checklist covering all user stories; Security Rules and access review; last-seat concurrency test; search and notification timing checks; Maps usage check; terminology and polish | Phases 1–5 | Acceptance checklist; rules/access review; concurrency test; performance checks; polish/fixes |
 
 # 3 Detailed Implementation Phases
 
@@ -189,7 +189,7 @@ The host's profile becomes visible to all students while the series is active. N
 
 ### Source Requirements / Design References
 
-US-03, US-04, US-05 (schedule and seats only); RC-01 (hosts of active series), RC-04, RC-11, RC-12, RC-13, RC-14, RC-18, RC-28, RC-29, RC-30, RC-31; DD-02, DD-03, DD-06, DD-07, DD-10, DD-12; RISK-02, RISK-06, RISK-08, RISK-09.
+US-03, US-04, US-05 (schedule and seats only); RC-01 (hosts of active series), RC-04, RC-11, RC-12, RC-13, RC-14, RC-18, RC-28, RC-29, RC-30, RC-31, RC-32 (host side); DD-02, DD-03, DD-06, DD-07, DD-10, DD-12; RISK-02, RISK-06, RISK-08, RISK-09.
 
 Figure 1: Cloud Functions and the Routes API. Figure 2: Hosting tab.
 
@@ -218,7 +218,7 @@ Figure 1: Cloud Functions and the Routes API. Figure 2: Hosting tab.
   - It names the address that failed if a route can't be calculated.
   - The Routes key stays on the server (RC-04).
 - **Post function.**
-  - It reruns the start-date, matching-date and RC-31 checks.
+  - It reruns the start-date, matching-date, RC-31 and RC-32 checks through the shared validation.
   - It confirms the draft hasn't changed since review.
   - It saves exactly the reviewed results.
   - It ignores a duplicate tap.
@@ -311,7 +311,7 @@ The host sees the request on their series, can open the requester's profile, and
 
 ### Source Requirements / Design References
 
-US-07, US-09, US-10, US-11, US-14 (host viewing requesters), US-15 (new request), US-16; RC-01 (requesters), RC-09, RC-16, RC-19, RC-20, RC-21, RC-22, RC-26, RC-27, RC-28, RC-29; DD-04, DD-11, DD-13; RISK-01.
+US-07, US-09, US-10, US-11, US-14 (host viewing requesters), US-15 (new request), US-16; RC-01 (requesters), RC-09, RC-16, RC-19, RC-20, RC-21, RC-22, RC-26, RC-27, RC-28, RC-29, RC-32 (request check), RC-33; DD-04, DD-11, DD-13; RISK-01.
 
 Figure 1: the app reading Firestore directly, Cloud Functions, and Firestore listeners for notifications. Figure 2: Search tab, Hosting tab (requests) and Notifications tab.
 
@@ -358,7 +358,7 @@ Figure 1: the app reading Firestore directly, Cloud Functions, and Firestore lis
 ### Phase Acceptance Criteria
 
 - **Search results.**
-  - Search shows only active series with an open seat on at least one chosen weekday, nearest first, with the distance shown.
+  - Search shows only active series with an open seat and trips left on at least one chosen weekday, nearest first, with the distance shown.
   - It never shows the rider's own series or series they already requested.
   - No Maps call is made during search.
 - **Match percentage.** It appears only when preferences are set, follows RC-21 and the Section 6 formula, and doesn't change the order. Clearing preferences removes it.
@@ -419,7 +419,7 @@ This phase also records the timestamps that the Phase 5 export counts from.
 
 ### Source Requirements / Design References
 
-US-05 (riders per weekday), US-06, US-08, US-12, US-13, US-14, US-15 (remaining events); RC-01 (co-riders and hosts of requested series), RC-15, RC-16, RC-17, RC-18, RC-24; DD-05, DD-13, DD-14; RISK-03, RISK-10.
+US-05 (riders per weekday), US-06, US-08, US-12, US-13, US-14, US-15 (remaining events); RC-01 (co-riders and hosts of requested series), RC-15, RC-16, RC-17, RC-18, RC-24, RC-32, RC-33; DD-05, DD-13, DD-14; RISK-03, RISK-10.
 
 Figure 1: Cloud Functions writing seats, requests, permissions and notifications, and the daily job. Figure 2: Hosting tab (Hosted Series Details) and Riding tab.
 
@@ -604,7 +604,7 @@ Show that the complete MVP meets every SDD pass/fail check and constraint. Test 
 
 ### Source Requirements / Design References
 
-US-01–US-17; RC-01–RC-31; DD-01–DD-14; RISK-01–RISK-11; all prototype flows; Figures 1 and 2.
+US-01–US-17; RC-01–RC-33; DD-01–DD-14; RISK-01–RISK-14; all prototype flows; Figures 1 and 2.
 
 ### Deliverables
 
@@ -763,7 +763,7 @@ Their bodies say so, and they get a `contract` label on the board. If an agent w
 | TMP-01 | Set up Firebase project and billing | 1 | RC-04, RC-28; RISK-08 | None | Figure 1: Firebase / Google Cloud and Google Maps Platform. |
 | TMP-02 | Create Android app connected to Firebase | 1 | US-01; RC-04, RC-25 | TMP-01 | Figure 1: Android device (ColPool app). |
 | TMP-03 | Configure Firebase Emulator Suite for local testing | 1 | RC-01, RC-05, RC-07 | TMP-01 | Figure 1: Firebase Authentication, Cloud Functions, Cloud Firestore + Security Rules. |
-| TMP-04 | Define core Firestore schema and profile-permission model | 1 | US-01, US-02; RC-01, RC-05, RC-06 | TMP-01 | Figure 1: Cloud Firestore + Security Rules. Prototype: Profile and Edit Profile (fields a profile holds). |
+| TMP-04 | Define core Firestore schema and profile-permission model | 1 | US-01, US-02; RC-01, RC-05, RC-06, RC-32 (lookup design) | TMP-01 | Figure 1: Cloud Firestore + Security Rules. Prototype: Profile and Edit Profile (fields a profile holds). |
 | TMP-05 | Implement sign-up function with CBU domain check and consent record | 1 | US-01; RC-02, RC-06, RC-30; DD-01, DD-09 | TMP-03, TMP-04 | Prototype: Sign up / Sign in (Create account form, consent statement). Figure 1: app → Cloud Functions → Authentication. Figure 2: Entry. |
 | TMP-06 | Implement sign-in, role routing and app shells | 1 | US-01, US-02; RC-06, RC-07, RC-10 | TMP-02, TMP-04, TMP-05 | Prototype: Splash; Sign up / Sign in; student tab bar; Export Carpool Data header and log out. Figure 2: Entry and University staff routing. |
 | TMP-07 | Add developer script to create institution accounts | 1 | US-01; RC-06, RC-07 | TMP-04 | Figure 1: Firebase Authentication (custom claim: institution accounts). No app screen. |
@@ -773,22 +773,22 @@ Their bodies say so, and they get a `contract` label on the board. If an agent w
 | TMP-12 | Seed campus points and profile option lists | 1 | RC-11, RC-22 | TMP-04 | Prototype: Create Series campus-point chips; Onboarding and Edit Profile option chips. Needs human input before implementation: precise campus-point coordinates and the CBU majors list. |
 | TMP-13 | Write baseline Security Rules with emulator tests | 1 | RC-01, RC-03, RC-05, RC-07, RC-22, RC-30 | TMP-03, TMP-04 | Figure 1: Cloud Firestore + Security Rules. |
 | TMP-52 | Set up CI to run tests on pull requests | 1 | RC-04 | TMP-02, TMP-03 | No app screen. GitHub Actions runs the Android build and the Functions and Security Rules tests on the Emulator Suite for every pull request. No deploys and no secrets in CI. Added after the original inventory. |
-| TMP-14 | Define series, draft and seat data model, with its Security Rules | 2 | US-03, US-05; RC-01, RC-12, RC-15, RC-18 | TMP-04, TMP-13 | Prototype: Create Series and Hosted Series Details (what a series holds). Figure 1: Cloud Firestore; Security Rules. Absorbs former TMP-22. |
-| TMP-15 | Implement shared series validation, including RC-31 hosting limits | 2 | US-03; RC-12, RC-30, RC-31 | TMP-14 | Prototype: Create Series error box ("Fix these before continuing"). Figure 2: Create Series → Review Calculated Route. |
+| TMP-14 | Define series, draft and seat data model, with its Security Rules | 2 | US-03, US-05; RC-01, RC-12, RC-15, RC-18, RC-32, RC-33 | TMP-04, TMP-13 | Prototype: Create Series and Hosted Series Details (what a series holds). Figure 1: Cloud Firestore; Security Rules. Absorbs former TMP-22. |
+| TMP-15 | Implement shared series validation, including RC-31 hosting limits | 2 | US-03; RC-12, RC-30, RC-31, RC-32 | TMP-14 | Prototype: Create Series error box ("Fix these before continuing"). Figure 2: Create Series → Review Calculated Route. |
 | TMP-16 | Implement route-preview function with the Routes API | 2 | US-04; RC-04, RC-12, RC-14, RC-28; DD-07 | TMP-15, TMP-05 | Prototype: Review Calculated Route timelines. Figure 1: Cloud Functions ↔ Routes API. |
-| TMP-17 | Implement post-series function with rechecks and host visibility | 2 | US-03, US-04; RC-01, RC-12, RC-31; DD-06 | TMP-13, TMP-16 | Prototype: Review Calculated Route post confirmation sheet; Series Details "Your host" card. Figure 2: Review → post → Hosting. Absorbs former TMP-21. |
+| TMP-17 | Implement post-series function with rechecks and host visibility | 2 | US-03, US-04; RC-01, RC-12, RC-31, RC-32; DD-06 | TMP-13, TMP-16 | Prototype: Review Calculated Route post confirmation sheet; Series Details "Your host" card. Figure 2: Review → post → Hosting. Absorbs former TMP-21. |
 | TMP-18 | Build Create Series screen | 2 | US-03; RC-05, RC-11, RC-13, RC-30; DD-10 | TMP-08, TMP-12, TMP-14 | Prototype: Create Series (pickup-spot hint, weekday schedule card, add-stop sheet and stop warning, campus-point chips), without the "Copy schedule" button. Figure 2: Hosting tab. |
 | TMP-19 | Build Review Calculated Route screen | 2 | US-04; DD-06; RISK-02 | TMP-16, TMP-18 | Prototype: Review Calculated Route (warning note, day tabs, timelines, post confirmation sheet). Figure 2: Create Series ↔ Review Calculated Route. |
 | TMP-20 | Build Hosting list and Hosted Series Details | 2 | US-05; RC-18, RC-29 | TMP-17 | Prototype: Hosting (list and empty state); Hosted Series Details (summary card, day tabs, timelines). Figure 2: Hosting tab. |
-| TMP-23 | Build Search screen with weekday filter and distance ranking | 3 | US-09; RC-17, RC-19, RC-26, RC-28 | TMP-09, TMP-14, TMP-17 | Prototype: Search (day row, result cards, "Nearest first", empty state, footnote). Figure 2: Search tab. |
+| TMP-23 | Build Search screen with weekday filter and distance ranking | 3 | US-09; RC-17, RC-19, RC-26, RC-28, RC-33 | TMP-09, TMP-14, TMP-17 | Prototype: Search (day row, result cards, "Nearest first", empty state, footnote). Figure 2: Search tab. |
 | TMP-24 | Implement preference panel and match percentage | 3 | US-10; RC-20, RC-21; DD-04 | TMP-23 | Prototype: Search preferences panel; match badge on result cards; highlighted matches on the host card. |
-| TMP-25 | Build Series Details with host profile and request day picker | 3 | US-09, US-11, US-14; RISK-01 | TMP-17, TMP-23 | Prototype: Series Details (host card, summary tiles, schedule timelines, request day picker, safety note). Figure 2: Search → Series Details → Search. |
-| TMP-26 | Implement send-request function with one request per series, with request Security Rules | 3 | US-11; RC-01, RC-16; DD-13 | TMP-14, TMP-17, TMP-28 | Prototype: Series Details request button and "Request sent" banner. Figure 1: app → Cloud Functions → Firestore; Security Rules. Absorbs the request half of former TMP-30. |
+| TMP-25 | Build Series Details with host profile and request day picker | 3 | US-09, US-11, US-14; RC-32, RC-33; RISK-01 | TMP-17, TMP-23 | Prototype: Series Details (host card, summary tiles, schedule timelines, request day picker, safety note). Figure 2: Search → Series Details → Search. |
+| TMP-26 | Implement send-request function with one request per series, with request Security Rules | 3 | US-11; RC-01, RC-16, RC-32, RC-33; DD-13 | TMP-14, TMP-17, TMP-28 | Prototype: Series Details request button and "Request sent" banner. Figure 1: app → Cloud Functions → Firestore; Security Rules. Absorbs the request half of former TMP-30. |
 | TMP-27 | Show incoming requests and requester profiles to the host | 3 | US-07, US-14 | TMP-20, TMP-26 | Prototype: Hosted Series Details Requests section; Hosting tab badge; Requester Profile. Figure 2: Hosted Series Details → Requester / Rider Profile. |
 | TMP-28 | Build shared notification writer and notification records, with notification Security Rules | 3 | US-15, US-16; RC-09, RC-27 | TMP-13 | Prototype: Notifications entries (title, text, series line). Figure 1: Cloud Functions → Firestore (notifications); Security Rules. Absorbs the notification half of former TMP-30. |
 | TMP-29 | Build notification banner, history and unread badges | 3 | US-15, US-16; RC-27 | TMP-28 | Prototype: banner; Notifications screen with "New" tags; Notifications tab badge. Figure 1: app listens for notifications. Figure 2: Notifications tab. |
 | TMP-31 | Define per-weekday timestamp contract for trip counting | 4 | RC-23; DD-14 | TMP-14 | Figure 1: Cloud Functions → Firestore (requests). No app screen. |
-| TMP-32 | Implement per-weekday accept/decline with atomic seats and auto-decline, with seat concurrency tests | 4 | US-08, US-15; RC-15; DD-05; RISK-03 | TMP-26, TMP-28, TMP-31 | Prototype: Hosted Series Details Accept / Decline and "Declined (full)"; "Day accepted" and "Day declined" notifications. Figure 1: Cloud Functions → Firestore. Absorbs the concurrency half of former TMP-40. |
+| TMP-32 | Implement per-weekday accept/decline with atomic seats and auto-decline, with seat concurrency tests | 4 | US-08, US-15; RC-15, RC-32, RC-33; DD-05; RISK-03 | TMP-26, TMP-28, TMP-31 | Prototype: Hosted Series Details Accept / Decline and "Declined (full)"; "Day accepted" and "Day declined" notifications. Figure 1: Cloud Functions → Firestore. Absorbs the concurrency half of former TMP-40. |
 | TMP-33 | Implement remove-rider function | 4 | US-08, US-15; RC-15, RC-16 | TMP-32 | Prototype: "Remove from [day]" button and confirmation sheet; "Removed from [day]" notification. |
 | TMP-34 | Implement leave and withdraw function | 4 | US-12, US-15; RC-15, RC-16; DD-13 | TMP-32 | Prototype: Request Details "Your days" Leave / Withdraw buttons and confirmation sheets; "Rider left" and "Request withdrawn" notifications. |
 | TMP-35 | Add accept, decline and remove-rider actions to Hosted Series Details | 4 | US-05, US-08 | TMP-27, TMP-32, TMP-33 | Prototype: Hosted Series Details ("Riders by day" with Remove; Requests with Accept, Decline and Full). Figure 2: Hosting tab. |
@@ -799,8 +799,8 @@ Their bodies say so, and they get a `contract` label on the board. If an agent w
 | TMP-41 | Implement shared trip-counting module using the departure-time rule, with fixture tests | 5 | US-17; RC-23; DD-14 | TMP-31 | Figure 1: Cloud Functions (CSV export). No app screen. Absorbs the trip-counting half of former TMP-44. |
 | TMP-42 | Implement institution export function and CSV output, with fixture tests | 5 | US-17; RC-05, RC-07, RC-18, RC-23, RC-24, RC-28; DD-08 | TMP-06, TMP-07, TMP-41 | Prototype: Export Carpool Data table columns (Student through Mile type). Figure 1: app ↔ Cloud Functions (CSV file). Absorbs the export half of former TMP-44. |
 | TMP-43 | Build Export Carpool Data screen with Android share | 5 | US-17; DD-08 | TMP-06, TMP-42 | Prototype: Export Carpool Data (date fields, Generate export, summary card, Share button); the on-screen table is only a preview. Figure 2: University staff. |
-| TMP-45 | Create SDD acceptance checklist and record results | 6 | US-01–US-17 | Phases 1–5 | All prototype screens; Figure 2 (full flow). |
-| TMP-46 | Run security, privacy and concurrency review | 6 | RC-01, RC-04, RC-05, RC-07, RC-15; RISK-03 | TMP-37, TMP-38, TMP-42 | Figure 1: trust boundaries (app ↔ Firestore with Security Rules; Cloud Functions → Firestore). Absorbs former TMP-47. |
+| TMP-45 | Create SDD acceptance checklist and record results | 6 | US-01–US-17; RC-01–RC-33; RISK-01–RISK-14 | Phases 1–5 | All prototype screens; Figure 2 (full flow). |
+| TMP-46 | Run security, privacy and concurrency review | 6 | RC-01, RC-04, RC-05, RC-07, RC-15, RC-32; RISK-03 | TMP-37, TMP-38, TMP-42 | Figure 1: trust boundaries (app ↔ Firestore with Security Rules; Cloud Functions → Firestore). Absorbs former TMP-47. |
 | TMP-48 | Measure search and notification performance | 6 | RC-26, RC-27 | TMP-24, TMP-29 | Prototype: Search; banner and Notifications. Figure 1: app ↔ Firestore listeners. Runs on an Android Emulator device; no physical device is available. |
 | TMP-49 | Verify Maps usage and budget alerts | 6 | RC-28; RISK-08 | TMP-08, TMP-16, TMP-23 | Figure 1: app ↔ Places; Cloud Functions ↔ Routes API. |
 | TMP-50 | Fix highest-priority defects | 6 | As found | TMP-45–TMP-49 | Taken from each linked defect. |
@@ -888,6 +888,7 @@ None of these are product decisions. Each is settled in its first issue and reco
 
 - **Android setup:** the UI toolkit (for example, Jetpack Compose) and the minimum Android version. Decided in the Android app issue (Phase 1).
 - **Data layout:** the exact Firestore collections, and how profile permissions and weekday rosters are stored. Decided in the data-model issues (Phases 1, 2 and 4).
+- **Schedule-conflict lookup:** how the backend finds a student's accepted and hosted weekdays across series for the RC-32 checks, for example a per-student schedule record kept in the same transactions. Decided in the data-model issues (#13, #20).
 - **Performance test size:** how many series and students the Phase 6 performance check uses. Decided in that issue, sized for one university at MVP scale.
 
 ## 6.3 Agent Guardrails
@@ -919,7 +920,7 @@ None of these are product decisions. Each is settled in its first issue and reco
 
 # 7 Handoff to GitHub Project
 
-Any candidate issues from this plan that are not yet represented as GitHub Issues will be created as GitHub Issues and added to the existing GitHub Project. The Project/Issues become the authoritative source for detailed work tracking, while this Implementation Plan remains the human-readable explanation of why the phases are ordered as they are and how the implementation maps back to the approved design.
+Every candidate issue in this plan now exists as a GitHub Issue in the [ColPool Project](https://github.com/users/EthanScottWalden/projects/1) (§5.2). The Project and its Issues are the authoritative source for detailed task definitions, sequencing, status and work tracking. [docs/ROADMAP.md](docs/ROADMAP.md) gives the one-page summary, and this Implementation Plan remains the human-readable explanation of why the phases are ordered as they are and how the implementation maps back to the approved design.
 
 ## 7.1 Final Readiness Checklist
 - Every MVP user story is represented by at least one implementation phase and candidate Issue.

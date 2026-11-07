@@ -15,9 +15,9 @@ Each phase builds on the data and trust boundaries of the one before. In the Pro
 | # | Phase | Outcome when done |
 |---|---|---|
 | 1 | **Foundation: accounts, consent and profiles** | A CBU student can sign up with consent, onboard and edit their profile. Staff can sign in. Private data (starting address, email) is protected by tested Security Rules. Firebase, Maps billing, the emulator and CI are in place. |
-| 2 | **Hosting a ride series** | A host creates a series, reviews routes calculated on the backend, and posts it within the posting rules and hosting limits. It appears in their Hosting tab. |
+| 2 | **Hosting a ride series** | A host creates a series, reviews routes calculated on the backend, and posts it within the posting rules, hosting limits and schedule-conflict rules. It appears in their Hosting tab. |
 | 3 | **Search, requests and notifications** | A rider finds nearby series for their weekdays, sees a match percentage and sends a request. The host sees it and is notified in the app. |
-| 4 | **Request and series lifecycle** | Hosts accept, decline or remove riders one weekday at a time, with seat changes made atomically. Riders ride, leave or withdraw. Series can be cancelled or end on their own. Everyone affected is notified. |
+| 4 | **Request and series lifecycle** | Hosts accept, decline or remove riders one weekday at a time, with seat changes made atomically and no student double-booked on a weekday. Riders ride, leave or withdraw. Series can be cancelled or end on their own. Everyone affected is notified. |
 | 5 | **Institution export** | Staff export scheduled trips for a date range as a CSV, using the departure-time rule, and share it through Android's share menu. |
 | 6 | **Integrated validation and MVP hardening** | Every SDD pass/fail check is shown to work. Privacy, seat concurrency, performance and Maps usage are tested, and defects are fixed. No new scope. |
 
