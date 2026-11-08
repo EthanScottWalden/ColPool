@@ -1,6 +1,6 @@
 # ColPool — Architecture
 
-> **Status:** Draft v0.2 (2026-11-07). Derived from SDD v0.5 (`SPEC.md`) and the Implementation Plan (`INTENT.md`).
+> **Status:** Draft v0.3 (2026-11-07). Derived from SDD v0.5 (`SPEC.md`) and the Implementation Plan (`INTENT.md`).
 > **Authority:** `SPEC.md` wins on product behavior and rules; `INTENT.md` wins on sequencing and agent guardrails. This file summarizes the architecture those documents approve. If this file disagrees with them, they win and this file is fixed. If an issue seems to conflict with any of them, **stop and flag it** — don't pick an answer.
 > **Scope:** Architecture only. Feature tasks live in GitHub Issues; domain policies live in `docs/POLICY.md`.
 
@@ -138,7 +138,7 @@ Institution accounts read nothing in the app; they only call the export function
 3. **Host a series:** Create Series → route-preview function (validation → Routes API × weekday × direction → draft) → Review screen reads the draft → post function (revalidate, check draft unchanged, save exactly what was reviewed). Never recalculated after posting. (RC-12, RC-14)
 4. **Search:** app queries active series with an open seat on a chosen weekday (copied open-weekday field + status filter + index) → excludes own and already-requested → drops weekdays with no trips left, worked out from the schedule and end date (RC-33; the request and accept functions enforce it on the server clock) → sorts on device by straight-line distance. No Maps call. (RC-19, RC-26)
 5. **Request lifecycle:** every state change is a function call running a Firestore transaction that updates seats, request state, timestamps, search fields, permissions/rosters **together**, then writes notifications via the writer. (RC-15, INTENT §6.1)
-6. **Notifications:** functions write notification docs → app listener shows a banner (~4.5 s) and history with unread badge. Target: 95% within 10 s with the app open. (RC-27)
+6. **Notifications:** functions write notification docs → app listener shows a banner for a few seconds, and history with unread badge. Target: 95% within 10 s with the app open. (RC-27)
 7. **Export:** staff picks a date range ending no later than today → export function checks claim and range → trip-counting module → CSV (UTF-8 with BOM, quoted fields) → app → Android share sheet. No Maps call. (US-17, INTENT §3.5)
 
 ---
@@ -174,8 +174,9 @@ Institution accounts read nothing in the app; they only call the export function
 | Profile visibility | Only the four RC-01 cases; access ends immediately when no case holds. Permissions are maintained by functions **in the same transaction** as the change that causes them. | RC-01, INTENT §6.1 |
 | Secrets | Nothing in the repo. Routes key only in the backend's secret storage. No secrets in CI. | RC-04 |
 | Places key | Ships in the app, so it is **public by design**. Protected by restricting it to the Places API only, the Android app restriction (package name + signing-cert fingerprint), quotas and budget alerts — not by secrecy. Injected at build time with the **Secrets Gradle plugin**: real key in uncommitted `local.properties`, committed placeholder so CI builds without it. | RC-04, RC-28, RISK-08; owner decision 2026-11-07 |
-| Data minimization | No sensitive categories (RC-03). No media (RC-08). No messaging (RC-09). Test data uses made-up students. | RC-03, RC-08, RC-09, INTENT §6.3 |
-| No verification claims | Nothing may imply drivers, vehicles or insurance are checked. | RISK-01, INTENT §6.3 |
+| Data minimization | No collection, field or service exists for sensitive categories, media or messaging, so none of them can be stored (hence no Cloud Storage). | RC-03, RC-08, RC-09 |
+
+Product privacy and safety rules (who sees what, test data, verification wording) are in `docs/POLICY.md` §3 and §12.
 
 ---
 
@@ -194,14 +195,13 @@ Institution accounts read nothing in the app; they only call the export function
 - A weekday with no trips left can't be requested or accepted, decided by the server clock. (RC-33)
 - Seats are per weekday; the backend is the single source of truth; changes are **atomic** — two riders can never take the last seat. (RC-15)
 - Every address has coordinates from Places. (RC-13)
-- Interests, majors, years, traits and genders come from seeded predefined lists. Agents must **not invent** the CBU majors list or campus-point coordinates. (RC-22, INTENT §3.1)
+- Campus points and profile option lists are seeded by developer scripts and never written by the client. (RC-11, RC-22)
 
 **Process**
 - Rules come with features; contracts change only through their own issue. (INTENT §4)
 - Scheduled jobs and post are **idempotent**.
-- User-facing text uses SDD domain terms, never DB/code names. (RC-29)
 
-**Scope — never build** (SDD §2.3, INTENT §6.3): push notifications, no-class calendar or skippable dates, messaging, payments, ratings, map display, GPS/location detection, editing a posted series, one-way series, media, password reset, email verification, multi-university, web portal, or prototype-only features (copy schedule, splash tap, simulation panel, demo logins, sample data).
+**Scope:** product non-goals are listed in `docs/POLICY.md` §13 (from SDD §2.3). Technology not in the approved stack is listed in §2.
 
 ---
 
@@ -237,7 +237,9 @@ Institution accounts read nothing in the app; they only call the export function
 | Architecture diagram and narrative | `SPEC.md` §5 (Figure 1) |
 | Screen flow | `SPEC.md` §6.1 (Figure 2) |
 | Design decisions, risks | `SPEC.md` §7 |
-| Enduring product and domain rules | `docs/POLICY.md` |
+| Enduring product and domain rules, non-goals | `docs/POLICY.md` |
+| Phase direction (one page) | `docs/ROADMAP.md` |
+| Detailed tasks, status, sequencing | [GitHub Project](https://github.com/users/EthanScottWalden/projects/1) and Issues (authoritative) |
 | Phase order, critical path, sequencing rules | `INTENT.md` §2, §4, §4.1 |
 | Match formula, agent guardrails | `INTENT.md` §6.3 |
 | Issue ↔ TMP mapping | `INTENT.md` §5.2 |
