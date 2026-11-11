@@ -48,7 +48,7 @@ _Not set up yet. #11 (Android app), #12 (Functions + emulator) and #54 (CI) must
   - Screens: checked on a device against the named prototype screen, with a screenshot attached to the PR.
 - CI is green. No secrets or keys committed.
 - User-facing text uses POLICY §11 terms and 12-hour Pacific times.
-- Any decision the Issue was meant to settle is recorded in `docs/ARCHITECTURE.md` §2 (and removed from §9).
+- Any decision the Issue was meant to settle is recorded (§6).
 
 ## 5. Branches and PRs
 
@@ -63,8 +63,9 @@ Branch model: `feature/*` → `dev` → `staging` → `main`.
 
 ## 6. Documentation
 
-- Record decisions an Issue settles in `docs/ARCHITECTURE.md` (§2 decision table, §9 open items).
-- Don't change `SPEC.md`, `INTENT.md` or product rules in `docs/POLICY.md` without a recorded human decision.
+- **Recording a decision an Issue settles:** put the detail in the ADR or doc the Issue names (e.g. `docs/adr/0001-android-setup.md`, `docs/data-model.md`). Then add a one-line value plus a link in `docs/ARCHITECTURE.md` §2, and remove the item from §9.
+- Don't change product rules in `docs/POLICY.md` without a recorded human decision.
+- `SPEC.md` and `INTENT.md` change only with approval from both the lead and the human.
 - Keep this file short. Detailed procedures go in `DEVELOPMENT.md` or the docs above.
 
 ## 7. Escalation levels
@@ -106,4 +107,16 @@ Escalation depends on consequence, not branch. L2 and L3 apply inside `dev` too.
 
 ## 9. Agents and skills
 
-Project agents go in `.claude/agents/` and skills in `.claude/skills/`. 
+Project agents go in `.claude/agents/` and skills in `.claude/skills/`.
+
+The main session runs as `lead` (`.claude/settings.json`). It is the only agent that talks to the human, spawns other agents, or writes to GitHub (PRs, merges, Issue and Project changes).
+
+| Agent | Use for | Edits |
+|---|---|---|
+| `product-domain` | Unclear Issue intent; RC/US rules, privacy, consent, wording; prototype vs SPEC | No |
+| `architect` | Data model, contracts, new functions, transactions, dependencies, "decide in issue" choices | No |
+| `implementer` | Writing code, tests and decision records once the plan is settled | Code, tests, docs the Issue names |
+| `verifier` | UX, QA and security review of a change | No |
+| `docs-keeper` | Doc consistency and drift | Docs (`SPEC.md`/`INTENT.md` only with lead + human approval) |
+
+Skills: none yet. Doc-linked skills are planned; add them to the relevant agents' `skills:` when they exist. 
