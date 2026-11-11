@@ -674,6 +674,7 @@ This prototype is a UI/UX reference for agentic developers. It is a design artif
 - Google Maps Platform, Places SDK for Android (address autocomplete): https://developers.google.com/maps/documentation/places/android-sdk
 - Google Maps Platform, March 2025 changes (Directions and Distance Matrix designated Legacy; Routes API as the replacement): https://developers.google.com/maps/billing-and-pricing/march-2025
 - Google Maps Platform pricing and free usage allowances: https://developers.google.com/maps/billing-and-pricing/pricing
+- Kotlin language documentation (Android app): https://kotlinlang.org/docs/home.html
 
 **University context (Section 1)**
 - UCLA Institute of Transportation Studies, "No Such Thing as Free Parking" (2026). Construction cost per parking space; above-ground structures average about $52,000 per space: https://www.its.ucla.edu/2026/02/19/no-such-thing-as-free-parking

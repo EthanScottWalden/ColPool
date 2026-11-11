@@ -7,6 +7,7 @@ description: >
   fixes and local implementation details. Read-only; returns options, not decisions.
 tools: Read, Grep, Glob, Bash
 disallowedTools: Agent, Edit, Write, NotebookEdit
+skills: [firebase-auth-docs, cloud-functions-docs, firestore-docs, maps-routes-docs, maps-places-docs, kotlin-docs]
 model: opus
 maxTurns: 12
 color: blue
