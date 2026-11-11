@@ -20,7 +20,7 @@ Claude Code runs in **WSL2**, where the Bash sandbox applies. On native Windows 
 4. Sign in to GitHub as the **helper account** `ClaudePeggleMaster`, never the owner's main account:
    ```
    gh auth login        # GitHub.com, HTTPS, browser sign-in
-   gh auth setup-git    # git push uses gh's credentials
+   gh auth setup-git    # git push (via the GitHub script) uses gh's credentials
    ```
 5. Set the commit identity in `~/.gitconfig` to the helper account.
 6. Start Claude Code from the repo root (`cd ~/ColPool && claude`). The session runs as `lead` (`.claude/settings.json`).
@@ -59,19 +59,22 @@ Configured in `.claude/settings.json`. It applies to the main session and every 
 - Writes outside the repo and the session temp folder.
 - Network hosts not in `sandbox.network.allowedDomains`.
 
-**What runs outside the sandbox** (`sandbox.excludedCommands`): `gh *`, `git push *` and the `next-issue` script. These need the token. They still go through permission rules and the guard hook, which is the only barrier between them and the token. A compound command runs outside the sandbox only if **every** part matches, so run `gh` on its own: not after `cd ... &&`, and not piped into `head` or `grep` (use `--jq` instead). Otherwise it runs sandboxed, can't see the token, and reports "not logged into any GitHub hosts".
+**What runs outside the sandbox** (`sandbox.excludedCommands`): only the GitHub script `node .claude/hooks/github.mjs` and the `next-issue` script. They are the only commands that can use the token. Both live in folders sandboxed commands can't write, and both call `gh`/`git` without a shell.
 
-**The guard hook** (`.claude/hooks/gh-guard.mjs`) runs outside the sandbox before and after every Bash command. Because `gh` and `git push` run with the token, it only lets through a small set of known shapes and denies everything else:
-- **Shape:** `gh` and `git push` must be one simple command. They can't be part of a compound command (`&&`, `;`, `|`, `$(...)`), and they can't use shell expansion (`$`, backticks, globs, `!`, `\`). Use `--jq` to filter and `--body-file` for long text. (A compound command would run sandboxed and fail anyway.)
-- **`gh`:** only commands on the allowlist run.
-  - Every agent: read commands for issues, PRs, projects, runs, workflows, labels, releases and search; `gh api` GET with no fields; a plain `gh auth status`.
-  - Lead only: `issue create/edit/comment/close/reopen`, `pr create/edit/comment/merge/close/reopen/ready`, `project item-edit/item-add`, `label create`, and `gh api` writes. GraphQL goes inline (`-f query='...'`), not from a file.
-  - Blocked for everyone: `alias`, `extension`, `config`, `auth` other than plain status, credential and key commands, and any repo other than `EthanScottWalden/ColPool`.
-- **`git push`:** only `git push -u origin <branch>` or `git push origin <branch>`, with a plain branch name. The lead may also run `git push origin --delete <branch>`. The lead pushes any non-protected branch, implementer pushes `feature/*` and `fix/*`, docs-keeper pushes `docs/*`. Nobody pushes `dev`, `staging` or `main`. Force, refspecs, globs and other flags are denied.
-- **Pacing:** at most 6 GitHub writes a minute (`GH_GUARD_MAX_WRITES_PER_MIN` raises it for one session). If the counter in `.claude/hooks/.state/` can't be saved, writes are blocked rather than allowed.
+**The GitHub script** (`.claude/hooks/github.mjs`) is the only way agents reach GitHub. Run it with no operation for the full list.
+- **Reads (any agent):** `auth-status`, `issue-view`, `issue-list`, `pr-view`, `pr-list`, `pr-checks`, `pr-diff`, `api-get` (paths under `repos/EthanScottWalden/ColPool/` or `users/EthanScottWalden/`), `graphql-query` (no mutations).
+- **Writes (lead):** issue create/edit/comment/close/reopen; `pr-create` (into `dev`, or `dev` into `staging`); PR edit/comment/close; `pr-merge` (PRs into `dev` only, merge commit, never `--admin`); `graphql-mutation` (Project field and Issue-link mutations only); `branch-delete` (never `dev`/`staging`/`main`).
+- **`push <branch>`:** the lead (any branch except `dev`/`staging`/`main`), implementer (`feature/*`, `fix/*`), docs-keeper (`docs/*`). It runs `git push -u origin <branch>:<branch>`. No force, refspecs or globs.
+- Text goes in files (`--body-file`, `--query-file`). Files must be in the repo (not `.git`) or the session temp folder. Secret-looking files, and files containing a token or API key, are refused.
+
+**The guard hook** (`.claude/hooks/gh-guard.mjs`) runs outside the sandbox before and after every Bash command:
+- The script must be called exactly as `node .claude/hooks/github.mjs <op> ...`, on its own. Wrappers (`timeout`, `env`, `nohup`), `NODE_OPTIONS`, node flags, pipes, `&&`, `$(...)` and globs are denied.
+- Reads: any agent. Writes: the lead. `push`: the branch rules above.
+- Raw `gh` and `git push` are denied with a pointer to the script. Outside it they would run sandboxed without the token anyway.
+- **Pacing:** at most 6 writes a minute (`GH_GUARD_MAX_WRITES_PER_MIN` raises it for one session). If the counter in `.claude/hooks/.state/` can't be saved, writes are blocked rather than allowed.
 - After an Issue body or title edit, a reminder to set Human Review back to Pending.
 
-Other tools (`curl`, `node`, `bash -c`) run inside the sandbox, where the token can't be read, so they can't act as the GitHub account.
+Every other command (`curl`, `node`, `bash -c`, `gh` itself) runs inside the sandbox, where the token can't be read.
 
 `.claude/settings.local.json` (not committed) can set `sandbox.autoAllowBashIfSandboxed: true`, so sandboxed commands run without prompts. That's safe because sandboxed commands can't reach the token.
 

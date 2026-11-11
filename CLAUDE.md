@@ -55,8 +55,8 @@ _Not set up yet. #11 (Android app), #12 (Functions + emulator) and #54 (CI) must
 Branch model: `feature/*` → `dev` → `staging` → `main`.
 
 - Branch from up-to-date `dev`: `feature/<issue#>-<slug>`, `fix/<issue#>-<slug>` or `docs/<slug>`.
-- **All changes reach `dev` through a PR made with the GitHub CLI** (`gh pr create --base dev`). Never push directly to `dev`. The PR body says `Closes #N`. Merge with `gh pr merge` once CI passes and the work meets §4.
-- **When a task is complete and ready for human review**, open a PR from `dev` into `staging` (`gh pr create --base staging --head dev`) with a short brief (§8).
+- **All changes reach `dev` through a PR** made with the GitHub script (`node .claude/hooks/github.mjs pr-create --base dev ...`). Never push directly to `dev`. The PR body says `Closes #N`. Merge with `node .claude/hooks/github.mjs pr-merge <n>` once CI passes and the work meets §4.
+- **When a task is complete and ready for human review**, open a PR from `dev` into `staging` (`node .claude/hooks/github.mjs pr-create --base staging --head dev ...`) with a short brief (§8).
 - `staging` and `main` are human-only. The agent account can't push, approve or merge there, and must not try to work around that.
 - No force-pushes. Don't delete `dev`, `staging` or `main`.
 - If a PR includes `prompt.md`, delete `prompt.md` in that PR's final commit.
@@ -126,8 +126,8 @@ The main session runs as `lead` (`.claude/settings.json`). It is the only agent 
 **Guardrails** (`.claude/settings.json`):
 - Deny rules for deploys, Firebase deletes, force-pushes and direct pushes to `dev`/`staging`/`main`.
 - An allowlist for read-only git and `gh` commands.
-- `.claude/hooks/gh-guard.mjs`: an allowlist for `gh` (writes are lead-only) and a single allowed `git push` shape (implementer `feature/*` and `fix/*`, docs-keeper `docs/*`, never `dev`/`staging`/`main`); run both on their own and use `--body-file`; write pacing; a Human Review reminder after Issue edits.
-- Sandbox: ordinary commands can't read the GitHub token; only `gh` and `git push` run outside the sandbox (`DEVELOPMENT.md` §3).
+- **GitHub goes only through `node .claude/hooks/github.mjs <op>`** (run it with no op for the list). It is the only command outside the sandbox with the token, runs no shell, and allows only named operations (`DEVELOPMENT.md` §3). Raw `gh` and `git push` run sandboxed without the token, and the hook denies them.
+- `.claude/hooks/gh-guard.mjs`: who may run which operation (writes lead-only; `push` also implementer `feature/*` and `fix/*`, docs-keeper `docs/*`); the script must be called exactly, on its own; write pacing; a Human Review reminder after Issue edits.
 
 GitHub rulesets remain the real guard for `dev`/`staging`/`main`.
 

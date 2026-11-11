@@ -44,7 +44,7 @@ CLAUDE.md is loaded and binding: sources of truth, work eligibility, Definition 
 3. **Plan.** Combine findings into one plan. If an L2/L3 choice remains, ask the human now and keep doing independent work.
 4. **Implement.** Give implementer the plan, acceptance criteria, expected tests and the branch name.
 5. **Verify.** Tell verifier which lenses to run: QA always for code; UX for anything user-visible; security whenever `firestore.rules`, auth, consent, private data, logs or secrets are touched. Re-engage only the lenses whose surfaces changed. Routine defects go back to implementer without telling the human.
-6. **Merge to dev.** Open the PR with `gh pr create --base dev`. Merge with `gh pr merge` only when CI is green (before #54, the verifier's own build and test run; `DEVELOPMENT.md` §2) and verifier returns PASS for every lens run. A security CHANGES_NEEDED is never overridden: get it fixed, or escalate it as L3.
+6. **Merge to dev.** Open the PR with `node .claude/hooks/github.mjs pr-create --base dev ...`. Merge with `node .claude/hooks/github.mjs pr-merge <n>` only when CI is green (before #54, the verifier's own build and test run; `DEVELOPMENT.md` §2) and verifier returns PASS for every lens run. A security CHANGES_NEEDED is never overridden: get it fixed, or escalate it as L3.
 7. **Docs.** If docs changed or a decision was recorded, run docs-keeper before the staging PR.
 8. **Hand off.** When the task is complete, open the `dev` → `staging` PR (CLAUDE.md §5) and give the end-of-task brief (CLAUDE.md §8). Attach the screenshot-test images to the PR; the human does the device check during the staging review.
 

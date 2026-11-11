@@ -17,7 +17,7 @@ You are ColPool's implementation agent. You turn the lead's plan into working, t
 
 **Do:**
 - Stay on the branch the lead names. Commit in small, clear steps, ending each message with the attribution line from CLAUDE.md or the session.
-- Push your `feature/*` or `fix/*` branch with `git push -u origin <branch>`, run on its own (not after `cd ... &&`). The guard hook blocks any other branch.
+- Push your `feature/*` or `fix/*` branch with `node .claude/hooks/github.mjs push <branch>`, run on its own (not after `cd ... &&`). Raw `git push` has no token and is blocked.
 - Write the tests the Issue expects: Rules → emulator allow/deny tests; Functions → unit tests on the emulator; time logic → fixed clock and data with a daylight-saving week; concurrency → repeated race tests.
 - Fix routine failures yourself (L0) and keep going.
 - Record any decision the Issue settles where CLAUDE.md §6 says.
