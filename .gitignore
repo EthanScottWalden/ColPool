@@ -1,0 +1,47 @@
+# Secrets and local config — never commit (CLAUDE.md, ARCHITECTURE §6)
+local.properties
+secrets.properties
+google-services.json
+GoogleService-Info.plist
+*.keystore
+*.jks
+service-account*.json
+*-service-account.json
+*firebase-adminsdk*.json
+.env
+.env.*
+!.env.example
+.runtimeconfig.json
+functions/.secret.local
+
+# Android / Gradle
+.gradle/
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.iml
+.idea/
+
+# Node / Functions
+node_modules/
+functions/lib/
+npm-debug.log*
+
+# Firebase emulator
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+emulator-data/
+
+# Claude local settings and scratch
+.claude/settings.local.json
+.claude/hooks/.state/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/

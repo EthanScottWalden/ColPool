@@ -21,13 +21,13 @@ This file is the operating guide for every session. It points to the detailed do
 
 ## 2. Picking up work
 
-- **Eligible:** Project Status = **Ready** *and* Human Review = **Approved**, not blocked by an open Issue, not already In progress. Prefer the lowest Phase, then Sequence.
+- **Eligible:** Project Status = **Ready** *and* Human Review = **Approved**, not blocked by an open Issue, not already In progress. Prefer the lowest Phase, then Sequence. Use the `next-issue` skill to list them.
 - The Issue body is the spec: goal, acceptance criteria, tests expected, non-goals. Don't widen it.
 - **`contract` label:** a shared definition other Issues depend on. Never change a contract inside a feature Issue. Stop and propose a contract-change Issue.
 - **`human-task` label:** a person must do part of it (billing, real-world data, owner input). Agents may do the rest, and must ask (HUMAN ACTION REQUIRED, §8) for the human part.
 - **Status flow:** Ready → In progress (claim it) → Agent review (PR open) → In dev (merged to dev) → In staging → Done. The human handles staging approval and Done.
 - **If you edit an Issue's body or acceptance criteria**, set its Human Review back to **Pending**.
-- **Pace GitHub API calls.** Prefer one bulk read over many small ones, and make writes one at a time, not in tight loops. The helper account (`ClaudePeggleMaster`) was suspended once after a burst of Issue edits. Never use or ask for the owner's main account.
+- **Pace GitHub API calls.** Prefer one bulk read over many small ones, and make writes one at a time, not in tight loops. The helper account (`ClaudePeggleMaster`) was suspended once after a burst of Issue edits. Never use or ask for the owner's main account. A hook enforces this: more than 6 GitHub writes a minute, or a write from a subagent, is blocked. Raise the limit for one session with `GH_GUARD_MAX_WRITES_PER_MIN`.
 
 ## 3. Build / run / test
 
@@ -48,7 +48,7 @@ _Not set up yet. #11 (Android app), #12 (Functions + emulator) and #54 (CI) must
   - Screens: checked on a device against the named prototype screen, with a screenshot attached to the PR.
 - CI is green. No secrets or keys committed.
 - User-facing text uses POLICY §11 terms and 12-hour Pacific times.
-- Any decision the Issue was meant to settle is recorded in `docs/ARCHITECTURE.md` §2 (and removed from §9).
+- Any decision the Issue was meant to settle is recorded (§6).
 
 ## 5. Branches and PRs
 
@@ -63,8 +63,9 @@ Branch model: `feature/*` → `dev` → `staging` → `main`.
 
 ## 6. Documentation
 
-- Record decisions an Issue settles in `docs/ARCHITECTURE.md` (§2 decision table, §9 open items).
-- Don't change `SPEC.md`, `INTENT.md` or product rules in `docs/POLICY.md` without a recorded human decision.
+- **Recording a decision an Issue settles:** put the detail in the ADR or doc the Issue names (e.g. `docs/adr/0001-android-setup.md`, `docs/data-model.md`). Then add a one-line value plus a link in `docs/ARCHITECTURE.md` §2, and remove the item from §9.
+- Don't change product rules in `docs/POLICY.md` without a recorded human decision.
+- `SPEC.md` and `INTENT.md` change only with approval from both the lead and the human.
 - Keep this file short. Detailed procedures go in `DEVELOPMENT.md` or the docs above.
 
 ## 7. Escalation levels
@@ -106,4 +107,25 @@ Escalation depends on consequence, not branch. L2 and L3 apply inside `dev` too.
 
 ## 9. Agents and skills
 
-Project agents go in `.claude/agents/` and skills in `.claude/skills/`. 
+Project agents go in `.claude/agents/` and skills in `.claude/skills/`.
+
+The main session runs as `lead` (`.claude/settings.json`). It is the only agent that talks to the human, spawns other agents, or writes to GitHub (PRs, merges, Issue and Project changes).
+
+| Agent | Use for | Edits |
+|---|---|---|
+| `product-domain` | Unclear Issue intent; RC/US rules, privacy, consent, wording; prototype vs SPEC | No |
+| `architect` | Data model, contracts, new functions, transactions, dependencies, "decide in issue" choices | No |
+| `implementer` | Writing code, tests and decision records once the plan is settled | Code, tests, docs the Issue names |
+| `verifier` | UX, QA and security review of a change | No |
+| `docs-keeper` | Doc consistency and drift | Docs (`SPEC.md`/`INTENT.md` only with lead + human approval) |
+
+**Skills:**
+- `next-issue` lists eligible Issues in rank order (read-only).
+- Doc-link skills, each with official links plus ColPool constraints: `firebase-auth-docs`, `cloud-functions-docs`, `firestore-docs`, `maps-routes-docs`, `maps-places-docs`, `kotlin-docs`. Use the matching one before relying on memory for an external API.
+- Preloaded: all six in `implementer` and `architect`; Auth, Functions and Firestore in `verifier`.
+**Guardrails** (`.claude/settings.json`):
+- Deny rules for deploys, Firebase deletes, force-pushes and direct pushes to `dev`/`staging`/`main`.
+- An allowlist for read-only git and `gh` commands.
+- `.claude/hooks/gh-guard.mjs`: GitHub write pacing, lead-only writes, and a Human Review reminder after Issue edits.
+
+GitHub rulesets remain the real guard for `dev`/`staging`/`main`. 
