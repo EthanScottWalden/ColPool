@@ -126,7 +126,7 @@ The main session runs as `lead` (`.claude/settings.json`). It is the only agent 
 **Guardrails** (`.claude/settings.json`):
 - Deny rules for deploys, Firebase deletes, force-pushes and direct pushes to `dev`/`staging`/`main`.
 - An allowlist for read-only git and `gh` commands.
-- `.claude/hooks/gh-guard.mjs`: lead-only `gh` writes; `git push` limited by agent (implementer `feature/*` and `fix/*`, docs-keeper `docs/*`, never `dev`/`staging`/`main`); no curl to GitHub; write pacing; a Human Review reminder after Issue edits.
+- `.claude/hooks/gh-guard.mjs`: an allowlist for `gh` (writes are lead-only) and a single allowed `git push` shape (implementer `feature/*` and `fix/*`, docs-keeper `docs/*`, never `dev`/`staging`/`main`); run both on their own and use `--body-file`; write pacing; a Human Review reminder after Issue edits.
 - Sandbox: ordinary commands can't read the GitHub token; only `gh` and `git push` run outside the sandbox (`DEVELOPMENT.md` §3).
 
 GitHub rulesets remain the real guard for `dev`/`staging`/`main`.

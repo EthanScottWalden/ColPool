@@ -1,28 +1,29 @@
 #!/usr/bin/env node
-// GitHub guard for ColPool (CLAUDE.md §2, §9; DEVELOPMENT.md "Sandbox").
-//   pre  (PreToolUse):
-//     - never print the GitHub token (`gh auth token`, `--show-token`);
-//     - no curl/wget/httpie to GitHub hosts (use `gh`, which the guard can see);
-//     - `gh` writes: lead only;
-//     - `git push`: lead any non-protected branch, implementer feature/* and fix/*,
-//       docs-keeper docs/*; nobody pushes dev/staging/main, force-pushes or pushes --all/--mirror;
-//       only the lead deletes remote branches;
-//     - pacing: at most N GitHub writes (gh writes + pushes) a minute.
-//   post (PostToolUse): after an Issue body/title edit, remind Claude to reset Human Review to Pending.
-// Hooks run outside the Bash sandbox, so the state file below is writable.
-// Fails open only if the hook input itself can't be read.
+// GitHub guard for ColPool (CLAUDE.md §2, §9; DEVELOPMENT.md §3).
+//
+// Why it is strict: `gh *`, `git push *` and the next-issue script run OUTSIDE the Bash sandbox
+// (sandbox.excludedCommands), with the GitHub token readable. A command runs outside the sandbox
+// only when it is one simple command, so that is the only shape this hook has to judge closely:
+//   - `gh` and `git push` must be run on their own, with no shell expansion (no $, `, globs, !).
+//     Compound commands that contain them are denied (they would run sandboxed, without the token).
+//   - `gh`: an allowlist of subcommands. Subagents get read-only commands; the lead also gets the
+//     writes it owns. Everything else (alias, extension, auth other than plain status, config,
+//     ssh-key, codespace, secret, ...) is denied for everyone.
+//   - `git push`: one fixed shape, `git push [-u] origin <branch>`; the lead may also
+//     `git push origin --delete <branch>...`. Branch rules per agent; never dev/staging/main.
+//   - Pacing: at most N GitHub writes (gh writes + pushes) a minute; if the counter can't be
+//     saved, the write is denied.
+// post (PostToolUse): after an Issue body/title edit, remind Claude to reset Human Review to Pending.
+// Hooks run outside the sandbox. Fails open only if the hook input itself can't be read.
 import fs from "node:fs";
 import path from "node:path";
-import { execFileSync } from "node:child_process";
 
 const MODE = process.argv[2];
 const MAX_PER_MINUTE = Number(process.env.GH_GUARD_MAX_WRITES_PER_MIN) || 6;
 const WINDOW_MS = 60_000;
+const REPO = "EthanScottWalden/ColPool";
 const PROTECTED = new Set(["dev", "staging", "main"]);
-const PUSH_PREFIXES = {
-  implementer: ["feature/", "fix/"],
-  "docs-keeper": ["docs/"],
-};
+const PUSH_PREFIXES = { implementer: ["feature/", "fix/"], "docs-keeper": ["docs/"] };
 
 let input;
 try {
@@ -31,9 +32,7 @@ try {
   process.exit(0);
 }
 const command = String(input?.tool_input?.command ?? "");
-if (!/\b(gh|git|curl|wget|https?)\b/.test(command)) process.exit(0);
-
-// agent_id is set only inside a subagent; the main session (started as `lead`) has agent_type but no agent_id.
+// agent_id is set only inside a subagent; the main session (started as `lead`) has no agent_id.
 const role = input.agent_id ? String(input.agent_type || "unknown-subagent") : "lead";
 const cwd = input.cwd || process.env.CLAUDE_PROJECT_DIR || process.cwd();
 
@@ -44,38 +43,88 @@ function deny(reason) {
   process.exit(0);
 }
 
-// GraphQL queries often span lines, so judge them on the whole command: one write per mutation call.
-const graphqlCalls = (command.match(/\bgh\s+api\s+graphql\b/g) || []).length;
-const graphqlWrites = graphqlCalls && /\bmutation\b/.test(command) ? graphqlCalls : 0;
-const graphqlIssueEdit = graphqlWrites > 0 && /\bupdateIssue\b/.test(command);
-
-// Split the rest so each call is judged on its own.
-const segments = command
-  .split(/&&|\|\||;|\||\n/)
-  .map((s) => s.trim())
-  .filter((s) => s && !/\bgh\s+api\s+graphql\b/.test(s));
-
-const WRITE_SUBCOMMANDS =
-  /\bgh\s+(issue|pr|project|label|release|repo|gist|secret|variable|ruleset|workflow|run)\s+(create|edit|close|reopen|comment|merge|delete|item-add|item-edit|item-delete|item-archive|field-create|field-delete|transfer|lock|unlock|pin|unpin|develop|ready|review|rename|archive|set|enable|disable|cancel|rerun|copy|link|unlink|mark-template)\b/;
-
-function isGhWrite(seg) {
-  if (WRITE_SUBCOMMANDS.test(seg)) return true;
-  if (!/\bgh\s+api\b/.test(seg)) return false;
-  const method = seg.match(/(?:-X|--method)[\s=]+([A-Za-z]+)/);
-  if (method) return method[1].toUpperCase() !== "GET";
-  // gh api defaults to POST when fields or input are given.
-  return /\s(-f|-F|--field|--raw-field|--input)\b/.test(seg);
+// ---------- Quote-aware shell tokenizer ----------
+// Returns { segments: [[word, ...], ...], unsafe: bool }.
+// Segments split on unquoted ; & | ( ) < > and newlines. `unsafe` flags anything the shell would
+// expand or that this parser doesn't model: unquoted $ ` * ? [ ] { } ~ ! \ #, and $ or ` inside double quotes.
+function tokenize(src) {
+  const segments = [];
+  let words = [];
+  let word = null;
+  let unsafe = false;
+  const endWord = () => { if (word !== null) { words.push(word); word = null; } };
+  const endSeg = () => { endWord(); if (words.length) segments.push(words); words = []; };
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i];
+    if (c === "'") {
+      const j = src.indexOf("'", i + 1);
+      if (j < 0) { unsafe = true; break; }
+      word = (word ?? "") + src.slice(i + 1, j);
+      i = j;
+    } else if (c === '"') {
+      let j = i + 1;
+      let buf = "";
+      while (j < src.length && src[j] !== '"') {
+        if (src[j] === "$" || src[j] === "`") unsafe = true;
+        if (src[j] === "\\" && j + 1 < src.length) { buf += src[j + 1]; j += 2; continue; }
+        buf += src[j++];
+      }
+      if (j >= src.length) { unsafe = true; break; }
+      word = (word ?? "") + buf;
+      i = j;
+    } else if (/\s/.test(c)) {
+      if (c === "\n") endSeg(); else endWord();
+    } else if (";&|()<>".includes(c)) {
+      endSeg();
+      segments.push(null); // marker: the command was compound
+    } else {
+      if ("$`*?[]{}~!\\#".includes(c)) unsafe = true;
+      word = (word ?? "") + c;
+    }
+  }
+  endSeg();
+  const compound = segments.some((s) => s === null);
+  return { segments: segments.filter(Boolean), compound, unsafe };
 }
 
-function isIssueContentEdit(seg) {
-  if (/\bgh\s+issue\s+edit\b/.test(seg)) return /\s(--body|--body-file|-b|-F|--title|-t)\b/.test(seg);
-  if (/\bgh\s+api\b/.test(seg) && /repos\/[^\s]+\/issues\/\d+(\s|$)/.test(seg))
-    return /(-X|--method)[\s=]+PATCH/i.test(seg) && /\b(body|title)=/.test(seg);
+const { segments, compound, unsafe } = tokenize(command);
+const isGh = (w) => w[0] === "gh";
+// The git subcommand is the first word after `git` that isn't an option (or the value of -C / -c).
+const isGitPush = (w) => {
+  if (w[0] !== "git") return false;
+  for (let i = 1; i < w.length; i++) {
+    if (w[i] === "-C" || w[i] === "-c") { i++; continue; }
+    if (!w[i].startsWith("-")) return w[i] === "push";
+  }
+  return false;
+};
+const sensitive = segments.filter((w) => isGh(w) || isGitPush(w));
+
+// ---------- post: Human Review reminder ----------
+function isIssueContentEdit(w) {
+  if (!isGh(w)) return false;
+  const a = stripGhGlobals(w.slice(1)).args;
+  if (a[0] === "issue" && a[1] === "edit") return a.some((t) => /^(--body|--body-file|-b|-F|--title|-t)(=|$)/.test(t));
+  if (a[0] === "api" && a.some((t) => /mutation/.test(t)) && a.some((t) => /updateIssue/.test(t))) return true;
+  if (a[0] === "api" && a.some((t) => /repos\/[^\s]+\/issues\/\d+$/.test(t)))
+    return a.some((t) => /^(body|title)=/.test(t));
   return false;
 }
 
+function stripGhGlobals(args) {
+  const out = [];
+  let repo = null;
+  for (let i = 0; i < args.length; i++) {
+    const t = args[i];
+    if (t === "-R" || t === "--repo") { repo = args[++i] ?? ""; continue; }
+    if (/^(-R|--repo=)/.test(t) && t !== "-R") { repo = t.replace(/^(-R|--repo=)/, ""); continue; }
+    out.push(t);
+  }
+  return { args: out, repo };
+}
+
 if (MODE === "post") {
-  if (graphqlIssueEdit || segments.some(isIssueContentEdit)) {
+  if (segments.some(isIssueContentEdit)) {
     console.log(JSON.stringify({
       hookSpecificOutput: {
         hookEventName: "PostToolUse",
@@ -87,100 +136,116 @@ if (MODE === "post") {
   process.exit(0);
 }
 
-// 1. Never expose the token.
-if (/\bgh\s+auth\s+token\b/.test(command) || /\bgh\s+auth\s+status\b[^\n]*(\s-t\b|--show-token)/.test(command)) {
-  deny("Printing the GitHub token is not allowed (DEVELOPMENT.md, Sandbox).");
-}
+if (sensitive.length === 0) process.exit(0);
 
-// 2. GitHub only through gh / git push, where this guard can see the call.
-const GITHUB_HOST = /\b(api\.)?github\.com\b|githubusercontent\.com|\bgithub\.io\b/;
-for (const seg of segments) {
-  if (/(^|\s|\/)(curl|wget|http|https|xh)\s/.test(seg + " ") && GITHUB_HOST.test(seg)) {
-    deny("Reach GitHub with `gh` or `git`, not curl/wget/httpie, so the write guard applies (CLAUDE.md §9).");
-  }
+// ---------- Shape rules ----------
+if (compound || segments.length > 1) {
+  deny("Run `gh` and `git push` on their own, not in a compound command (no &&, ;, |, $(...)). Use --jq for filtering and --body-file for long text (DEVELOPMENT.md §3).");
 }
-
-// 3. git push rules.
-function currentBranch() {
-  try {
-    return execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], { cwd, encoding: "utf8" }).trim();
-  } catch {
-    return "";
-  }
+if (unsafe) {
+  deny("`gh` and `git push` run outside the sandbox, so they can't use shell expansion ($, backticks, globs, !, \\). Put text in a file and use --body-file (DEVELOPMENT.md §3).");
 }
+const words = segments[0];
+let writes = 0;
 
-function parsePush(seg) {
-  const tokens = seg.split(/\s+/).filter(Boolean);
-  const gitIdx = tokens.findIndex((t) => t === "git" || t.endsWith("/git"));
-  if (gitIdx < 0) return null;
-  const pushIdx = tokens.indexOf("push", gitIdx + 1);
-  if (pushIdx < 0) return null;
-  // Allow only global options between `git` and `push` (e.g. -C dir); otherwise "push" is an argument.
-  const between = tokens.slice(gitIdx + 1, pushIdx);
-  if (between.some((t, i) => !t.startsWith("-") && !["-C", "-c"].includes(between[i - 1]))) return null;
-  const flags = [];
-  const positional = [];
-  const takesValue = new Set(["-o", "--push-option", "--repo", "--receive-pack", "--exec"]);
-  const rest = tokens.slice(pushIdx + 1);
-  for (let i = 0; i < rest.length; i++) {
-    const t = rest[i];
-    if (t.startsWith("-")) {
-      flags.push(t);
-      if (takesValue.has(t)) i++;
-    } else positional.push(t);
-  }
-  const refspecs = positional.slice(1);
-  return { flags, refspecs };
-}
-
-let pushWrites = 0;
-for (const seg of segments) {
-  const push = parsePush(seg);
-  if (!push) continue;
-  pushWrites++;
-  const { flags, refspecs } = push;
-  if (flags.some((f) => /^(--force|-f|--force-with-lease|--force-if-includes)/.test(f) || /^-[a-zA-Z]*f/.test(f) && !f.startsWith("--")) ||
-      refspecs.some((r) => r.startsWith("+"))) {
-    deny("Force-pushes are not allowed (CLAUDE.md §5).");
-  }
-  if (flags.some((f) => ["--all", "--mirror", "--prune"].includes(f))) {
-    deny("Push one named branch at a time; --all, --mirror and --prune are not allowed.");
-  }
-  if (flags.includes("--tags") && role !== "lead") deny("Only the lead pushes tags.");
-  const deleting = flags.includes("--delete") || flags.includes("-d") || refspecs.some((r) => r.startsWith(":"));
-  const targets = refspecs.length
-    ? refspecs.map((r) => {
-        const dst = r.includes(":") ? r.split(":").pop() : r;
-        const name = dst === "HEAD" || dst === "" ? currentBranch() : dst;
-        return name.replace(/^refs\/heads\//, "");
-      })
-    : [currentBranch()];
-  for (const branch of targets) {
-    if (!branch) deny("Couldn't tell which branch this push targets. Name it explicitly: `git push -u origin <branch>`.");
-    if (PROTECTED.has(branch)) {
-      deny(`'${branch}' only changes through a PR (CLAUDE.md §5). Push your own branch and ask the lead to open the PR.`);
+// ---------- git push ----------
+if (words[0] === "git") {
+  if (words[1] !== "push") deny("Use plain `git push [-u] origin <branch>` (no git options before `push`).");
+  const rest = words.slice(2);
+  const BRANCH = /^[A-Za-z0-9][A-Za-z0-9._\/-]*$/;
+  const checkBranch = (b, deleting) => {
+    if (!BRANCH.test(b) || b.includes("..") || b.endsWith("/") || b.endsWith(".lock") || /^(refs|heads|HEAD)(\/|$)/.test(b)) {
+      deny(`'${b}' isn't a plain branch name. Push with \`git push -u origin <branch>\`.`);
     }
-    if (deleting && role !== "lead") deny("Only the lead deletes remote branches.");
+    if (PROTECTED.has(b)) deny(`'${b}' only changes through a PR (CLAUDE.md §5).`);
+    if (deleting) return;
     if (role !== "lead") {
       const prefixes = PUSH_PREFIXES[role];
       if (!prefixes) deny(`Agent '${role}' doesn't push. Report back to the lead (CLAUDE.md §9).`);
-      if (!prefixes.some((p) => branch.startsWith(p))) {
-        deny(`Agent '${role}' may push only ${prefixes.join(" or ")} branches, not '${branch}'.`);
-      }
+      if (!prefixes.some((p) => b.startsWith(p))) deny(`Agent '${role}' may push only ${prefixes.join(" or ")} branches, not '${b}'.`);
     }
+  };
+  let ok = false;
+  if ((rest.length === 2 && rest[0] === "origin") || (rest.length === 3 && ["-u", "--set-upstream"].includes(rest[0]) && rest[1] === "origin")) {
+    checkBranch(rest[rest.length - 1], false);
+    ok = true;
+  } else if (rest.length >= 3 && ((rest[0] === "origin" && rest[1] === "--delete") || (rest[0] === "--delete" && rest[1] === "origin"))) {
+    if (role !== "lead") deny("Only the lead deletes remote branches.");
+    rest.slice(2).forEach((b) => checkBranch(b, true));
+    ok = true;
+  }
+  if (!ok) deny("Allowed push shapes: `git push -u origin <branch>` or `git push origin <branch>`; the lead may also `git push origin --delete <branch>`. No force, globs, refspecs or other flags.");
+  writes = 1;
+}
+
+// ---------- gh ----------
+if (words[0] === "gh") {
+  const { args, repo } = stripGhGlobals(words.slice(1));
+  if (repo !== null && repo !== REPO) deny(`gh may only target ${REPO}.`);
+  const [group, sub] = args;
+
+  const READ = {
+    issue: ["view", "list", "status"],
+    pr: ["view", "list", "checks", "diff", "status"],
+    project: ["view", "list", "item-list", "field-list"],
+    repo: ["view"],
+    run: ["list", "view"],
+    workflow: ["list", "view"],
+    label: ["list"],
+    search: ["issues", "prs", "code", "commits", "repos"],
+    release: ["list", "view"],
+  };
+  const LEAD_WRITE = {
+    issue: ["create", "edit", "comment", "close", "reopen"],
+    pr: ["create", "edit", "comment", "merge", "close", "reopen", "ready"],
+    project: ["item-edit", "item-add"],
+    label: ["create"],
+  };
+
+  if (group === "auth") {
+    if (sub === "status" && args.length === 2) process.exit(0);
+    deny("Only a plain `gh auth status` is allowed. Token and credential commands are blocked (DEVELOPMENT.md §3).");
+  }
+
+  if (group === "api") {
+    const a = args.slice(1);
+    const endpoint = a.find((t) => !t.startsWith("-"));
+    let method = null;
+    let hasFields = false;
+    let hasInput = false;
+    for (let i = 0; i < a.length; i++) {
+      const t = a[i];
+      let m;
+      if (t === "-X" || t === "--method") method = (a[++i] || "").toUpperCase();
+      else if ((m = t.match(/^(?:-X=?|--method=)(.+)$/))) method = m[1].toUpperCase();
+      else if (/^(-f|-F|--field|--raw-field)$/.test(t)) { hasFields = true; i++; }
+      else if (/^(-f|-F|--field=|--raw-field=)./.test(t)) hasFields = true;
+      else if (t === "--input" || t.startsWith("--input=")) hasInput = true;
+    }
+    const isGraphql = endpoint === "graphql";
+    const isRead = !isGraphql && !hasFields && !hasInput && (method === null || method === "GET");
+    if (isRead) process.exit(0);
+    if (role !== "lead") deny(`Agent '${role}' may use only read-only \`gh api\` (GET, no fields, no graphql). Report back to the lead (CLAUDE.md §9).`);
+    if (isGraphql) {
+      const body = a.join(" ");
+      if (hasInput || /query=@/.test(body)) deny("Pass GraphQL queries inline with -f query='...', not from a file, so the guard can see them.");
+      writes = /\bmutation\b/.test(body) ? 1 : 0;
+    } else {
+      writes = 1;
+    }
+  } else if (READ[group]?.includes(sub)) {
+    process.exit(0);
+  } else if (LEAD_WRITE[group]?.includes(sub)) {
+    if (role !== "lead") deny(`GitHub writes belong to the lead (CLAUDE.md §9). Agent '${role}' should report back instead.`);
+    writes = 1;
+  } else {
+    deny(`\`gh ${[group, sub].filter(Boolean).join(" ")}\` isn't on the allowed list. Allowed: read commands for issues, PRs, projects, runs and the API; lead writes for issues, PRs and project items (DEVELOPMENT.md §3).`);
   }
 }
 
-// 4. gh writes: lead only.
-const ghWrites = segments.filter(isGhWrite).length + graphqlWrites;
-if (ghWrites > 0 && role !== "lead") {
-  deny(`GitHub writes belong to the lead (CLAUDE.md §9). Agent '${role}' should report back to the lead instead.`);
-}
+if (writes === 0) process.exit(0);
 
-const writeCount = ghWrites + pushWrites;
-if (writeCount === 0) process.exit(0);
-
-// 5. Pacing. State lives outside git (see .gitignore).
+// ---------- Pacing ----------
 const projectDir = process.env.CLAUDE_PROJECT_DIR || cwd;
 const stateDir = path.join(projectDir, ".claude", "hooks", ".state");
 const stateFile = path.join(stateDir, "gh-writes.json");
@@ -190,17 +255,17 @@ try {
   recent = JSON.parse(fs.readFileSync(stateFile, "utf8")).filter((t) => now - t < WINDOW_MS);
 } catch {}
 
-if (recent.length + writeCount > MAX_PER_MINUTE) {
+if (recent.length + writes > MAX_PER_MINUTE) {
   const waitS = Math.ceil((WINDOW_MS - (now - Math.min(...recent))) / 1000);
   deny(
     `GitHub write pacing: ${recent.length} writes in the last minute (limit ${MAX_PER_MINUTE}). ` +
-      `Wait about ${waitS}s and retry one write at a time, or batch them into a single GraphQL mutation (CLAUDE.md §2).`
+      `Wait about ${waitS}s and retry one write at a time (CLAUDE.md §2).`
   );
 }
 
 try {
   fs.mkdirSync(stateDir, { recursive: true });
-  fs.writeFileSync(stateFile, JSON.stringify([...recent, ...Array(writeCount).fill(now)]));
+  fs.writeFileSync(stateFile, JSON.stringify([...recent, ...Array(writes).fill(now)]));
 } catch (e) {
   deny(`GitHub write pacing state couldn't be saved (${e.code || e.message}), so the write is blocked. Check ${stateFile}.`);
 }
