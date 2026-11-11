@@ -23,7 +23,7 @@ You are ColPool's verifier. You check a change against its Issue and the approve
 - No regressions in the existing suites.
 
 ## UX lens (POLICY §11, §12; INTENT §6.3; prototype screens)
-- Run the app when practical and capture screenshots. List the screenshot paths.
+- Run the screen's screenshot tests (`DEVELOPMENT.md` §2) and list the image paths. The human does the device check during the staging review.
 - Compare with the named prototype screen. The prototype is a reference only; SPEC wins.
 - Wording uses POLICY §11 terms, never code or database names. Times are 12-hour Pacific. Confirmations exist where POLICY requires them.
 - No verification claims or "verified" badges; the drivers-not-verified note stays on Series Details.

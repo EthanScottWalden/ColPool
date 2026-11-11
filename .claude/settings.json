@@ -14,6 +14,7 @@
       "Bash(gh pr diff *)",
       "Bash(gh project item-list *)",
       "Bash(gh project field-list *)",
+      "Bash(node .claude/hooks/github.mjs *)",
       "PowerShell(git status *)",
       "PowerShell(git diff *)",
       "PowerShell(git log *)",
@@ -28,6 +29,22 @@
       "PowerShell(gh project field-list *)"
     ],
     "deny": [
+      "Read(**/local.properties)",
+      "Read(**/secrets.properties)",
+      "Read(**/google-services.json)",
+      "Read(**/*service-account*.json)",
+      "Read(**/*firebase-adminsdk*.json)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/.runtimeconfig.json)",
+      "Read(//mnt/**)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.config/gcloud/**)",
+      "Read(~/.config/gh/**)",
+      "Read(~/.config/configstore/**)",
+      "Read(~/.git-credentials)",
+      "Read(~/.bash_history)",
       "Bash(firebase deploy *)",
       "Bash(npx firebase deploy *)",
       "Bash(npm run deploy *)",
@@ -59,6 +76,66 @@
       "PowerShell(git push origin HEAD:staging)",
       "PowerShell(git push origin HEAD:main)"
     ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "allowUnsandboxedCommands": false,
+    "excludedCommands": [
+      "node .claude/hooks/github.mjs *",
+      "node .claude/skills/next-issue/scripts/next-issue.mjs *"
+    ],
+    "filesystem": {
+      "denyRead": [
+        "~",
+        "~/.config/gh",
+        "/mnt",
+        "./.env",
+        "./.env.local",
+        "./functions/.env",
+        "./functions/.env.local",
+        "./android/.env"
+      ],
+      "allowRead": [
+        ".",
+        "~/.bashrc",
+        "~/.profile",
+        "~/.gitconfig",
+        "~/.nvm",
+        "~/.npm",
+        "~/.cache",
+        "~/.gradle",
+        "~/.android",
+        "~/Android"
+      ]
+    },
+    "network": {
+      "allowedDomains": [
+        "github.com",
+        "api.github.com",
+        "codeload.github.com",
+        "objects.githubusercontent.com",
+        "raw.githubusercontent.com",
+        "registry.npmjs.org",
+        "dl.google.com",
+        "maven.google.com",
+        "repo.maven.apache.org",
+        "repo1.maven.org",
+        "plugins.gradle.org",
+        "plugins-artifacts.gradle.org",
+        "services.gradle.org",
+        "downloads.gradle.org",
+        "firebase.google.com",
+        "console.firebase.google.com",
+        "developers.google.com",
+        "developer.android.com",
+        "kotlinlang.org",
+        "claude.ai",
+        "www.its.ucla.edu",
+        "stars.aashe.org",
+        "localhost",
+        "127.0.0.1"
+      ]
+    }
   },
   "hooks": {
     "PreToolUse": [
