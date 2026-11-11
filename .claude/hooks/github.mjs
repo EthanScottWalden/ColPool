@@ -58,6 +58,14 @@ const gh = (args, opts = {}) =>
   execFileSync(GH, args, { cwd: ROOT, env: CHILD_ENV, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["pipe", "inherit", "inherit"], ...opts });
 const ghOut = (args) => execFileSync(GH, args, { cwd: ROOT, env: CHILD_ENV, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
 
+// A REST write to a fixed endpoint built by this script. The JSON body goes on stdin, so no value
+// is ever parsed as a gh flag. Prints only the resulting URL.
+function restWrite(method, endpoint, body) {
+  const args = ["api", "--method", method, endpoint, "--jq", ".html_url // empty"];
+  if (body) args.push("--input", "-");
+  gh(args, body ? { input: JSON.stringify(body) } : {});
+}
+
 // --- argument helpers ---
 function parse(argv, spec) {
   // spec: { flags: {name: "value"|"bool"}, positional: n }
@@ -224,16 +232,20 @@ const OPS = {
     for (const l of flags.label ?? []) args.push("--label", text(l, 50));
     gh(args, { input: readBodyFile(one(flags, "body-file")) });
   },
+  // issue-edit and pr-edit use REST, because `gh issue/pr edit` fails while classic Projects is
+  // being retired once the token has the project scope. Fixed endpoints; JSON body via stdin.
   "issue-edit": (a) => {
     const { flags, pos } = parse(a, { flags: { title: "value", "body-file": "value", "add-label": "value", "remove-label": "value" }, positional: 1 });
-    const args = ["issue", "edit", num(pos[0]), "-R", REPO];
-    const t = one(flags, "title", false); if (t) args.push("--title", text(t));
-    for (const l of flags["add-label"] ?? []) args.push("--add-label", text(l, 50));
-    for (const l of flags["remove-label"] ?? []) args.push("--remove-label", text(l, 50));
-    const bf = one(flags, "body-file", false);
-    if (bf) args.push("--body-file", "-");
-    if (args.length === 5) fail("nothing to edit");
-    gh(args, bf ? { input: readBodyFile(bf) } : {});
+    const n = num(pos[0]);
+    const patch = {};
+    const t = one(flags, "title", false); if (t) patch.title = text(t);
+    const bf = one(flags, "body-file", false); if (bf) patch.body = readBodyFile(bf);
+    const add = (flags["add-label"] ?? []).map((l) => text(l, 50));
+    const remove = (flags["remove-label"] ?? []).map((l) => text(l, 50));
+    if (!Object.keys(patch).length && !add.length && !remove.length) fail("nothing to edit");
+    if (Object.keys(patch).length) restWrite("PATCH", `repos/${REPO}/issues/${n}`, patch);
+    if (add.length) restWrite("POST", `repos/${REPO}/issues/${n}/labels`, { labels: add });
+    for (const l of remove) restWrite("DELETE", `repos/${REPO}/issues/${n}/labels/${encodeURIComponent(l)}`, null);
   },
   "issue-comment": (a) => { const { flags, pos } = parse(a, { flags: { "body-file": "value" }, positional: 1 }); gh(["issue", "comment", num(pos[0]), "-R", REPO, "--body-file", "-"], { input: readBodyFile(one(flags, "body-file")) }); },
   "issue-close": (a) => { const { pos } = parse(a, { positional: 1 }); gh(["issue", "close", num(pos[0]), "-R", REPO]); },
@@ -250,11 +262,12 @@ const OPS = {
   },
   "pr-edit": (a) => {
     const { flags, pos } = parse(a, { flags: { title: "value", "body-file": "value" }, positional: 1 });
-    const args = ["pr", "edit", num(pos[0]), "-R", REPO];
-    const t = one(flags, "title", false); if (t) args.push("--title", text(t));
-    const bf = one(flags, "body-file", false); if (bf) args.push("--body-file", "-");
-    if (args.length === 5) fail("nothing to edit");
-    gh(args, bf ? { input: readBodyFile(bf) } : {});
+    const n = num(pos[0]);
+    const patch = {};
+    const t = one(flags, "title", false); if (t) patch.title = text(t);
+    const bf = one(flags, "body-file", false); if (bf) patch.body = readBodyFile(bf);
+    if (!Object.keys(patch).length) fail("nothing to edit");
+    restWrite("PATCH", `repos/${REPO}/pulls/${n}`, patch);
   },
   "pr-comment": (a) => { const { flags, pos } = parse(a, { flags: { "body-file": "value" }, positional: 1 }); gh(["pr", "comment", num(pos[0]), "-R", REPO, "--body-file", "-"], { input: readBodyFile(one(flags, "body-file")) }); },
   "pr-close": (a) => { const { pos } = parse(a, { positional: 1 }); gh(["pr", "close", num(pos[0]), "-R", REPO]); },
