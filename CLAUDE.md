@@ -21,13 +21,13 @@ This file is the operating guide for every session. It points to the detailed do
 
 ## 2. Picking up work
 
-- **Eligible:** Project Status = **Ready** *and* Human Review = **Approved**, not blocked by an open Issue, not already In progress. Prefer the lowest Phase, then Sequence.
+- **Eligible:** Project Status = **Ready** *and* Human Review = **Approved**, not blocked by an open Issue, not already In progress. Prefer the lowest Phase, then Sequence. Use the `next-issue` skill to list them.
 - The Issue body is the spec: goal, acceptance criteria, tests expected, non-goals. Don't widen it.
 - **`contract` label:** a shared definition other Issues depend on. Never change a contract inside a feature Issue. Stop and propose a contract-change Issue.
 - **`human-task` label:** a person must do part of it (billing, real-world data, owner input). Agents may do the rest, and must ask (HUMAN ACTION REQUIRED, §8) for the human part.
 - **Status flow:** Ready → In progress (claim it) → Agent review (PR open) → In dev (merged to dev) → In staging → Done. The human handles staging approval and Done.
 - **If you edit an Issue's body or acceptance criteria**, set its Human Review back to **Pending**.
-- **Pace GitHub API calls.** Prefer one bulk read over many small ones, and make writes one at a time, not in tight loops. The helper account (`ClaudePeggleMaster`) was suspended once after a burst of Issue edits. Never use or ask for the owner's main account.
+- **Pace GitHub API calls.** Prefer one bulk read over many small ones, and make writes one at a time, not in tight loops. The helper account (`ClaudePeggleMaster`) was suspended once after a burst of Issue edits. Never use or ask for the owner's main account. A hook enforces this: more than 6 GitHub writes a minute, or a write from a subagent, is blocked. Raise the limit for one session with `GH_GUARD_MAX_WRITES_PER_MIN`.
 
 ## 3. Build / run / test
 
@@ -119,4 +119,16 @@ The main session runs as `lead` (`.claude/settings.json`). It is the only agent 
 | `verifier` | UX, QA and security review of a change | No |
 | `docs-keeper` | Doc consistency and drift | Docs (`SPEC.md`/`INTENT.md` only with lead + human approval) |
 
-Skills: none yet. Doc-linked skills are planned; add them to the relevant agents' `skills:` when they exist. 
+**Skills:**
+- `next-issue` lists eligible Issues in rank order (read-only).
+- Doc-link skills, each with official links plus ColPool constraints: `firebase-auth-docs`, `cloud-functions-docs`, `firestore-docs`, `maps-routes-docs`, `maps-places-docs`, `kotlin-docs`. Use the matching one before relying on memory for an external API.
+- Preloaded: all six in `implementer` and `architect`; Auth, Functions and Firestore in `verifier`.
+
+**Notifications:** `.claude/hooks/notify-done.mjs` shows a desktop notification when a response finishes. Opt out per machine with `COLPOOL_NO_NOTIFY=1`.
+
+**Guardrails** (`.claude/settings.json`):
+- Deny rules for deploys, Firebase deletes, force-pushes and direct pushes to `dev`/`staging`/`main`.
+- An allowlist for read-only git and `gh` commands.
+- `.claude/hooks/gh-guard.mjs`: GitHub write pacing, lead-only writes, and a Human Review reminder after Issue edits.
+
+GitHub rulesets remain the real guard for `dev`/`staging`/`main`. 

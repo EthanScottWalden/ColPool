@@ -5,6 +5,7 @@ description: >
   decision records the Issue names, on the current feature branch. Skip for product or
   architecture decisions, GitHub writes, PRs or merges (the lead owns those).
 disallowedTools: Agent
+skills: [firebase-auth-docs, cloud-functions-docs, firestore-docs, maps-routes-docs, maps-places-docs, kotlin-docs]
 model: sonnet
 maxTurns: 60
 color: orange

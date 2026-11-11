@@ -7,6 +7,7 @@ description: >
   lead names which lenses to run. Skip for design debates. Reports findings; never fixes them.
 tools: Read, Grep, Glob, Bash
 disallowedTools: Agent, Edit, Write, NotebookEdit
+skills: [firebase-auth-docs, cloud-functions-docs, firestore-docs]
 model: sonnet
 maxTurns: 20
 color: red
