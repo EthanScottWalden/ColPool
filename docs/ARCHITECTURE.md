@@ -208,6 +208,7 @@ Product privacy and safety rules (who sees what, test data, verification wording
 ## 8. Runtime and deployment
 
 - **One Firebase project** hosts Auth, Firestore, Functions and the scheduled job; the Maps billing account and keys sit alongside it. (INTENT §1.3)
+  - Project ID `colpool`. Console: https://console.firebase.google.com/project/colpool/ (needs owner sign-in).
 - **Firebase Emulator Suite** runs locally and in CI; all rules and function tests run against it. CI never deploys.
 - Scale target: one university, MVP load. Search (95% < 3 s) relies on query-then-rank-on-device; beyond MVP scale it would need geographic filtering, which is out of scope. (RC-26, INTENT §6.1)
 - Maps usage must stay within free allowances: restricted keys, budget alerts, Places session tokens, routes only at review. (RC-28, RISK-08)
