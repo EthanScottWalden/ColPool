@@ -14,8 +14,7 @@
       "Bash(gh pr diff *)",
       "Bash(gh project item-list *)",
       "Bash(gh project field-list *)",
-      "Bash(git push -u origin *)",
-      "Bash(git push origin *)",
+      "Bash(node .claude/hooks/github.mjs *)",
       "PowerShell(git status *)",
       "PowerShell(git diff *)",
       "PowerShell(git log *)",
@@ -82,8 +81,7 @@
     "enabled": true,
     "allowUnsandboxedCommands": false,
     "excludedCommands": [
-      "gh *",
-      "git push *",
+      "node .claude/hooks/github.mjs *",
       "node .claude/skills/next-issue/scripts/next-issue.mjs *"
     ],
     "filesystem": {
