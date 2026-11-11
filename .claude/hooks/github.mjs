@@ -23,8 +23,11 @@ export const PUSH_PREFIXES = { lead: null, implementer: ["feature/", "fix/"], "d
 
 // Read operations: any agent. Write operations: the lead, except `push` (see PUSH_PREFIXES).
 export const READ_OPS = new Set([
-  "help", "auth-status", "issue-view", "issue-list", "pr-view", "pr-list", "pr-checks", "pr-diff", "api-get", "graphql-query",
+  "help", "auth-status", "issue-view", "issue-list", "pr-view", "pr-list", "pr-checks", "pr-diff", "api-get",
 ]);
+// Reads only the lead may run: GraphQL can reach anything the helper account sees, not only ColPool
+// (owner decision 2026-11-11). Not counted toward write pacing.
+export const LEAD_READ_OPS = new Set(["graphql-query"]);
 export const WRITE_OPS = new Set([
   "issue-create", "issue-edit", "issue-comment", "issue-close", "issue-reopen",
   "pr-create", "pr-edit", "pr-comment", "pr-merge", "pr-close",
@@ -164,6 +167,7 @@ const HELP = `Operations (node .claude/hooks/github.mjs <op> ...):
   pr-view <n> [--comments]               pr-list [--state open|closed|merged|all] [--limit N]
   pr-checks <n>                          pr-diff <n>
   api-get <repos/${REPO}/...|users/${PROJECT_OWNER}/...> [--jq EXPR] [--paginate]
+ Lead-only read:
   graphql-query --query-file F [--var name=value]... [--jq EXPR]      (no mutations)
  Write (lead; push also implementer feature/* fix/*, docs-keeper docs/*):
   issue-create --title T --body-file F [--label L]...

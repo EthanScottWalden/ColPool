@@ -15,7 +15,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { READ_OPS, WRITE_OPS, PUSH_PREFIXES } from "./github.mjs";
+import { READ_OPS, LEAD_READ_OPS, WRITE_OPS, PUSH_PREFIXES } from "./github.mjs";
 
 const MODE = process.argv[2];
 const MAX_PER_MINUTE = Number(process.env.GH_GUARD_MAX_WRITES_PER_MIN) || 6;
@@ -146,6 +146,9 @@ if (!scriptOk) deny("Call the GitHub script exactly as `node .claude/hooks/githu
 const op = w[2];
 let writes = 0;
 if (op === undefined || op === "--help" || READ_OPS.has(op)) {
+  process.exit(0);
+} else if (LEAD_READ_OPS.has(op)) {
+  if (role !== "lead") deny(`'${op}' is lead-only (it can read beyond ColPool). Ask the lead, or use issue-view, pr-view or api-get.`);
   process.exit(0);
 } else if (op === "push") {
   if (!(role in PUSH_PREFIXES)) deny(`Agent '${role}' doesn't push. Report back to the lead (CLAUDE.md §9).`);
