@@ -59,22 +59,25 @@ Configured in `.claude/settings.json`. It applies to the main session and every 
 - Writes outside the repo and the session temp folder.
 - Network hosts not in `sandbox.network.allowedDomains`.
 
-**What runs outside the sandbox** (`sandbox.excludedCommands`): only the GitHub script `node .claude/hooks/github.mjs` and the `next-issue` script. They are the only commands that can use the token. Both live in folders sandboxed commands can't write, and both call `gh`/`git` without a shell.
+**What runs outside the sandbox** (`sandbox.excludedCommands`): only the GitHub script `node .claude/hooks/github.mjs` and the `next-issue` script. They are the only commands that can use the token. Both live in folders sandboxed commands can't write, and both call `/usr/bin/gh` and `/usr/bin/git` without a shell and with a minimal environment (`PATH`, `HOME`, `LANG`), so nothing from the Claude Code process, such as tokens, `TMPDIR` or `NODE_OPTIONS`, reaches them.
 
 **The GitHub script** (`.claude/hooks/github.mjs`) is the only way agents reach GitHub. Run it with no operation for the full list.
-- **Reads (any agent):** `auth-status`, `issue-view`, `issue-list`, `pr-view`, `pr-list`, `pr-checks`, `pr-diff`, `api-get` (paths under `repos/EthanScottWalden/ColPool/` or `users/EthanScottWalden/`), `graphql-query` (no mutations).
+- **Reads (any agent):** `auth-status`, `issue-view`, `issue-list`, `pr-view`, `pr-list`, `pr-checks`, `pr-diff`, `api-get` (paths under `repos/EthanScottWalden/ColPool/` or `users/EthanScottWalden/`), `graphql-query` (exactly one query, no mutations or fragments; it can read anything the helper account can see, not only ColPool).
 - **Writes (lead):** issue create/edit/comment/close/reopen; `pr-create` (into `dev`, or `dev` into `staging`); PR edit/comment/close; `pr-merge` (PRs into `dev` only, merge commit, never `--admin`); `graphql-mutation` (Project field and Issue-link mutations only); `branch-delete` (never `dev`/`staging`/`main`).
 - **`push <branch>`:** the lead (any branch except `dev`/`staging`/`main`), implementer (`feature/*`, `fix/*`), docs-keeper (`docs/*`). It runs `git push -u origin <branch>:<branch>`. No force, refspecs or globs.
-- Text goes in files (`--body-file`, `--query-file`). Files must be in the repo (not `.git`) or the session temp folder. Secret-looking files, and files containing a token or API key, are refused.
+- Text goes in files (`--body-file`, `--query-file`). Files must be `.md`, `.txt`, `.graphql` or `.json`, in the repo (not `.git`) or under `/tmp/claude-<uid>/`; `TMPDIR` isn't trusted. Secret-looking file names, and files containing a token, API key or private key, are refused.
+- GraphQL is checked with a real lexer: comments and strings can't hide a mutation, `--var` can't replace `query`, `operationName` or `variables`, and `graphql-mutation` allows only the listed Project and Issue-link mutations.
 
 **The guard hook** (`.claude/hooks/gh-guard.mjs`) runs outside the sandbox before and after every Bash command:
-- The script must be called exactly as `node .claude/hooks/github.mjs <op> ...`, on its own. Wrappers (`timeout`, `env`, `nohup`), `NODE_OPTIONS`, node flags, pipes, `&&`, `$(...)` and globs are denied.
+- The script must be called exactly as `node .claude/hooks/github.mjs <op> ...`, on its own, and the next-issue script exactly as `node .claude/skills/next-issue/scripts/next-issue.mjs [--json] [--limit N]`. Any command that mentions either script counts as a call unless its first word is a plain reader such as `git`, `grep` or `cat`. Wrappers (`env`, `env -u`, `timeout`, `nice`, `time`, `stdbuf`, `nohup`), `NODE_OPTIONS`, node flags, pipes, `&&`, `$(...)` and globs are denied. Claude Code strips some of these wrappers when it matches `excludedCommands`, so they would otherwise run outside the sandbox.
 - Reads: any agent. Writes: the lead. `push`: the branch rules above.
 - Raw `gh` and `git push` are denied with a pointer to the script. Outside it they would run sandboxed without the token anyway.
 - **Pacing:** at most 6 writes a minute (`GH_GUARD_MAX_WRITES_PER_MIN` raises it for one session). If the counter in `.claude/hooks/.state/` can't be saved, writes are blocked rather than allowed.
 - After an Issue body or title edit, a reminder to set Human Review back to Pending.
 
 Every other command (`curl`, `node`, `bash -c`, `gh` itself) runs inside the sandbox, where the token can't be read.
+
+**Token scopes:** the helper account's token needs `project` for the next-issue script and for Project field updates (`gh auth refresh -s project`, run by the owner outside Claude Code).
 
 `.claude/settings.local.json` (not committed) can set `sandbox.autoAllowBashIfSandboxed: true`, so sandboxed commands run without prompts. That's safe because sandboxed commands can't reach the token.
 

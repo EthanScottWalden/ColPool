@@ -4,6 +4,7 @@
 // Rank: Phase, then Sequence, then Priority (P0 first), then Issue number.
 // Usage: node next-issue.mjs [--json] [--limit N]
 import { execFileSync } from "node:child_process";
+import { userInfo } from "node:os";
 
 const OWNER = "EthanScottWalden";
 const PROJECT = 1;
@@ -38,7 +39,9 @@ function fetchItems() {
   do {
     const ghArgs = ["api", "graphql", "-f", `query=${QUERY}`];
     if (after) ghArgs.push("-f", `after=${after}`);
-    const out = JSON.parse(execFileSync("gh", ghArgs, { encoding: "utf8", maxBuffer: 32 * 1024 * 1024 }));
+    // Absolute gh and a minimal environment: this script runs outside the sandbox (DEVELOPMENT.md §3).
+    const env = { PATH: "/usr/bin:/bin", HOME: userInfo().homedir, LANG: "C.UTF-8", GH_PROMPT_DISABLED: "1" };
+    const out = JSON.parse(execFileSync("/usr/bin/gh", ghArgs, { encoding: "utf8", env, maxBuffer: 32 * 1024 * 1024 }));
     const page = out.data.user.projectV2.items;
     items.push(...page.nodes);
     after = page.pageInfo.hasNextPage ? page.pageInfo.endCursor : null;

@@ -48,9 +48,12 @@ function fail(msg) {
 // Absolute paths, so a planted `gh` or `git` earlier on PATH is never run with the token.
 const GH = "/usr/bin/gh";
 const GIT = "/usr/bin/git";
+// A minimal environment: nothing from the Claude Code process (tokens, TMPDIR, NODE_OPTIONS, GH_*)
+// reaches gh or git, so `--jq env` or a planted variable shows or changes nothing.
+const CHILD_ENV = { PATH: "/usr/bin:/bin", HOME: os.userInfo().homedir, LANG: "C.UTF-8", GH_PROMPT_DISABLED: "1", GH_NO_UPDATE_NOTIFIER: "1", GIT_TERMINAL_PROMPT: "0" };
 const gh = (args, opts = {}) =>
-  execFileSync(GH, args, { cwd: ROOT, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["pipe", "inherit", "inherit"], ...opts });
-const ghOut = (args) => execFileSync(GH, args, { cwd: ROOT, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  execFileSync(GH, args, { cwd: ROOT, env: CHILD_ENV, encoding: "utf8", maxBuffer: 64 * 1024 * 1024, stdio: ["pipe", "inherit", "inherit"], ...opts });
+const ghOut = (args) => execFileSync(GH, args, { cwd: ROOT, env: CHILD_ENV, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
 
 // --- argument helpers ---
 function parse(argv, spec) {
@@ -86,18 +89,22 @@ const text = (s, max = 256) => { if (s.length > max || /[\x00-\x08\x0b-\x1f]/.te
 function readBodyFile(p) {
   let real;
   try { real = fs.realpathSync(p); } catch { fail(`can't read ${p}`); }
-  const tmpRoots = [process.env.TMPDIR, `/tmp/claude-${os.userInfo().uid}`].filter(Boolean).map((d) => { try { return fs.realpathSync(d); } catch { return null; } }).filter(Boolean);
+  // Fixed temp root only; TMPDIR comes from the caller's environment and isn't trusted.
+  const tmpRoots = [`/tmp/claude-${os.userInfo().uid}`].map((d) => { try { return fs.realpathSync(d); } catch { return null; } }).filter(Boolean);
   const under = (dir) => real === dir || real.startsWith(dir + path.sep);
   const inRepo = under(ROOT) && !under(path.join(ROOT, ".git")) && !under(path.join(ROOT, ".claude", "hooks", ".state"));
-  if (!inRepo && !tmpRoots.some(under)) fail(`body files must be in the repo or the session temp folder, not ${real}`);
+  if (!inRepo && !tmpRoots.some(under)) fail(`body files must be in the repo or /tmp/claude-${os.userInfo().uid}/, not ${real}`);
   const base = path.basename(real);
+  if (!/\.(md|txt|graphql|json)$/i.test(base)) fail(`body files must be .md, .txt, .graphql or .json, not ${base}`);
   if (/^\.env|local\.properties$|secrets\.properties$|google-services\.json$|service-account|firebase-adminsdk|\.runtimeconfig\.json$|hosts\.yml$|\.git-credentials$/.test(base)) {
     fail(`refusing to send ${base}`);
   }
   const st = fs.statSync(real);
   if (!st.isFile() || st.size > MAX_FILE) fail(`${base} isn't a regular file under ${MAX_FILE / 1024} KB`);
   const body = fs.readFileSync(real, "utf8");
-  if (/\b(gh[opsu]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{30,})/.test(body)) fail(`${base} looks like it contains a token or API key`);
+  if (/(gh[oprsu]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{30,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|"private_key"\s*:)/.test(body)) {
+    fail(`${base} looks like it contains a token, API key or private key`);
+  }
   return body;
 }
 
@@ -111,7 +118,33 @@ function graphqlText(s) {
   if (s.length > 20000) fail("query too long");
   return s;
 }
-const stripStrings = (q) => q.replace(/"""[\s\S]*?"""|"(?:[^"\\]|\\.)*"/g, '""').replace(/#[^\n]*/g, "");
+// One left-to-right pass over GraphQL source: drops comments, collapses strings (block and plain)
+// to "", and returns the significant tokens (names and punctuation). A `"` inside a comment or a
+// `#` inside a string can't confuse it. Unterminated strings are rejected.
+function gqlTokens(q) {
+  const toks = [];
+  for (let i = 0; i < q.length; ) {
+    const c = q[i];
+    if (c === "#") { while (i < q.length && q[i] !== "\n" && q[i] !== "\r") i++; continue; }
+    if (/[\s,﻿]/.test(c)) { i++; continue; }
+    if (q.startsWith('"""', i)) {
+      let j = i + 3;
+      while (j < q.length && !q.startsWith('"""', j)) j += q.startsWith('\\"""', j) ? 4 : 1;
+      if (j >= q.length) fail("unterminated block string in query");
+      toks.push('""'); i = j + 3; continue;
+    }
+    if (c === '"') {
+      let j = i + 1;
+      while (j < q.length && q[j] !== '"' && q[j] !== "\n") j += q[j] === "\\" ? 2 : 1;
+      if (j >= q.length || q[j] !== '"') fail("unterminated string in query");
+      toks.push('""'); i = j + 1; continue;
+    }
+    const m = q.slice(i).match(/^([_A-Za-z][_0-9A-Za-z]*|-?[0-9][0-9.eE+-]*|\.\.\.|[!$&():=@\[\]{}|])/);
+    if (!m) fail(`unexpected character '${c}' in query`);
+    toks.push(m[1]); i += m[1].length;
+  }
+  return toks;
+}
 
 // --- operations ---
 const HELP = `Operations (node .claude/hooks/github.mjs <op> ...):
@@ -235,29 +268,55 @@ const OPS = {
 function graphql(a, mutation) {
   const { flags } = parse(a, { flags: { "query-file": "value", var: "value", jq: "value" } });
   const q = graphqlText(readBodyFile(one(flags, "query-file")));
-  const bare = stripStrings(q);
-  const isMutation = /^\s*mutation\b/.test(bare);
-  if (/\bsubscription\b/.test(bare)) fail("subscriptions aren't allowed");
-  if (!mutation && /\bmutation\b/.test(bare)) fail("graphql-query is for reads; mutations go through graphql-mutation (lead only)");
-  if (mutation) {
-    if (!isMutation) fail("graphql-mutation needs a mutation");
-    // Every field called with arguments must be an allowed mutation or a read inside its payload selection.
-    const top = bare.slice(bare.indexOf("{") + 1);
-    const depth0 = [];
-    let d = 0;
-    for (const m of top.matchAll(/[{}]|(?:\w+\s*:\s*)?(\w+)\s*\(/g)) {
-      if (m[0] === "{") d++;
-      else if (m[0] === "}") d--;
-      else if (d === 0) depth0.push(m[1]);
+  const t = gqlTokens(q);
+  // Exactly one operation, no fragments: `{ ... }`, `query ... { ... }` or `mutation ... { ... }`.
+  let i = 0;
+  let kind = "query";
+  if (t[0] === "query" || t[0] === "mutation" || t[0] === "subscription") { kind = t[0]; i = 1; }
+  else if (t[0] !== "{") fail("the file must hold exactly one query or mutation (no fragments)");
+  if (kind === "subscription") fail("subscriptions aren't allowed");
+  // Skip the optional name, variable definitions and directives up to the selection set.
+  let paren = 0;
+  while (i < t.length && !(t[i] === "{" && paren === 0)) {
+    if (t[i] === "(") paren++;
+    else if (t[i] === ")") paren--;
+    i++;
+  }
+  if (i >= t.length) fail("no selection set found");
+  // Walk the selection set; record the top-level fields (aliases resolved) and where it ends.
+  const fields = [];
+  let depth = 0;
+  paren = 0;
+  let end = -1;
+  for (let j = i; j < t.length; j++) {
+    const tok = t[j];
+    if (tok === "(") paren++;
+    else if (tok === ")") paren--;
+    else if (paren > 0) continue; // argument values, including { } input objects
+    else if (tok === "{") depth++;
+    else if (tok === "}") { depth--; if (depth === 0) { end = j; break; } }
+    else if (depth === 1) {
+      if (tok === "...") fail("fragments and inline fragments aren't allowed at the top level");
+      if (/^[_A-Za-z]/.test(tok)) {
+        if (t[j + 1] === ":") continue; // alias; the real field name is the next name token
+        fields.push(tok);
+      }
     }
-    if (!depth0.length) fail("no mutation field found");
-    const bad = depth0.filter((f) => !ALLOWED_MUTATIONS.has(f));
+  }
+  if (end < 0) fail("unbalanced braces in query");
+  if (end !== t.length - 1) fail("the file must hold exactly one operation");
+  if (!mutation && kind !== "query") fail("graphql-query is for reads; mutations go through graphql-mutation (lead only)");
+  if (mutation) {
+    if (kind !== "mutation") fail("graphql-mutation needs a mutation");
+    if (!fields.length) fail("no mutation field found");
+    const bad = fields.filter((f) => !ALLOWED_MUTATIONS.has(f));
     if (bad.length) fail(`mutation(s) not allowed: ${bad.join(", ")}. Allowed: ${[...ALLOWED_MUTATIONS].join(", ")}`);
   }
   const args = ["api", "graphql", "-f", `query=${q}`];
   for (const v of flags.var ?? []) {
     const m = v.match(/^([A-Za-z_][A-Za-z0-9_]*)=([\s\S]*)$/);
     if (!m) fail(`bad --var ${v}`);
+    if (["query", "operationName", "variables"].includes(m[1])) fail(`--var ${m[1]} isn't allowed; it would replace the checked query`);
     if (m[2].startsWith("@")) fail("--var values can't read files");
     args.push("-f", `${m[1]}=${text(m[2], 1000)}`);
   }

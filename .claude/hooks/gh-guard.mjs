@@ -95,9 +95,18 @@ function commandWord(w) {
   while (i < w.length && (/^[A-Za-z_][A-Za-z0-9_]*=/.test(w[i]) || WRAPPERS.has(path.basename(w[i])) || /^-/.test(w[i]) || /^[0-9.]+[smhd]?$/.test(w[i]))) i++;
   return [path.basename(w[i] || ""), w.slice(i + 1)];
 }
-// Any segment that mentions github.mjs and isn't a plain reader counts as an invocation, so a
-// wrapper or an unusual spelling can't run the script without being judged below.
-const mentionsTool = segments.some((w) => w.some((t) => t.includes("github.mjs")) && !SAFE_READERS.has(commandWord(w)[0]));
+// Any segment that mentions an unsandboxed script and doesn't START with a plain reader counts as
+// an invocation, so a wrapper (`env -u cat node ...`) can't run it without being judged below.
+// Nothing is skipped when deciding a segment is a reader.
+const mentions = (w, name) => w.some((t) => t.includes(name)) && !(SAFE_READERS.has(w[0]) && !(w[0] === "git" && w.includes("push")));
+const mentionsTool = segments.some((w) => mentions(w, "github.mjs"));
+const NEXT_ISSUE = path.join(ROOT, ".claude", "skills", "next-issue", "scripts", "next-issue.mjs");
+if (MODE !== "post" && segments.some((w) => mentions(w, "next-issue.mjs"))) {
+  const w = segments[0];
+  const ok = !compound && !unsafe && w[0] === "node" && w[1] && path.resolve(cwd, w[1]) === NEXT_ISSUE &&
+    w.slice(2).every((t, k, rest) => t === "--json" || t === "--limit" || (rest[k - 1] === "--limit" && /^[0-9]{1,3}$/.test(t)));
+  if (!ok) deny("Run the next-issue script exactly as `node .claude/skills/next-issue/scripts/next-issue.mjs [--json] [--limit N]`, on its own.");
+}
 
 // ---------- post ----------
 if (MODE === "post") {
@@ -118,7 +127,8 @@ if (MODE === "post") {
 for (const w of segments) {
   const [cmd, rest] = commandWord(w);
   const sub = rest.find((t, i) => !t.startsWith("-") && !["-C", "-c"].includes(rest[i - 1]));
-  if (cmd === "gh" || (cmd === "git" && sub === "push")) {
+  const wrapped = WRAPPERS.has(path.basename(w[0])) && w.some((t) => path.basename(t) === "gh");
+  if (cmd === "gh" || wrapped || (cmd === "git" && sub === "push")) {
     deny("Raw `gh` and `git push` run inside the sandbox without the GitHub token. Use `node .claude/hooks/github.mjs <op>` (run it with no op for the list; DEVELOPMENT.md §3).");
   }
 }
