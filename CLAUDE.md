@@ -31,7 +31,7 @@ This file is the operating guide for every session. It points to the detailed do
 
 ## 3. Build / run / test
 
-_Not set up yet. #11 (Android app), #12 (Functions + emulator) and #54 (CI) must fill in this section with the main commands and put the full detail in `DEVELOPMENT.md`._
+_Not set up yet. #11 (Android app), #12 (Functions + emulator) and #54 (CI) must fill in this section with the main commands and put the full detail in `DEVELOPMENT.md` §2._
 
 - Android build: `TBD`
 - Functions unit tests (emulator): `TBD`
@@ -45,8 +45,8 @@ _Not set up yet. #11 (Android app), #12 (Functions + emulator) and #54 (CI) must
   - Rules changes: emulator tests.
   - Functions: unit tests against the emulator.
   - Time-based logic: fixed data, including a daylight-saving week.
-  - Screens: checked on a device against the named prototype screen, with a screenshot attached to the PR.
-- CI is green. No secrets or keys committed.
+  - Screens: screenshot-test images of the screen attached to the PR; the human checks it on a device against the named prototype screen during the staging review (`DEVELOPMENT.md` §2).
+- CI is green. Until #54 adds CI, the verifier's own run of the builds and tests stands in for it (`DEVELOPMENT.md` §2). No secrets or keys committed.
 - User-facing text uses POLICY §11 terms and 12-hour Pacific times.
 - Any decision the Issue was meant to settle is recorded (§6).
 
@@ -76,7 +76,7 @@ Escalation depends on consequence, not branch. L2 and L3 apply inside `dev` too.
 |---|---|---|
 | **L0** Routine | Resolve silently. | A test fails and then is fixed; lint or compiler fixes; a small refactor. |
 | **L1** Noteworthy | Resolve it; mention it briefly in the summary. | A minor scope adjustment inside the Issue; a non-breaking dependency patch; tech debt found and handled. |
-| **L2** Decision needed | Pause that decision path; ask (§8) with a recommendation; keep doing independent work. | An unclear product rule; a UX tradeoff; a new dependency or cost; any architecture choice, including the ones ARCHITECTURE §2 says to "decide in the issue" (UI toolkit, min SDK, Firestore layout, RC-32 lookup); interpreting policy; a prototype vs SDD difference. |
+| **L2** Decision needed | Pause that decision path; ask (§8) with a recommendation; keep doing independent work. | An unclear product rule; a UX tradeoff; a new dependency outside the setup Issue's approved list, or a new cost (`DEVELOPMENT.md` §2); any architecture choice, including the ones ARCHITECTURE §2 says to "decide in the issue" (UI toolkit, min SDK, Firestore layout, RC-32 lookup); interpreting policy; a prototype vs SDD difference. |
 | **L3** Stop the line | Don't do the risky action until explicitly resolved. | Changing Security Rules or the privacy/consent model beyond the Issue; changing a contract; deleting data or records; secrets or keys; Firestore region; billing; deploying to the real Firebase project (process not decided yet); anything in POLICY §13 non-goals; a contradiction with SPEC; irreversible git or GitHub actions. |
 
 ## 8. Talking to the human
@@ -126,6 +126,9 @@ The main session runs as `lead` (`.claude/settings.json`). It is the only agent 
 **Guardrails** (`.claude/settings.json`):
 - Deny rules for deploys, Firebase deletes, force-pushes and direct pushes to `dev`/`staging`/`main`.
 - An allowlist for read-only git and `gh` commands.
-- `.claude/hooks/gh-guard.mjs`: GitHub write pacing, lead-only writes, and a Human Review reminder after Issue edits.
+- `.claude/hooks/gh-guard.mjs`: lead-only `gh` writes; `git push` limited by agent (implementer `feature/*` and `fix/*`, docs-keeper `docs/*`, never `dev`/`staging`/`main`); no curl to GitHub; write pacing; a Human Review reminder after Issue edits.
+- Sandbox: ordinary commands can't read the GitHub token; only `gh` and `git push` run outside the sandbox (`DEVELOPMENT.md` §3).
 
-GitHub rulesets remain the real guard for `dev`/`staging`/`main`. 
+GitHub rulesets remain the real guard for `dev`/`staging`/`main`.
+
+**Sandbox:** run Claude Code in WSL2, where the sandbox in `.claude/settings.json` applies (see `DEVELOPMENT.md`). On native Windows there's no sandbox, and unsandboxed commands are off, so Claude Code there can't run commands. That's deliberate. Never work around a sandbox block; propose an allowlist change in a PR.
