@@ -341,6 +341,8 @@ function graphql(a, mutation) {
     if (!fields.length) fail("no mutation field found");
     const bad = fields.filter((f) => !ALLOWED_MUTATIONS.has(f));
     if (bad.length) fail(`mutation(s) not allowed: ${bad.join(", ")}. Allowed: ${[...ALLOWED_MUTATIONS].join(", ")}`);
+    // String escapes could spell an id the literal check below can't see, so mutations can't use them.
+    if (/\\/.test(q)) fail("mutations can't contain backslash escapes; pass values with --var instead");
     // Only the human approves (CLAUDE.md §2): never send the "Human Review = Approved" option id.
     if (fields.includes("updateProjectV2ItemFieldValue")) {
       const ids = humanApprovalOptionIds();
