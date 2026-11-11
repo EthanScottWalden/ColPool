@@ -87,25 +87,35 @@ const text = (s, max = 256) => { if (s.length > max || /[\x00-\x08\x0b-\x1f]/.te
 
 // Body files: only from the repo (outside .git) or the session temp folders, never secrets.
 function readBodyFile(p) {
-  let real;
-  try { real = fs.realpathSync(p); } catch { fail(`can't read ${p}`); }
-  // Fixed temp root only; TMPDIR comes from the caller's environment and isn't trusted.
-  const tmpRoots = [`/tmp/claude-${os.userInfo().uid}`].map((d) => { try { return fs.realpathSync(d); } catch { return null; } }).filter(Boolean);
-  const under = (dir) => real === dir || real.startsWith(dir + path.sep);
-  const inRepo = under(ROOT) && !under(path.join(ROOT, ".git")) && !under(path.join(ROOT, ".claude", "hooks", ".state"));
-  if (!inRepo && !tmpRoots.some(under)) fail(`body files must be in the repo or /tmp/claude-${os.userInfo().uid}/, not ${real}`);
-  const base = path.basename(real);
-  if (!/\.(md|txt|graphql|json)$/i.test(base)) fail(`body files must be .md, .txt, .graphql or .json, not ${base}`);
-  if (/^\.env|local\.properties$|secrets\.properties$|google-services\.json$|service-account|firebase-adminsdk|\.runtimeconfig\.json$|hosts\.yml$|\.git-credentials$/.test(base)) {
-    fail(`refusing to send ${base}`);
+  // Open once, without following a final symlink, and judge the file actually opened (via its
+  // /proc fd path), so the file can't be swapped between the check and the read.
+  let fd;
+  try { fd = fs.openSync(p, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW | fs.constants.O_NONBLOCK); } catch { fail(`can't open ${p} (symlinks aren't followed)`); }
+  try {
+    const real = fs.readlinkSync(`/proc/self/fd/${fd}`);
+    // Fixed temp root only; TMPDIR comes from the caller's environment and isn't trusted.
+    const tmpRoots = [`/tmp/claude-${os.userInfo().uid}`].map((d) => { try { return fs.realpathSync(d); } catch { return null; } }).filter(Boolean);
+    const under = (dir) => real === dir || real.startsWith(dir + path.sep);
+    const base = tmpRoots.find(under) || (under(ROOT) ? ROOT : null);
+    if (!base) fail(`body files must be in the repo or /tmp/claude-${os.userInfo().uid}/, not ${real}`);
+    // No dotfiles or dot-folders (.git, .claude, .env, .mcp.json, ...) anywhere below the root.
+    const rel = path.relative(base, real).split(path.sep);
+    if (rel.some((part) => part.startsWith("."))) fail(`body files can't be dotfiles or inside dot-folders: ${real}`);
+    const name = rel[rel.length - 1];
+    if (!/\.(md|txt|graphql|json)$/i.test(name)) fail(`body files must be .md, .txt, .graphql or .json, not ${name}`);
+    if (/local\.properties$|secrets\.properties$|google-services\.json$|service-account|firebase-adminsdk|runtimeconfig\.json$|hosts\.yml$|credentials/i.test(name)) {
+      fail(`refusing to send ${name}`);
+    }
+    const st = fs.fstatSync(fd);
+    if (!st.isFile() || st.size > MAX_FILE) fail(`${name} isn't a regular file under ${MAX_FILE / 1024} KB`);
+    const body = fs.readFileSync(fd, "utf8");
+    if (/(gh[oprsu]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{30,}|sk-ant-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}|-----BEGIN [A-Z ]*PRIVATE KEY-----|"private_key"\s*:|\bBearer\s+[A-Za-z0-9._~+\/-]{20,})/.test(body)) {
+      fail(`${name} looks like it contains a token, API key or private key`);
+    }
+    return body;
+  } finally {
+    fs.closeSync(fd);
   }
-  const st = fs.statSync(real);
-  if (!st.isFile() || st.size > MAX_FILE) fail(`${base} isn't a regular file under ${MAX_FILE / 1024} KB`);
-  const body = fs.readFileSync(real, "utf8");
-  if (/(gh[oprsu]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{30,}|-----BEGIN [A-Z ]*PRIVATE KEY-----|"private_key"\s*:)/.test(body)) {
-    fail(`${base} looks like it contains a token, API key or private key`);
-  }
-  return body;
 }
 
 function checkBranch(b) {
@@ -256,14 +266,30 @@ const OPS = {
   "branch-delete": (a) => {
     const { pos } = parse(a, { positional: 1 });
     const b = checkBranch(pos[0]);
-    execFileSync(GIT, ["push", "origin", "--delete", b], { cwd: ROOT, stdio: "inherit" });
+    execFileSync(GIT, ["push", "origin", "--delete", b], { cwd: ROOT, env: CHILD_ENV, stdio: "inherit" });
   },
   push: (a) => {
     const { pos } = parse(a, { positional: 1 });
     const b = checkBranch(pos[0]);
-    execFileSync(GIT, ["push", "-u", "origin", `refs/heads/${b}:refs/heads/${b}`], { cwd: ROOT, stdio: "inherit" });
+    execFileSync(GIT, ["push", "-u", "origin", `refs/heads/${b}:refs/heads/${b}`], { cwd: ROOT, env: CHILD_ENV, stdio: "inherit" });
   },
 };
+
+// Option ids of every "Approved"-like option on the Project's "Human Review" field. Fails closed:
+// if they can't be read, Project field mutations are refused.
+function humanApprovalOptionIds() {
+  const query = `query { user(login: "${PROJECT_OWNER}") { projectV2(number: 1) { fields(first: 50) { nodes {
+    ... on ProjectV2SingleSelectField { name options { id name } } } } } } }`;
+  let nodes;
+  try {
+    nodes = JSON.parse(ghOut(["api", "graphql", "-f", `query=${query}`])).data.user.projectV2.fields.nodes;
+  } catch {
+    fail("couldn't read the Project's Human Review options, so Project field changes are refused");
+  }
+  const field = nodes.find((n) => n && /human\s*review/i.test(n.name || ""));
+  if (!field) fail("the Project has no Human Review field; refusing Project field changes");
+  return field.options.filter((o) => /approv/i.test(o.name)).map((o) => o.id);
+}
 
 function graphql(a, mutation) {
   const { flags } = parse(a, { flags: { "query-file": "value", var: "value", jq: "value" } });
@@ -311,6 +337,12 @@ function graphql(a, mutation) {
     if (!fields.length) fail("no mutation field found");
     const bad = fields.filter((f) => !ALLOWED_MUTATIONS.has(f));
     if (bad.length) fail(`mutation(s) not allowed: ${bad.join(", ")}. Allowed: ${[...ALLOWED_MUTATIONS].join(", ")}`);
+    // Only the human approves (CLAUDE.md §2): never send the "Human Review = Approved" option id.
+    if (fields.includes("updateProjectV2ItemFieldValue")) {
+      const ids = humanApprovalOptionIds();
+      const sent = [q, ...(flags.var ?? [])].join("\n");
+      if (ids.some((id) => sent.includes(id))) fail("only the human sets Human Review to Approved (CLAUDE.md §2)");
+    }
   }
   const args = ["api", "graphql", "-f", `query=${q}`];
   for (const v of flags.var ?? []) {
