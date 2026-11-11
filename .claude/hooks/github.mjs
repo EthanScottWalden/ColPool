@@ -61,7 +61,8 @@ const ghOut = (args) => execFileSync(GH, args, { cwd: ROOT, env: CHILD_ENV, enco
 // A REST write to a fixed endpoint built by this script. The JSON body goes on stdin, so no value
 // is ever parsed as a gh flag. Prints only the resulting URL.
 function restWrite(method, endpoint, body) {
-  const args = ["api", "--method", method, endpoint, "--jq", ".html_url // empty"];
+  // Label endpoints return arrays; print a URL only for objects.
+  const args = ["api", "--method", method, endpoint, "--jq", 'if type == "object" then (.html_url // empty) else empty end'];
   if (body) args.push("--input", "-");
   gh(args, body ? { input: JSON.stringify(body) } : {});
 }
@@ -243,6 +244,12 @@ const OPS = {
     const add = (flags["add-label"] ?? []).map((l) => text(l, 50));
     const remove = (flags["remove-label"] ?? []).map((l) => text(l, 50));
     if (!Object.keys(patch).length && !add.length && !remove.length) fail("nothing to edit");
+    if (add.length || remove.length) {
+      // Only labels that already exist: no typo labels, and no `.`/`..`/empty path tricks.
+      const known = new Set(JSON.parse(ghOut(["api", "--method", "GET", `repos/${REPO}/labels`, "--paginate", "--jq", "[.[].name]"]).replace(/\]\s*\[/g, ",")));
+      const unknown = [...add, ...remove].filter((l) => !known.has(l));
+      if (unknown.length) fail(`unknown label(s): ${unknown.join(", ")}`);
+    }
     if (Object.keys(patch).length) restWrite("PATCH", `repos/${REPO}/issues/${n}`, patch);
     if (add.length) restWrite("POST", `repos/${REPO}/issues/${n}/labels`, { labels: add });
     for (const l of remove) restWrite("DELETE", `repos/${REPO}/issues/${n}/labels/${encodeURIComponent(l)}`, null);
