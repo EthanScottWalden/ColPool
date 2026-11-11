@@ -27,7 +27,7 @@ This file is the operating guide for every session. It points to the detailed do
 - **`human-task` label:** a person must do part of it (billing, real-world data, owner input). Agents may do the rest, and must ask (HUMAN ACTION REQUIRED, §8) for the human part.
 - **Status flow:** Ready → In progress (claim it) → Agent review (PR open) → In dev (merged to dev) → In staging → Done. The human handles staging approval and Done.
 - **If you edit an Issue's body or acceptance criteria**, set its Human Review back to **Pending**.
-- **Pace GitHub API calls.** Prefer one bulk read over many small ones, and make writes one at a time, not in tight loops. The helper account (`ClaudePeggleMaster`) was suspended once after a burst of Issue edits. Never use or ask for the owner's main account. A hook enforces this: more than 6 GitHub writes a minute, or a write from a subagent, is blocked. Raise the limit for one session with `GH_GUARD_MAX_WRITES_PER_MIN`.
+- **Pace GitHub API calls.** Prefer one bulk read over many small ones, and make writes one at a time, not in tight loops. The helper account (`ClaudePeggleMaster`) was suspended once after a burst of Issue edits. Never use or ask for the owner's main account. A hook enforces this: more than 6 GitHub writes a minute, or a write from a subagent (other than `push` of its own `feature/*`, `fix/*` or `docs/*` branch), is blocked. Raise the limit for one session with `GH_GUARD_MAX_WRITES_PER_MIN`.
 
 ## 3. Build / run / test
 
@@ -109,7 +109,7 @@ Escalation depends on consequence, not branch. L2 and L3 apply inside `dev` too.
 
 Project agents go in `.claude/agents/` and skills in `.claude/skills/`.
 
-The main session runs as `lead` (`.claude/settings.json`). It is the only agent that talks to the human, spawns other agents, or writes to GitHub (PRs, merges, Issue and Project changes).
+The main session runs as `lead` (`.claude/settings.json`). It is the only agent that talks to the human, spawns other agents, or writes to GitHub (PRs, merges, Issue and Project changes). Subagents may only `push` their own branches (see Guardrails).
 
 | Agent | Use for | Edits |
 |---|---|---|
@@ -125,7 +125,7 @@ The main session runs as `lead` (`.claude/settings.json`). It is the only agent 
 - Preloaded: all six in `implementer` and `architect`; Auth, Functions and Firestore in `verifier`.
 **Guardrails** (`.claude/settings.json`):
 - Deny rules for deploys, Firebase deletes, force-pushes and direct pushes to `dev`/`staging`/`main`.
-- An allowlist for read-only git and `gh` commands.
+- An allowlist for read-only `git` commands and for the GitHub script.
 - **GitHub goes only through `node .claude/hooks/github.mjs <op>`** (run it with no op for the list). It is the only command outside the sandbox with the token, runs no shell, and allows only named operations (`DEVELOPMENT.md` §3). Raw `gh` and `git push` run sandboxed without the token, and the hook denies them.
 - `.claude/hooks/gh-guard.mjs`: who may run which operation (writes lead-only; `push` also implementer `feature/*` and `fix/*`, docs-keeper `docs/*`); the script must be called exactly, on its own; write pacing; a Human Review reminder after Issue edits.
 
