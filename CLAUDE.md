@@ -123,9 +123,6 @@ The main session runs as `lead` (`.claude/settings.json`). It is the only agent 
 - `next-issue` lists eligible Issues in rank order (read-only).
 - Doc-link skills, each with official links plus ColPool constraints: `firebase-auth-docs`, `cloud-functions-docs`, `firestore-docs`, `maps-routes-docs`, `maps-places-docs`, `kotlin-docs`. Use the matching one before relying on memory for an external API.
 - Preloaded: all six in `implementer` and `architect`; Auth, Functions and Firestore in `verifier`.
-
-**Notifications:** `.claude/hooks/notify-done.mjs` shows a desktop notification when a response finishes. Opt out per machine with `COLPOOL_NO_NOTIFY=1`.
-
 **Guardrails** (`.claude/settings.json`):
 - Deny rules for deploys, Firebase deletes, force-pushes and direct pushes to `dev`/`staging`/`main`.
 - An allowlist for read-only git and `gh` commands.
