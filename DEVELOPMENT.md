@@ -24,6 +24,20 @@ Claude Code runs in **WSL2**, where the Bash sandbox applies. On native Windows 
    ```
 5. Set the commit identity in `~/.gitconfig` to the helper account.
 6. Start Claude Code from the repo root (`cd ~/ColPool && claude`). The session runs as `lead` (`.claude/settings.json`).
+7. **Android SDK in WSL (Linux).** The sandbox builds the Android app with a Linux SDK (JDK 21 is already on the machine):
+   ```
+   mkdir -p ~/Android/Sdk/cmdline-tools && cd ~/Android/Sdk/cmdline-tools
+   curl -fsSLO https://dl.google.com/android/repository/commandlinetools-linux-16111833_latest.zip
+   unzip commandlinetools-linux-16111833_latest.zip && mv cmdline-tools latest
+   echo 'export ANDROID_HOME=$HOME/Android/Sdk' >> ~/.profile && export ANDROID_HOME=$HOME/Android/Sdk
+   ~/Android/Sdk/cmdline-tools/latest/bin/sdkmanager --no_metrics --licenses
+   ~/Android/Sdk/cmdline-tools/latest/bin/sdkmanager --no_metrics "platform-tools" "platforms;android-37.0" "build-tools;36.0.0" "cmdline-tools;latest"
+   ```
+   - `sdkmanager` is now deprecated in favour of `android sdk` (same packages). Metrics can be turned off with `--no-metrics`.
+   - Do **not** run `android init`: it installs unreviewed agent tooling.
+   - Put the real Places key in `android/local.properties` (`PLACES_API_KEY=...`, never committed). Gradle finds the SDK from `ANDROID_HOME`, so no `sdk.dir` is needed. The sandbox can't read `local.properties`, so the build uses the committed placeholder there.
+   - **Gradle in the sandbox.** Gradle's JVMs ignore the sandbox's proxy settings, and `/tmp` is read-only there. Agents run Gradle through `android/scripts/sandbox-gradlew.sh <tasks>`: it sets `ANDROID_HOME`, the temp dir and the proxy for that one command only, writes no files and prints no credentials. It always runs with `--no-daemon`: a daemon left over from an earlier sandboxed command holds the cache lock and keeps stale proxy credentials. Humans use plain `./gradlew`. Never put proxy settings in `~/.gradle/gradle.properties`: it would break normal builds. The first sandboxed build needs `services.gradle.org`, `plugins.gradle.org`, `dl.google.com`, `repo.maven.apache.org` and `gcp.mirrors.maven.org` reachable.
+   - Device checks and the instrumented smoke test use the owner's **Windows Android Studio emulator**, not WSL (no `/dev/kvm`).
 
 ## 2. Build, run and test
 
@@ -31,15 +45,17 @@ _Filled in by the setup Issues: #11 (Android app), #12 (Functions and emulator),
 
 | Task | Command |
 |---|---|
-| Android build | TBD (#11) |
-| Screen screenshot tests | TBD (#11) |
+| Android build | `cd android && ./gradlew assembleDebug` (agents: `android/scripts/sandbox-gradlew.sh assembleDebug`; same for every Gradle task below) (debug builds target the Emulator Suite by default; `-Pcolpool.useEmulators=false` for real Firebase, which needs `google-services.json`) |
+| Android JVM tests (Robolectric smoke test) | `cd android && ./gradlew testDebugUnitTest` |
+| Screen screenshot tests (Roborazzi) | `cd android && ./gradlew verifyRoborazziDebug`; refresh goldens with `recordRoborazziDebug` and commit the images (`app/src/test/screenshots/`) |
+| Android instrumented smoke test (owner-run) | Compiles with `./gradlew assembleDebugAndroidTest`. The owner runs `./gradlew connectedDebugAndroidTest` on the Windows emulator. CI runs it after #54. |
 | Functions unit tests (emulator) | TBD (#12) |
 | Security Rules tests (emulator) | TBD (#12) |
 | Start the emulator | TBD (#12) |
 
 ### Screens
 
-Screen PRs carry images from **screenshot tests that render on the JVM**, with no device. They run in the sandbox and in CI. The owner does the real device check against the prototype screen during the staging review. The screenshot library is chosen in #11 as part of its library list (owner decision 2026-11-11).
+Screen PRs carry images from **screenshot tests that render on the JVM**, with no device. They run in the sandbox and in CI. The owner does the real device check against the prototype screen during the staging review. The library is Roborazzi on Robolectric ([ADR 0001](docs/adr/0001-android-setup.md), owner decision 2026-11-11).
 
 ### Dependencies
 
@@ -56,7 +72,7 @@ Configured in `.claude/settings.json`. It applies to the main session and every 
 **What's blocked:**
 - Reads of the home folder, except the tool folders in `sandbox.filesystem.allowRead`; reads of `/mnt` and secret files (`.env`, `local.properties`, service accounts).
 - Reads of the GitHub token (`~/.config/gh`). Ordinary commands can't see it.
-- Writes outside the repo and the session temp folder.
+- Writes outside the repo, the session temp folder and the Gradle and Android caches (`~/.gradle`, `~/.android`, via `sandbox.filesystem.allowWrite`).
 - Network hosts not in `sandbox.network.allowedDomains`.
 
 **What runs outside the sandbox** (`sandbox.excludedCommands`): only the GitHub script `node .claude/hooks/github.mjs` and the `next-issue` script. They are the only commands that can use the token. Both live in folders sandboxed commands can't write, and both call `/usr/bin/gh` and `/usr/bin/git` without a shell and with a minimal environment (`PATH`, `HOME`, `LANG`), so nothing from the Claude Code process, such as tokens, `TMPDIR` or `NODE_OPTIONS`, reaches them.
@@ -90,5 +106,5 @@ Never work around a sandbox block. When a command needs a host or folder the san
 3. The owner approves the `.claude/settings.json` edit.
 
 **Gaps to expect during setup** (not yet confirmed by running):
-- Gradle, the Android SDK and the Firebase emulators write caches to `~/.gradle`, `~/.android` and `~/.cache/firebase`, which are read-only in the sandbox. Expect `sandbox.filesystem.allowWrite` entries, or project-local cache folders such as `GRADLE_USER_HOME`, in #11 and #12.
+- The Firebase emulators write a cache to `~/.cache/firebase`, which is read-only in the sandbox. Expect a `sandbox.filesystem.allowWrite` entry, or a project-local cache folder, in #12. (`~/.gradle` and `~/.android` were allowed in #11.)
 - The Firebase emulators download from Google Storage (`storage.googleapis.com`), which isn't on the allowlist. That host serves any public bucket, so #12 decides it as part of its setup decision.
