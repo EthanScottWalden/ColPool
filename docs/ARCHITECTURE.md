@@ -35,7 +35,7 @@ The authoritative diagram is **SDD Figure 1 (§5.2)**. The one-line model: **the
 | Real-time | **Firestore listeners** | In-app banners and live screens. **No push notifications** (FCM is out of scope). | SDD §5.1, §2.3, OQ-05 |
 | Addresses | **Google Places SDK for Android** | Autocomplete on device; yields place ID + coordinates. | SDD §5.1, RC-13 |
 | Routes | **Google Routes API (Compute Routes)** | Backend only, no live traffic. Not the legacy Directions API. | SDD §5.1, RC-14 |
-| Billing | Firebase **pay-as-you-go** + Google Maps Platform billing, with budget alerts | Required before Phase 1 sign-up and autocomplete. | SDD §5.1, INTENT §1.3 |
+| Billing | Firebase **pay-as-you-go** + Google Maps Platform billing, with budget alerts | Required before Phase 1 sign-up and autocomplete. One billing account; alerts at $10/mo (project) and $5/mo (Maps). Setup: [`docs/setup/firebase.md`](setup/firebase.md). | SDD §5.1, INTENT §1.3 |
 | Environments | **One Firebase project**; **Emulator Suite** for local dev, tests and CI | No dev/staging/prod split for the MVP. | INTENT §1.3 |
 | CI | **GitHub Actions** on PRs: Android build + Functions + Rules tests on the emulator | No deploys, no secrets in CI. | INTENT §5.1 (TMP-52, #54) |
 
@@ -209,6 +209,7 @@ Product privacy and safety rules (who sees what, test data, verification wording
 
 - **One Firebase project** hosts Auth, Firestore, Functions and the scheduled job; the Maps billing account and keys sit alongside it. (INTENT §1.3)
   - Project ID `colpool`. Console: https://console.firebase.google.com/project/colpool/ (needs owner sign-in).
+  - Billing, budgets, Maps APIs, keys and the `ROUTES_API_KEY` secret: [`docs/setup/firebase.md`](setup/firebase.md) (#10).
 - **Firebase Emulator Suite** runs locally and in CI; all rules and function tests run against it. CI never deploys.
 - Scale target: one university, MVP load. Search (95% < 3 s) relies on query-then-rank-on-device; beyond MVP scale it would need geographic filtering, which is out of scope. (RC-26, INTENT §6.1)
 - Maps usage must stay within free allowances: restricted keys, budget alerts, Places session tokens, routes only at review. (RC-28, RISK-08)
