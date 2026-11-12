@@ -38,7 +38,7 @@ Done once by the owner. Tick the checklist in §3 when done.
 5. **Routes key (server).** *APIs & Services* → *Credentials* → *Create credentials* → *API key*.
    - Name it `routes-server`.
    - API restrictions: **Routes API** only.
-   - Application restriction: none. Cloud Functions has no fixed IP. The key never leaves Secret Manager.
+   - Application restriction: none. Cloud Functions has no fixed IP. The compensating controls are the API restriction, the key never leaving Secret Manager, and the Maps budget alert.
    - Copy the value, then store it from a terminal signed in as the owner. Run this in the repo root after #12 adds `firebase.json`, or anywhere with `--project colpool`:
      ```
      firebase functions:secrets:set ROUTES_API_KEY --project colpool
@@ -58,17 +58,17 @@ Owner, in the console:
 - [ ] *Budgets & alerts* lists both budgets with the §1 amounts and thresholds.
 - [ ] *APIs & Services* → *Enabled APIs* lists Places API (New) and Routes API.
 - [ ] *Credentials* shows `routes-server` (Routes API only) and `places-android` (Places API (New) only).
-- [ ] `firebase functions:secrets:get ROUTES_API_KEY --project colpool` shows a version. Don't print the value.
+- [ ] `firebase functions:secrets:get ROUTES_API_KEY --project colpool` lists at least one version. It shows metadata only. Never run `functions:secrets:access`, which prints the value.
 
 Agent, in the repo:
 
-- [ ] `git grep -nE 'AIza[0-9A-Za-z_-]{35}'` returns nothing (Google API key pattern; the hook's own 30+ pattern doesn't match).
+- [ ] `git grep -nE 'AIza[0-9A-Za-z_-]{35}'` returns nothing (standard Google API key shape).
 - [ ] `git grep -nE '"private_key": *"-----BEGIN'` returns nothing (service-account key file content).
 - [ ] `git check-ignore` matches `google-services.json`, `app/google-services.json`, `service-account.json`, `colpool-firebase-adminsdk-x.json`, `.env`, `functions/.env.local`, `local.properties`.
 
 ## 4. Later Issues that build on this
 
-- **#11:** registers the Android app in Firebase. Adds `google-services.json` (ignored) and the Places key's Android-app restriction.
+- **#11:** registers the Android app in Firebase. Adds `google-services.json` (ignored) and the Places key's Android-app restriction. `.gitignore` ignores every `google-services*.json` and `google-services.json*` name, including `.example` and `.template`. A committed placeholder needs a different name or a `!` exception.
 - **#12:** adds `firebase.json` and `.firebaserc` (project `colpool`) for the Emulator Suite.
 - **#13:** creates Firestore in `us-west2`.
 - Route preview: reads `ROUTES_API_KEY` with `defineSecret`. The emulator uses a local override; tests never call the real Routes API.
