@@ -13,7 +13,7 @@
 | Region | `us-west2` for Firestore and Functions (ARCHITECTURE §2). Set when Firestore is created (#13). Permanent; don't create Firestore early in another region. |
 | Billing account | The `colpool` project's Blaze billing account. The Maps APIs use the same account (owner decision 2026-11-11). |
 | Budget: whole project | $10 / month, scoped to `colpool`, all services. Email alerts at 50%, 90% and 100% (owner decision 2026-11-11). |
-| Budget: Maps (Places API + Routes API) | $5 / month, scoped to `colpool`, Places API (New) + Routes API. Email alerts at 50%, 90% and 100% (owner decision 2026-11-11). |
+| Budget: Maps (Places API + Routes API) | $5 / month, scoped to `colpool`, billing services Places API (New) + Google Maps Platform - Routes. Email alerts at 50%, 90% and 100% (owner decision 2026-11-11). |
 | APIs enabled | Places API (New), Routes API |
 | Routes key | Cloud Functions secret `ROUTES_API_KEY` (Secret Manager). Restricted to Routes API. |
 | Places key | Android key, restricted to Places API (New). Android-app restriction (package + SHA-1) added in #11. Real value only in uncommitted `local.properties`. |
@@ -33,7 +33,7 @@ Done once by the owner. Tick the checklist in §3 when done.
    - **Places API (New)**. The current Places SDK for Android uses it.
    - **Routes API**. Not the legacy Directions API (RC-14).
 4. **Maps budget.** *Billing* → *Budgets & alerts* → *Create budget*.
-   - Scope: project `colpool`, services **Places API (New)** and **Routes API**.
+   - Scope: project `colpool`, services **Places API (New)** and **Routes API**. The budget service list shows Routes as **Google Maps Platform - Routes**, not "Routes API". Pick that one.
    - Amount and thresholds: §1.
 5. **Routes key (server).** *APIs & Services* → *Credentials* → *Create credentials* → *API key*.
    - Name it `routes-server`.
