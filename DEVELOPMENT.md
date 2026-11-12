@@ -61,6 +61,15 @@ Screen PRs carry images from **screenshot tests that render on the JVM**, with n
 
 Each setup Issue (#11, #12, #54) settles its whole library list as part of its setup decision: the architect proposes the list, the owner approves it once, and it's recorded in that Issue's ADR. Adding a library outside an approved list later is L2 (owner decision 2026-11-11).
 
+### Setup preflight
+
+For a setup Issue (#12, #54 and any later toolchain Issue), the lead does this before starting the implementer. Owner decision 2026-11-12; see `docs/AGENTIC_RETROSPECTIVE.md`.
+
+1. List what the Issue needs: tools and versions (CLIs, SDKs, JDK, Node), the folders they write (caches, config), the network hosts they download from, and any device or hardware (e.g. `/dev/kvm`).
+2. Probe each one read-only from inside the sandbox: `which` / `--version`, `ls`, a write test in each cache folder, `curl -sI` per host. Compare with `.claude/settings.json` (`allowWrite`, `allowedDomains`). Don't install anything.
+3. For every gap, write the exact fix: an install command checked against the real download URL or package name, a `settings.json` edit, or a restart.
+4. Send the owner **one** HUMAN ACTION REQUIRED with all of them, in order. Re-run the probes after the owner is done, and start the implementer only when they pass.
+
 ### Before CI exists
 
 Until #54 merges, there is no CI to be green. The verifier's own run of the Issue's builds and tests, reported with commands and results, stands in for CI before merging to `dev`. When #54 merges, the owner adds its job as a required status check on the `dev-integration` ruleset.

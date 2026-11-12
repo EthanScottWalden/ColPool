@@ -26,6 +26,7 @@ This file is the operating guide for every session. It points to the detailed do
 - **`contract` label:** a shared definition other Issues depend on. Never change a contract inside a feature Issue. Stop and propose a contract-change Issue.
 - **`human-task` label:** a person must do part of it (billing, real-world data, owner input). Agents may do the rest, and must ask (HUMAN ACTION REQUIRED, §8) for the human part.
 - **Status flow:** Ready → In progress (claim it) → Agent review (PR open) → In dev (merged to dev) → In staging → Done. The human handles staging approval and Done.
+- **Setup Issues (lead):** run the environment preflight (`DEVELOPMENT.md` §2 "Setup preflight") before starting the implementer, and send the human **one** HUMAN ACTION REQUIRED with commands you have verified.
 - **If you edit an Issue's body or acceptance criteria**, set its Human Review back to **Pending**.
 - **Pace GitHub API calls.** Prefer one bulk read over many small ones, and make writes one at a time, not in tight loops. The helper account (`ClaudePeggleMaster`) was suspended once after a burst of Issue edits. Never use or ask for the owner's main account. A hook enforces this: more than 6 GitHub writes a minute, or a write from a subagent (other than `push` of its own `feature/*`, `fix/*` or `docs/*` branch), is blocked. Raise the limit for one session with `GH_GUARD_MAX_WRITES_PER_MIN`.
 
@@ -60,6 +61,7 @@ Branch model: `feature/*` → `dev` → `staging` → `main`.
 - **All changes reach `dev` through a PR** made with the GitHub script (`node .claude/hooks/github.mjs pr-create --base dev ...`). Never push directly to `dev`. The PR body says `Closes #N`. Merge with `node .claude/hooks/github.mjs pr-merge <n>` once CI passes and the work meets §4.
 - **When a task is complete and ready for human review**, open a PR from `dev` into `staging` (`node .claude/hooks/github.mjs pr-create --base staging --head dev ...`) with a short brief (§8).
 - `staging` and `main` are human-only. The agent account can't push, approve or merge there, and must not try to work around that.
+- After a `feature/*`, `fix/*` or `docs/*` PR merges into `dev`, the lead deletes its branch on GitHub (`node .claude/hooks/github.mjs branch-delete <branch>`, owner decision 2026-11-12).
 - No force-pushes. Don't delete `dev`, `staging` or `main`.
 - If a PR includes `prompt.md`, delete `prompt.md` in that PR's final commit.
 
