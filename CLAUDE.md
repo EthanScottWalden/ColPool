@@ -27,11 +27,11 @@ This file is the operating guide for every session. It points to the detailed do
 - **`human-task` label:** a person must do part of it (billing, real-world data, owner input). Agents may do the rest, and must ask (HUMAN ACTION REQUIRED, §8) for the human part.
 - **Status flow:** Ready → In progress (claim it) → Agent review (PR open) → In dev (merged to dev) → In staging → Done. The human handles staging approval and Done.
 - **If you edit an Issue's body or acceptance criteria**, set its Human Review back to **Pending**.
-- **Pace GitHub API calls.** Prefer one bulk read over many small ones, and make writes one at a time, not in tight loops. The helper account (`ClaudePeggleMaster`) was suspended once after a burst of Issue edits. Never use or ask for the owner's main account. A hook enforces this: more than 6 GitHub writes a minute, or a write from a subagent, is blocked. Raise the limit for one session with `GH_GUARD_MAX_WRITES_PER_MIN`.
+- **Pace GitHub API calls.** Prefer one bulk read over many small ones, and make writes one at a time, not in tight loops. The helper account (`ClaudePeggleMaster`) was suspended once after a burst of Issue edits. Never use or ask for the owner's main account. A hook enforces this: more than 6 GitHub writes a minute, or a write from a subagent (other than `push` of its own `feature/*`, `fix/*` or `docs/*` branch), is blocked. Raise the limit for one session with `GH_GUARD_MAX_WRITES_PER_MIN`.
 
 ## 3. Build / run / test
 
-_Not set up yet. #11 (Android app), #12 (Functions + emulator) and #54 (CI) must fill in this section with the main commands and put the full detail in `DEVELOPMENT.md`._
+_Not set up yet. #11 (Android app), #12 (Functions + emulator) and #54 (CI) must fill in this section with the main commands and put the full detail in `DEVELOPMENT.md` §2._
 
 - Android build: `TBD`
 - Functions unit tests (emulator): `TBD`
@@ -45,8 +45,8 @@ _Not set up yet. #11 (Android app), #12 (Functions + emulator) and #54 (CI) must
   - Rules changes: emulator tests.
   - Functions: unit tests against the emulator.
   - Time-based logic: fixed data, including a daylight-saving week.
-  - Screens: checked on a device against the named prototype screen, with a screenshot attached to the PR.
-- CI is green. No secrets or keys committed.
+  - Screens: screenshot-test images of the screen attached to the PR; the human checks it on a device against the named prototype screen during the staging review (`DEVELOPMENT.md` §2).
+- CI is green. Until #54 adds CI, the verifier's own run of the builds and tests stands in for it (`DEVELOPMENT.md` §2). No secrets or keys committed.
 - User-facing text uses POLICY §11 terms and 12-hour Pacific times.
 - Any decision the Issue was meant to settle is recorded (§6).
 
@@ -55,8 +55,8 @@ _Not set up yet. #11 (Android app), #12 (Functions + emulator) and #54 (CI) must
 Branch model: `feature/*` → `dev` → `staging` → `main`.
 
 - Branch from up-to-date `dev`: `feature/<issue#>-<slug>`, `fix/<issue#>-<slug>` or `docs/<slug>`.
-- **All changes reach `dev` through a PR made with the GitHub CLI** (`gh pr create --base dev`). Never push directly to `dev`. The PR body says `Closes #N`. Merge with `gh pr merge` once CI passes and the work meets §4.
-- **When a task is complete and ready for human review**, open a PR from `dev` into `staging` (`gh pr create --base staging --head dev`) with a short brief (§8).
+- **All changes reach `dev` through a PR** made with the GitHub script (`node .claude/hooks/github.mjs pr-create --base dev ...`). Never push directly to `dev`. The PR body says `Closes #N`. Merge with `node .claude/hooks/github.mjs pr-merge <n>` once CI passes and the work meets §4.
+- **When a task is complete and ready for human review**, open a PR from `dev` into `staging` (`node .claude/hooks/github.mjs pr-create --base staging --head dev ...`) with a short brief (§8).
 - `staging` and `main` are human-only. The agent account can't push, approve or merge there, and must not try to work around that.
 - No force-pushes. Don't delete `dev`, `staging` or `main`.
 - If a PR includes `prompt.md`, delete `prompt.md` in that PR's final commit.
@@ -76,7 +76,7 @@ Escalation depends on consequence, not branch. L2 and L3 apply inside `dev` too.
 |---|---|---|
 | **L0** Routine | Resolve silently. | A test fails and then is fixed; lint or compiler fixes; a small refactor. |
 | **L1** Noteworthy | Resolve it; mention it briefly in the summary. | A minor scope adjustment inside the Issue; a non-breaking dependency patch; tech debt found and handled. |
-| **L2** Decision needed | Pause that decision path; ask (§8) with a recommendation; keep doing independent work. | An unclear product rule; a UX tradeoff; a new dependency or cost; any architecture choice, including the ones ARCHITECTURE §2 says to "decide in the issue" (UI toolkit, min SDK, Firestore layout, RC-32 lookup); interpreting policy; a prototype vs SDD difference. |
+| **L2** Decision needed | Pause that decision path; ask (§8) with a recommendation; keep doing independent work. | An unclear product rule; a UX tradeoff; a new dependency outside the setup Issue's approved list, or a new cost (`DEVELOPMENT.md` §2); any architecture choice, including the ones ARCHITECTURE §2 says to "decide in the issue" (UI toolkit, min SDK, Firestore layout, RC-32 lookup); interpreting policy; a prototype vs SDD difference. |
 | **L3** Stop the line | Don't do the risky action until explicitly resolved. | Changing Security Rules or the privacy/consent model beyond the Issue; changing a contract; deleting data or records; secrets or keys; Firestore region; billing; deploying to the real Firebase project (process not decided yet); anything in POLICY §13 non-goals; a contradiction with SPEC; irreversible git or GitHub actions. |
 
 ## 8. Talking to the human
@@ -109,7 +109,7 @@ Escalation depends on consequence, not branch. L2 and L3 apply inside `dev` too.
 
 Project agents go in `.claude/agents/` and skills in `.claude/skills/`.
 
-The main session runs as `lead` (`.claude/settings.json`). It is the only agent that talks to the human, spawns other agents, or writes to GitHub (PRs, merges, Issue and Project changes).
+The main session runs as `lead` (`.claude/settings.json`). It is the only agent that talks to the human, spawns other agents, or writes to GitHub (PRs, merges, Issue and Project changes). Subagents may only `push` their own branches (see Guardrails).
 
 | Agent | Use for | Edits |
 |---|---|---|
@@ -125,7 +125,10 @@ The main session runs as `lead` (`.claude/settings.json`). It is the only agent 
 - Preloaded: all six in `implementer` and `architect`; Auth, Functions and Firestore in `verifier`.
 **Guardrails** (`.claude/settings.json`):
 - Deny rules for deploys, Firebase deletes, force-pushes and direct pushes to `dev`/`staging`/`main`.
-- An allowlist for read-only git and `gh` commands.
-- `.claude/hooks/gh-guard.mjs`: GitHub write pacing, lead-only writes, and a Human Review reminder after Issue edits.
+- An allowlist for read-only `git` commands and for the GitHub script.
+- **GitHub goes only through `node .claude/hooks/github.mjs <op>`** (run it with no op for the list). It is the only command outside the sandbox with the token, runs no shell, and allows only named operations (`DEVELOPMENT.md` §3). Raw `gh` and `git push` run sandboxed without the token, and the hook denies them.
+- `.claude/hooks/gh-guard.mjs`: who may run which operation (writes lead-only; `push` also implementer `feature/*` and `fix/*`, docs-keeper `docs/*`); the script must be called exactly, on its own; write pacing; a Human Review reminder after Issue edits.
 
-GitHub rulesets remain the real guard for `dev`/`staging`/`main`. 
+GitHub rulesets remain the real guard for `dev`/`staging`/`main`.
+
+**Sandbox:** run Claude Code in WSL2, where the sandbox in `.claude/settings.json` applies (see `DEVELOPMENT.md`). On native Windows there's no sandbox, and unsandboxed commands are off, so Claude Code there can't run commands. That's deliberate. Never work around a sandbox block; propose an allowlist change in a PR.
