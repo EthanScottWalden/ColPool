@@ -69,9 +69,11 @@ Anything else is L2 (`DEVELOPMENT.md` §2).
 - navigation-compose 2.10.2, with the kotlinx-serialization Gradle plugin (version = Kotlin, 2.4.21) and kotlinx-serialization-json **1.13.0** (latest on Maven Central on 2026-11-11; not yet built against Kotlin 2.4.21, so the Issue that wires navigation verifies it).
 - core-splashscreen 1.2.0.
 
-**Never:** Analytics, Crashlytics, App Check, FCM, Storage, Maps display.
+**Never:** Analytics, Crashlytics, App Check, FCM, Storage, Maps display. These are never added as direct dependencies. Places 6.0.2 pulls in `play-services-maps` transitively, but it is never called. The POLICY §13 "no map display" non-goal is about product behavior, so no map view is ever shown. `firebase-appcheck-interop` is an interface dependency of the Firebase SDKs, not App Check itself.
 
 ## Consequences
+
+- A later release-hardening task must enable minify and signing, and strip the transitive c2dm `RECEIVE` permission (`tools:node="remove"`). FCM is out of scope.
 - Later screen Issues add `ui/<screen>` packages, a ViewModel and a `(state, onEvent)` composable each, plus a Roborazzi screenshot.
 - #12 must use the emulator ports above and settle the emulator project ID.
 - The owner registers the app in Firebase and adds `google-services.json` before any real-Firebase or release build.
