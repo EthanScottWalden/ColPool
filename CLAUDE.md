@@ -31,9 +31,11 @@ This file is the operating guide for every session. It points to the detailed do
 
 ## 3. Build / run / test
 
-_Not set up yet. #11 (Android app), #12 (Functions + emulator) and #54 (CI) must fill in this section with the main commands and put the full detail in `DEVELOPMENT.md` §2._
+_Android is set up (#11). #12 (Functions + emulator) and #54 (CI) fill in the rest, with the full detail in `DEVELOPMENT.md` §2._
 
-- Android build: `TBD`
+Agents run Gradle through `android/scripts/sandbox-gradlew.sh <tasks>` (sandbox proxy and temp dir); humans use `./gradlew`.
+
+- Android build: `cd android && ./gradlew assembleDebug` (details: `DEVELOPMENT.md` §2)
 - Functions unit tests (emulator): `TBD`
 - Security Rules tests (emulator): `TBD`
 - Start the emulator: `TBD`

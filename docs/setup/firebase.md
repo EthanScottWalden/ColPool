@@ -16,7 +16,7 @@
 | Budget: Maps (Places API + Routes API) | $5 / month, scoped to `colpool`, billing services Places API (New) + Google Maps Platform - Routes. Email alerts at 50%, 90% and 100% (owner decision 2026-11-11). |
 | APIs enabled | Places API (New), Routes API |
 | Routes key | Cloud Functions secret `ROUTES_API_KEY` (Secret Manager). Restricted to Routes API. |
-| Places key | Android key, restricted to Places API (New). Android-app restriction (package + SHA-1) added in #11. Real value only in uncommitted `local.properties`. |
+| Places key | Android key, restricted to Places API (New). Android-app restriction (package `io.github.ethanscottwalden.colpool` + SHA-1) added by the owner once the debug SHA-1s exist (#11). Real value only in uncommitted `local.properties`. |
 
 Budgets **alert**; they don't stop spending. Usage must stay within free allowances by design (RC-28): routes are computed only at review, Places uses session tokens, keys are restricted.
 
@@ -47,7 +47,7 @@ Done once by the owner. Tick the checklist in §3 when done.
 6. **Places key (Android).** *Create credentials* → *API key*.
    - Name it `places-android`.
    - API restrictions: **Places API (New)** only.
-   - Application restriction: set in #11, when the package name and debug/release SHA-1 exist.
+   - Application restriction: Android apps, package `io.github.ethanscottwalden.colpool`. The owner adds it once the debug SHA-1s exist (`./gradlew signingReport`, see `android/app/google-services.README.md`), plus the release SHA-1 later.
    - Keep the value private. #11 reads it from uncommitted `local.properties` through the Secrets Gradle plugin. A committed placeholder lets CI build without it (ARCHITECTURE §6).
 
 ## 3. Verification checklist
@@ -68,7 +68,7 @@ Agent, in the repo:
 
 ## 4. Later Issues that build on this
 
-- **#11:** registers the Android app in Firebase. Adds `google-services.json` (ignored) and the Places key's Android-app restriction. `.gitignore` ignores every `google-services*.json` and `google-services.json*` name, including `.example` and `.template`. A committed placeholder needs a different name or a `!` exception.
+- **#11:** registers the Android app in Firebase. Package is `io.github.ethanscottwalden.colpool` ([ADR 0001](../adr/0001-android-setup.md)). The owner adds `google-services.json` (ignored; steps in `android/app/google-services.README.md`) and the Places key's Android-app restriction once the debug SHA-1s exist. `.gitignore` ignores every `google-services*.json` and `google-services.json*` name, including `.example` and `.template`. A committed placeholder needs a different name or a `!` exception.
 - **#12:** adds `firebase.json` and `.firebaserc` (project `colpool`) for the Emulator Suite.
 - **#13:** creates Firestore in `us-west2`.
 - Route preview: reads `ROUTES_API_KEY` with `defineSecret`. The emulator uses a local override; tests never call the real Routes API.
