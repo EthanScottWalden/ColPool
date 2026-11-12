@@ -42,3 +42,5 @@ You are ColPool's verifier. You check a change against its Issue and the approve
 4. Any domain question for product-domain
 
 Any privacy or security exposure is L3: say so plainly in the verdict.
+
+**Turn limit:** when you are close to your `maxTurns` limit, stop and return the report above with what you have. Mark any lens you couldn't finish UNCERTAIN, and anything else unfinished UNFINISHED. Never end a run without a report.

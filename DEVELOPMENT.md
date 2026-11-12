@@ -36,7 +36,7 @@ Claude Code runs in **WSL2**, where the Bash sandbox applies. On native Windows 
    - `sdkmanager` is now deprecated in favour of `android sdk` (same packages). Metrics can be turned off with `--no-metrics`.
    - Do **not** run `android init`: it installs unreviewed agent tooling.
    - Put the real Places key in `android/local.properties` (`PLACES_API_KEY=...`, never committed). Gradle finds the SDK from `ANDROID_HOME`, so no `sdk.dir` is needed. The sandbox can't read `local.properties`, so the build uses the committed placeholder there.
-   - **Gradle in the sandbox.** Gradle's JVMs ignore the sandbox's proxy settings, and `/tmp` is read-only there. Agents run Gradle through `android/scripts/sandbox-gradlew.sh <tasks>`: it sets `ANDROID_HOME`, the temp dir and the proxy for that one command only, writes no files and prints no credentials. It always runs with `--no-daemon`: a daemon left over from an earlier sandboxed command holds the cache lock and keeps stale proxy credentials. Humans use plain `./gradlew`. Never put proxy settings in `~/.gradle/gradle.properties`: it would break normal builds. The first sandboxed build needs `services.gradle.org`, `plugins.gradle.org`, `dl.google.com`, `repo.maven.apache.org` and `gcp.mirrors.maven.org` reachable.
+   - **Gradle in the sandbox.** Gradle's JVMs ignore the sandbox's proxy settings, and `/tmp` is read-only there. Agents run Gradle through `android/scripts/sandbox-gradlew.sh <tasks>`: it sets `ANDROID_HOME`, the temp dir and the proxy for that one command only, writes no files and prints no credentials. It always runs with `--no-daemon`: a daemon left over from an earlier sandboxed command holds the cache lock and keeps stale proxy credentials. Humans use plain `./gradlew`. Never put proxy settings in `~/.gradle/gradle.properties`: it would break normal builds. The sandbox enforces this: `~/.gradle/gradle.properties`, `~/.gradle/init.gradle(.kts)` and `~/.gradle/init.d` are in `sandbox.filesystem.denyWrite`, so agents can't save credentials there or plant init scripts that would run in the owner's unsandboxed builds. Inside the sandbox they appear empty. The first sandboxed build needs `services.gradle.org`, `plugins.gradle.org`, `dl.google.com`, `repo.maven.apache.org` and `gcp.mirrors.maven.org` reachable.
    - Device checks and the instrumented smoke test use the owner's **Windows Android Studio emulator**, not WSL (no `/dev/kvm`).
 
 ## 2. Build, run and test
@@ -61,6 +61,15 @@ Screen PRs carry images from **screenshot tests that render on the JVM**, with n
 
 Each setup Issue (#11, #12, #54) settles its whole library list as part of its setup decision: the architect proposes the list, the owner approves it once, and it's recorded in that Issue's ADR. Adding a library outside an approved list later is L2 (owner decision 2026-11-11).
 
+### Setup preflight
+
+For a setup Issue (#12, #54 and any later toolchain Issue), the lead does this before starting the implementer. Owner decision 2026-11-12; see `docs/AGENTIC_RETROSPECTIVE.md`.
+
+1. List what the Issue needs: tools and versions (CLIs, SDKs, JDK, Node), the folders they write (caches, config), the network hosts they download from, and any device or hardware (e.g. `/dev/kvm`).
+2. Probe each one read-only from inside the sandbox: `which` / `--version`, `ls`, a write test in each cache folder, `curl -sI` per host. Compare with `.claude/settings.json` (`allowWrite`, `allowedDomains`). Don't install anything.
+3. For every gap, write the exact fix: an install command checked against the real download URL or package name, a `settings.json` edit, or a restart.
+4. Send the owner **one** HUMAN ACTION REQUIRED with all of them, in order. Re-run the probes after the owner is done, and start the implementer only when they pass.
+
 ### Before CI exists
 
 Until #54 merges, there is no CI to be green. The verifier's own run of the Issue's builds and tests, reported with commands and results, stands in for CI before merging to `dev`. When #54 merges, the owner adds its job as a required status check on the `dev-integration` ruleset.
@@ -72,7 +81,7 @@ Configured in `.claude/settings.json`. It applies to the main session and every 
 **What's blocked:**
 - Reads of the home folder, except the tool folders in `sandbox.filesystem.allowRead`; reads of `/mnt` and secret files (`.env`, `local.properties`, service accounts).
 - Reads of the GitHub token (`~/.config/gh`). Ordinary commands can't see it.
-- Writes outside the repo, the session temp folder and the Gradle and Android caches (`~/.gradle`, `~/.android`, via `sandbox.filesystem.allowWrite`).
+- Writes outside the repo, the session temp folder and the Gradle and Android caches (`~/.gradle`, `~/.android`, via `sandbox.filesystem.allowWrite`). Inside `~/.gradle`, the files that configure or run code in every Gradle build stay blocked (`sandbox.filesystem.denyWrite`, §1).
 - Network hosts not in `sandbox.network.allowedDomains`.
 
 **What runs outside the sandbox** (`sandbox.excludedCommands`): only the GitHub script `node .claude/hooks/github.mjs` and the `next-issue` script. They are the only commands that can use the token. Both live in folders sandboxed commands can't write, and both call `/usr/bin/gh` and `/usr/bin/git` without a shell and with a minimal environment (`PATH`, `HOME`, `LANG`), so nothing from the Claude Code process, such as tokens, `TMPDIR` or `NODE_OPTIONS`, reaches them.
@@ -91,6 +100,10 @@ Configured in `.claude/settings.json`. It applies to the main session and every 
 - Raw `gh` and `git push` are denied with a pointer to the script. Outside it they would run sandboxed without the token anyway.
 - **Pacing:** at most 6 writes a minute (`GH_GUARD_MAX_WRITES_PER_MIN` raises it for one session). If the counter in `.claude/hooks/.state/` can't be saved, writes are blocked rather than allowed.
 - After an Issue body or title edit, a reminder to set Human Review back to Pending.
+
+`issue-view` and `pr-view` ask GitHub for a fixed list of fields and print them with a fixed template. Plain `gh issue view` asks for classic-Projects data, which GitHub now rejects.
+
+**Owner review in `dev`:** `.github/CODEOWNERS` names the owner for `SPEC.md`, `INTENT.md`, `CLAUDE.md`, `docs/POLICY.md`, `.claude/` and `.github/` (CODEOWNERS itself and the CI workflows, which can reach secrets). With "Require review from Code Owners" on the `dev-integration` ruleset, a PR into `dev` that touches them can't merge until the owner approves it. Other PRs still need no approval.
 
 Every other command (`curl`, `node`, `bash -c`, `gh` itself) runs inside the sandbox, where the token can't be read.
 

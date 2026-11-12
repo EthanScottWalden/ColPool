@@ -1,0 +1,10 @@
+# Changes to these files need the owner's approval before they merge into dev:
+# product and process authority (CLAUDE.md §1, §6), the agents' own guardrails, and
+# .github/ (this file and the CI workflows, which can reach secrets).
+# Enforced by "Require review from Code Owners" on the dev-integration ruleset.
+/SPEC.md            @EthanScottWalden
+/INTENT.md          @EthanScottWalden
+/CLAUDE.md          @EthanScottWalden
+/docs/POLICY.md     @EthanScottWalden
+/.claude/           @EthanScottWalden
+/.github/           @EthanScottWalden

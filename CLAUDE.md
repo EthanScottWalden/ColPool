@@ -23,9 +23,11 @@ This file is the operating guide for every session. It points to the detailed do
 
 - **Eligible:** Project Status = **Ready** *and* Human Review = **Approved**, not blocked by an open Issue, not already In progress. Prefer the lowest Phase, then Sequence. Use the `next-issue` skill to list them.
 - The Issue body is the spec: goal, acceptance criteria, tests expected, non-goals. Don't widen it.
+- **Stale Issue template text:** the "Tests expected → Screens: a check on an Android Emulator device" line and the "Project fields" snapshot in Issue bodies predate later decisions. §4 and the live Project win over them. That isn't a conflict to flag.
 - **`contract` label:** a shared definition other Issues depend on. Never change a contract inside a feature Issue. Stop and propose a contract-change Issue.
 - **`human-task` label:** a person must do part of it (billing, real-world data, owner input). Agents may do the rest, and must ask (HUMAN ACTION REQUIRED, §8) for the human part.
 - **Status flow:** Ready → In progress (claim it) → Agent review (PR open) → In dev (merged to dev) → In staging → Done. The human handles staging approval and Done.
+- **Setup Issues (lead):** run the environment preflight (`DEVELOPMENT.md` §2 "Setup preflight") before starting the implementer, and send the human **one** HUMAN ACTION REQUIRED with commands you have verified.
 - **If you edit an Issue's body or acceptance criteria**, set its Human Review back to **Pending**.
 - **Pace GitHub API calls.** Prefer one bulk read over many small ones, and make writes one at a time, not in tight loops. The helper account (`ClaudePeggleMaster`) was suspended once after a burst of Issue edits. Never use or ask for the owner's main account. A hook enforces this: more than 6 GitHub writes a minute, or a write from a subagent (other than `push` of its own `feature/*`, `fix/*` or `docs/*` branch), is blocked. Raise the limit for one session with `GH_GUARD_MAX_WRITES_PER_MIN`.
 
@@ -60,6 +62,7 @@ Branch model: `feature/*` → `dev` → `staging` → `main`.
 - **All changes reach `dev` through a PR** made with the GitHub script (`node .claude/hooks/github.mjs pr-create --base dev ...`). Never push directly to `dev`. The PR body says `Closes #N`. Merge with `node .claude/hooks/github.mjs pr-merge <n>` once CI passes and the work meets §4.
 - **When a task is complete and ready for human review**, open a PR from `dev` into `staging` (`node .claude/hooks/github.mjs pr-create --base staging --head dev ...`) with a short brief (§8).
 - `staging` and `main` are human-only. The agent account can't push, approve or merge there, and must not try to work around that.
+- After a `feature/*`, `fix/*` or `docs/*` PR merges into `dev`, the lead deletes its branch on GitHub (`node .claude/hooks/github.mjs branch-delete <branch>`, owner decision 2026-11-12).
 - No force-pushes. Don't delete `dev`, `staging` or `main`.
 - If a PR includes `prompt.md`, delete `prompt.md` in that PR's final commit.
 
@@ -105,6 +108,7 @@ Escalation depends on consequence, not branch. L2 and L3 apply inside `dev` too.
   How I'll verify: <check I'll run before resuming>
   ```
 
+- **Evidence:** in GitHub writes and briefs, cite only commits, commands and results you produced or read in this session. If you didn't check something, say so or leave it out.
 - **End of a task:** a short brief covering outcome, user-visible effect, how it was verified, remaining risks, and "Decision needed: none" (or a separate DECISION NEEDED block).
 
 ## 9. Agents and skills
@@ -131,6 +135,6 @@ The main session runs as `lead` (`.claude/settings.json`). It is the only agent 
 - **GitHub goes only through `node .claude/hooks/github.mjs <op>`** (run it with no op for the list). It is the only command outside the sandbox with the token, runs no shell, and allows only named operations (`DEVELOPMENT.md` §3). Raw `gh` and `git push` run sandboxed without the token, and the hook denies them.
 - `.claude/hooks/gh-guard.mjs`: who may run which operation (writes lead-only; `push` also implementer `feature/*` and `fix/*`, docs-keeper `docs/*`); the script must be called exactly, on its own; write pacing; a Human Review reminder after Issue edits.
 
-GitHub rulesets remain the real guard for `dev`/`staging`/`main`.
+GitHub rulesets remain the real guard for `dev`/`staging`/`main`. `.github/CODEOWNERS` makes a PR into `dev` that changes `SPEC.md`, `INTENT.md`, `CLAUDE.md`, `docs/POLICY.md`, `.claude/` or `.github/` wait for the owner's review.
 
 **Sandbox:** run Claude Code in WSL2, where the sandbox in `.claude/settings.json` applies (see `DEVELOPMENT.md`). On native Windows there's no sandbox, and unsandboxed commands are off, so Claude Code there can't run commands. That's deliberate. Never work around a sandbox block; propose an allowlist change in a PR.

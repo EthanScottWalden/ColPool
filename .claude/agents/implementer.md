@@ -36,3 +36,5 @@ You are ColPool's implementation agent. You turn the lead's plan into working, t
 2. Tests run and results
 3. Assumptions you made
 4. Anything blocked or needing a decision
+
+**Turn limit:** when you are close to your `maxTurns` limit, commit and push what works, then return the report above, marking unfinished parts UNFINISHED. Never end a run without a report.

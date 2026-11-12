@@ -190,11 +190,30 @@ const HELP = `Operations (node .claude/hooks/github.mjs <op> ...):
   push <branch>                          (git push -u origin <branch> for the current branch's commits)
  Body and query files must be in the repo or the session temp folder.`;
 
+// `gh issue view` / `gh pr view` without --json ask for `projectCards` (classic Projects), which
+// GitHub now rejects. Ask for fixed fields only and print them with a fixed template.
+const COMMENTS_TPL = `{{range .comments}}\n--- {{.author.login}} · {{.createdAt}}\n{{.body}}\n{{end}}`;
+const LABELS_TPL = `{{range $i, $l := .labels}}{{if $i}}, {{end}}{{$l.name}}{{end}}`;
+const ISSUE_VIEW = {
+  fields: "number,title,state,author,labels,url,body",
+  tpl: `#{{.number}} {{.title}}\nState: {{.state}} · Author: {{.author.login}} · Labels: ${LABELS_TPL}\n{{.url}}\n\n{{.body}}\n`,
+};
+const PR_VIEW = {
+  fields: "number,title,state,isDraft,author,baseRefName,headRefName,mergeable,reviewDecision,labels,url,body",
+  tpl: `#{{.number}} {{.title}}\nState: {{.state}}{{if .isDraft}} (draft){{end}} · {{.headRefName}} → {{.baseRefName}} · Author: {{.author.login}}\nMergeable: {{.mergeable}} · Review: {{.reviewDecision}} · Labels: ${LABELS_TPL}\n{{.url}}\n\n{{.body}}\n`,
+};
+function view(kind, spec, a) {
+  const { flags, pos } = parse(a, { flags: { comments: "bool" }, positional: 1 });
+  const fields = spec.fields + (flags.comments ? ",comments" : "");
+  const tpl = spec.tpl + (flags.comments ? COMMENTS_TPL : "");
+  gh([kind, "view", num(pos[0]), "-R", REPO, "--json", fields, "--template", tpl]);
+}
+
 const OPS = {
   help: () => console.log(HELP),
   "auth-status": () => gh(["auth", "status"]),
 
-  "issue-view": (a) => { const { flags, pos } = parse(a, { flags: { comments: "bool" }, positional: 1 }); gh(["issue", "view", num(pos[0]), "-R", REPO, ...(flags.comments ? ["--comments"] : [])]); },
+  "issue-view": (a) => view("issue", ISSUE_VIEW, a),
   "issue-list": (a) => {
     const { flags } = parse(a, { flags: { state: "value", label: "value", limit: "value" } });
     const args = ["issue", "list", "-R", REPO];
@@ -203,7 +222,7 @@ const OPS = {
     const lim = one(flags, "limit", false); if (lim) args.push("--limit", num(lim));
     gh(args);
   },
-  "pr-view": (a) => { const { flags, pos } = parse(a, { flags: { comments: "bool" }, positional: 1 }); gh(["pr", "view", num(pos[0]), "-R", REPO, ...(flags.comments ? ["--comments"] : [])]); },
+  "pr-view": (a) => view("pr", PR_VIEW, a),
   "pr-list": (a) => {
     const { flags } = parse(a, { flags: { state: "value", limit: "value" } });
     const args = ["pr", "list", "-R", REPO];
