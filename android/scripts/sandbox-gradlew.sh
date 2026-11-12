@@ -5,6 +5,11 @@
 # $HTTPS_PROXY at runtime and passes it only as -D flags on this command line.
 # Nothing is written to disk and nothing is echoed. When HTTPS_PROXY is unset it
 # just runs ./gradlew. Usage: android/scripts/sandbox-gradlew.sh assembleDebug
+#
+# Always --no-daemon. Each sandboxed command runs in its own process namespace with
+# its own short-lived proxy credentials. A daemon left over from an earlier command
+# keeps holding the Gradle cache lock, which `--stop` can't reach, and it would keep
+# the earlier command's proxy credentials.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -24,4 +29,4 @@ if [[ -n "${HTTPS_PROXY:-}" ]]; then
   fi
 fi
 export GRADLE_OPTS="${GRADLE_OPTS:-} $jvm"
-exec ./gradlew "-Dorg.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8 $jvm" "$@"
+exec ./gradlew --no-daemon "-Dorg.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8 $jvm" "$@"
