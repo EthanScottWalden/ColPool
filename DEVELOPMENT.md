@@ -72,7 +72,7 @@ Configured in `.claude/settings.json`. It applies to the main session and every 
 **What's blocked:**
 - Reads of the home folder, except the tool folders in `sandbox.filesystem.allowRead`; reads of `/mnt` and secret files (`.env`, `local.properties`, service accounts).
 - Reads of the GitHub token (`~/.config/gh`). Ordinary commands can't see it.
-- Writes outside the repo and the session temp folder.
+- Writes outside the repo, the session temp folder and the Gradle and Android caches (`~/.gradle`, `~/.android`, via `sandbox.filesystem.allowWrite`).
 - Network hosts not in `sandbox.network.allowedDomains`.
 
 **What runs outside the sandbox** (`sandbox.excludedCommands`): only the GitHub script `node .claude/hooks/github.mjs` and the `next-issue` script. They are the only commands that can use the token. Both live in folders sandboxed commands can't write, and both call `/usr/bin/gh` and `/usr/bin/git` without a shell and with a minimal environment (`PATH`, `HOME`, `LANG`), so nothing from the Claude Code process, such as tokens, `TMPDIR` or `NODE_OPTIONS`, reaches them.
@@ -106,5 +106,5 @@ Never work around a sandbox block. When a command needs a host or folder the san
 3. The owner approves the `.claude/settings.json` edit.
 
 **Gaps to expect during setup** (not yet confirmed by running):
-- Gradle, the Android SDK and the Firebase emulators write caches to `~/.gradle`, `~/.android` and `~/.cache/firebase`, which are read-only in the sandbox. Expect `sandbox.filesystem.allowWrite` entries, or project-local cache folders such as `GRADLE_USER_HOME`, in #11 and #12.
+- The Firebase emulators write a cache to `~/.cache/firebase`, which is read-only in the sandbox. Expect a `sandbox.filesystem.allowWrite` entry, or a project-local cache folder, in #12. (`~/.gradle` and `~/.android` were allowed in #11.)
 - The Firebase emulators download from Google Storage (`storage.googleapis.com`), which isn't on the allowlist. That host serves any public bucket, so #12 decides it as part of its setup decision.
