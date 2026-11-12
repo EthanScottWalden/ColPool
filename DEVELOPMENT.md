@@ -36,7 +36,7 @@ Claude Code runs in **WSL2**, where the Bash sandbox applies. On native Windows 
    - `sdkmanager` is now deprecated in favour of `android sdk` (same packages). Metrics can be turned off with `--no-metrics`.
    - Do **not** run `android init`: it installs unreviewed agent tooling.
    - Put the real Places key in `android/local.properties` (`PLACES_API_KEY=...`, never committed). Gradle finds the SDK from `ANDROID_HOME`, so no `sdk.dir` is needed. The sandbox can't read `local.properties`, so the build uses the committed placeholder there.
-   - **Gradle in the sandbox.** Gradle's JVMs ignore the sandbox's proxy environment variables, so builds there need the proxy in `~/.gradle/gradle.properties` (`systemProp.http(s).proxyHost/Port/User/Password`, copied from `$HTTPS_PROXY`), plus `-Djdk.http.auth.tunneling.disabledSchemes=` in `GRADLE_OPTS` and in `-Dorg.gradle.jvmargs`, and `-Djava.io.tmpdir=$TMPDIR` in `-Dorg.gradle.jvmargs` (`/tmp` is read-only). Keep these in a personal wrapper script, never in the repo. The first build also needs the hosts `services.gradle.org`, `plugins.gradle.org`, `dl.google.com`, `repo.maven.apache.org` and `gcp.mirrors.maven.org` reachable.
+   - **Gradle in the sandbox.** Gradle's JVMs ignore the sandbox's proxy settings, and `/tmp` is read-only there. Agents run Gradle through `android/scripts/sandbox-gradlew.sh <tasks>`: it sets `ANDROID_HOME`, the temp dir and the proxy for that one command only, writes no files and prints no credentials. Humans use plain `./gradlew`. Never put proxy settings in `~/.gradle/gradle.properties`: it would break normal builds. The first sandboxed build needs `services.gradle.org`, `plugins.gradle.org`, `dl.google.com`, `repo.maven.apache.org` and `gcp.mirrors.maven.org` reachable.
    - Device checks and the instrumented smoke test use the owner's **Windows Android Studio emulator**, not WSL (no `/dev/kvm`).
 
 ## 2. Build, run and test
@@ -45,7 +45,7 @@ _Filled in by the setup Issues: #11 (Android app), #12 (Functions and emulator),
 
 | Task | Command |
 |---|---|
-| Android build | `cd android && ./gradlew assembleDebug` (debug builds target the Emulator Suite by default; `-Pcolpool.useEmulators=false` for real Firebase, which needs `google-services.json`) |
+| Android build | `cd android && ./gradlew assembleDebug` (agents: `android/scripts/sandbox-gradlew.sh assembleDebug`; same for every Gradle task below) (debug builds target the Emulator Suite by default; `-Pcolpool.useEmulators=false` for real Firebase, which needs `google-services.json`) |
 | Android JVM tests (Robolectric smoke test) | `cd android && ./gradlew testDebugUnitTest` |
 | Screen screenshot tests (Roborazzi) | `cd android && ./gradlew verifyRoborazziDebug`; refresh goldens with `recordRoborazziDebug` and commit the images (`app/src/test/screenshots/`) |
 | Android instrumented smoke test (owner-run) | Compiles with `./gradlew assembleDebugAndroidTest`. The owner runs `./gradlew connectedDebugAndroidTest` on the Windows emulator. CI runs it after #54. |
