@@ -4,13 +4,13 @@ description: >
   Find the next ColPool GitHub Issue that is eligible for work, ranked the same way every time.
   Use when picking or claiming work, when asked "what's next", or before starting a new task.
   One paged GraphQL read; makes no GitHub writes.
-allowed-tools: Bash(node ${CLAUDE_SKILL_DIR}/scripts/next-issue.mjs *)
+allowed-tools: Bash(node .claude/skills/next-issue/scripts/next-issue.mjs *)
 ---
 
-Run:
+Run it from the repo root, exactly like this and on its own (the guard hook rejects `${...}` variables, wrappers and `&&`):
 
 ```
-node ${CLAUDE_SKILL_DIR}/scripts/next-issue.mjs
+node .claude/skills/next-issue/scripts/next-issue.mjs
 ```
 
 Add `--json` for machine-readable output, or `--limit N` to show more of the not-yet-eligible list.
