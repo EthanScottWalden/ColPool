@@ -83,8 +83,5 @@ The owner approved these, and they are applied:
 - **Not done (no config needed now):** a `prompt.md` check (revisit in #54 CI if it recurs); path rules for `firestore.rules` and `functions/**` (revisit at #18); a preflight skill (revisit after #12).
 
 ## Other candidates (smaller; only if they earn their place)
-- `implementer.md` and the verifier's security lens: never write credentials or proxy settings to disk, inside the repo or out.
-- Raise the architect's `maxTurns` from 12 to about 20, or tell it to report before it runs out.
-- Fix `github.mjs` `issue-view` and `pr-view`, which break because GitHub is retiring classic Projects. Fix the `next-issue` skill's path.
-- Add `gcp.mirrors.maven.org` to `allowedDomains`.
+The first four candidates (credentials on disk, architect `maxTurns`, the GitHub view operations and the `next-issue` path, `gcp.mirrors.maven.org`) are done; see the follow-up above. One remains:
 - `prompt.md` reached `dev` directly twice (`8496e57`, `65aad43`), which triggered the change request on #84. A hook or CI check could block it. Removing it by hand before each staging PR may be enough.
