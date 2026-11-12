@@ -90,7 +90,8 @@
         "~/.gradle",
         "~/.android",
         "~/Android"
-      ]
+      ],
+      "allowWrite": ["~/.gradle", "~/.android"]
     },
     "network": {
       "allowedDomains": [
