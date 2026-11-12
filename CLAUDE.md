@@ -135,6 +135,6 @@ The main session runs as `lead` (`.claude/settings.json`). It is the only agent 
 - **GitHub goes only through `node .claude/hooks/github.mjs <op>`** (run it with no op for the list). It is the only command outside the sandbox with the token, runs no shell, and allows only named operations (`DEVELOPMENT.md` §3). Raw `gh` and `git push` run sandboxed without the token, and the hook denies them.
 - `.claude/hooks/gh-guard.mjs`: who may run which operation (writes lead-only; `push` also implementer `feature/*` and `fix/*`, docs-keeper `docs/*`); the script must be called exactly, on its own; write pacing; a Human Review reminder after Issue edits.
 
-GitHub rulesets remain the real guard for `dev`/`staging`/`main`. `.github/CODEOWNERS` makes a PR into `dev` that changes `SPEC.md`, `INTENT.md`, `CLAUDE.md`, `docs/POLICY.md` or `.claude/` wait for the owner's review.
+GitHub rulesets remain the real guard for `dev`/`staging`/`main`. `.github/CODEOWNERS` makes a PR into `dev` that changes `SPEC.md`, `INTENT.md`, `CLAUDE.md`, `docs/POLICY.md`, `.claude/` or `.github/` wait for the owner's review.
 
 **Sandbox:** run Claude Code in WSL2, where the sandbox in `.claude/settings.json` applies (see `DEVELOPMENT.md`). On native Windows there's no sandbox, and unsandboxed commands are off, so Claude Code there can't run commands. That's deliberate. Never work around a sandbox block; propose an allowlist change in a PR.

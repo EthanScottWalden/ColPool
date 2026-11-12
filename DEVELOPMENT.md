@@ -103,7 +103,7 @@ Configured in `.claude/settings.json`. It applies to the main session and every 
 
 `issue-view` and `pr-view` ask GitHub for a fixed list of fields and print them with a fixed template. Plain `gh issue view` asks for classic-Projects data, which GitHub now rejects.
 
-**Owner review in `dev`:** `.github/CODEOWNERS` names the owner for `SPEC.md`, `INTENT.md`, `CLAUDE.md`, `docs/POLICY.md` and `.claude/`. With "Require review from Code Owners" on the `dev-integration` ruleset, a PR into `dev` that touches them can't merge until the owner approves it. Other PRs still need no approval.
+**Owner review in `dev`:** `.github/CODEOWNERS` names the owner for `SPEC.md`, `INTENT.md`, `CLAUDE.md`, `docs/POLICY.md`, `.claude/` and `.github/` (CODEOWNERS itself and the CI workflows, which can reach secrets). With "Require review from Code Owners" on the `dev-integration` ruleset, a PR into `dev` that touches them can't merge until the owner approves it. Other PRs still need no approval.
 
 Every other command (`curl`, `node`, `bash -c`, `gh` itself) runs inside the sandbox, where the token can't be read.
 

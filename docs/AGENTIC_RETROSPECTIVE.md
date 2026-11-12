@@ -79,7 +79,7 @@ The owner approved these, and they are applied:
 - **`github.mjs` `issue-view` and `pr-view`:** they request fixed fields, so they work again. The `next-issue` skill shows the repo-relative command.
 - **`gcp.mirrors.maven.org`:** added to `allowedDomains`.
 - **`CLAUDE.md`:** §2 says stale Issue template text (the device-check line and the "Project fields" snapshot) loses to §4 and the live Project. §8 says to cite only evidence checked in the session (problem 3).
-- **`.github/CODEOWNERS`:** with the `dev-integration` ruleset's code-owner option, changes to SPEC, INTENT, CLAUDE.md, POLICY and `.claude/` need the owner's review before they merge into `dev`.
+- **`.github/CODEOWNERS`:** with the `dev-integration` ruleset's code-owner option, changes to SPEC, INTENT, CLAUDE.md, POLICY, `.claude/` and `.github/` need the owner's review before they merge into `dev`. The owner chose `/.github/` over CODEOWNERS alone, so #54's workflows are covered. The Gradle wrapper and `android/scripts/` were left out.
 - **Not done (no config needed now):** a `prompt.md` check (revisit in #54 CI if it recurs); path rules for `firestore.rules` and `functions/**` (revisit at #18); a preflight skill (revisit after #12).
 
 ## Other candidates (smaller; only if they earn their place)
