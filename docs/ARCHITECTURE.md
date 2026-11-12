@@ -58,7 +58,7 @@ Not in the approved stack (don't add without a documented human decision): Cloud
 
 | Decision | Decided in | Value |
 |---|---|---|
-| Android UI toolkit, minimum Android version and app structure (pattern, modules) | #11 (TMP-02) | _TBD_ |
+| Android UI toolkit, minimum Android version and app structure (pattern, modules) | #11 (TMP-02) | Jetpack Compose + Material 3, single Activity; minSdk 26 (compile 37, target 36); MVVM with one-way data flow, manual DI (`AppContainer`), single `:app` module packaged by feature. See [ADR 0001](adr/0001-android-setup.md). |
 | Exact Firestore collection layout | #13 (TMP-04), #20 (TMP-14) | _TBD_ |
 | How rules recognize a consented student (custom claim vs reading the consent record) | #13 (TMP-04) | _TBD_ |
 | How profile permissions and weekday rosters are stored | #13 (TMP-04), #44 (TMP-37) | _TBD_ |
@@ -222,7 +222,6 @@ Product privacy and safety rules (who sees what, test data, verification wording
 |---|---|---|
 | CBU majors list | Waiting on project owner | #17 (TMP-12), `human-task` |
 | Precise campus-point coordinates | Waiting on project owner | #17 (TMP-12), `human-task` |
-| Android UI toolkit, min SDK, app structure | Decide in issue, record in §2 | #11 |
 | Firestore layout, permission/roster storage, consent check in rules | Decide in issue, record in §2 | #13, #20, #44 |
 | How RC-32 conflict checks find a student's weekdays across series | Decide in issue, record in §2 | #13, #20 |
 | Performance dataset size | Decide in issue | #50 |

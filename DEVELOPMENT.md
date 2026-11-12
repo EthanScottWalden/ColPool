@@ -24,6 +24,20 @@ Claude Code runs in **WSL2**, where the Bash sandbox applies. On native Windows 
    ```
 5. Set the commit identity in `~/.gitconfig` to the helper account.
 6. Start Claude Code from the repo root (`cd ~/ColPool && claude`). The session runs as `lead` (`.claude/settings.json`).
+7. **Android SDK in WSL (Linux).** The sandbox builds the Android app with a Linux SDK (JDK 21 is already on the machine):
+   ```
+   mkdir -p ~/Android/Sdk/cmdline-tools && cd ~/Android/Sdk/cmdline-tools
+   curl -fsSLO https://dl.google.com/android/repository/commandlinetools-linux-16111833_latest.zip
+   unzip commandlinetools-linux-16111833_latest.zip && mv cmdline-tools latest
+   echo 'export ANDROID_HOME=$HOME/Android/Sdk' >> ~/.profile && export ANDROID_HOME=$HOME/Android/Sdk
+   ~/Android/Sdk/cmdline-tools/latest/bin/sdkmanager --no_metrics --licenses
+   ~/Android/Sdk/cmdline-tools/latest/bin/sdkmanager --no_metrics "platform-tools" "platforms;android-37.0" "build-tools;36.0.0" "cmdline-tools;latest"
+   ```
+   - `sdkmanager` is now deprecated in favour of `android sdk` (same packages). Metrics can be turned off with `--no-metrics`.
+   - Do **not** run `android init`: it installs unreviewed agent tooling.
+   - Put the real Places key in `android/local.properties` (`PLACES_API_KEY=...`, never committed). Gradle finds the SDK from `ANDROID_HOME`, so no `sdk.dir` is needed. The sandbox can't read `local.properties`, so the build uses the committed placeholder there.
+   - **Gradle in the sandbox.** Gradle's JVMs ignore the sandbox's proxy environment variables, so builds there need the proxy in `~/.gradle/gradle.properties` (`systemProp.http(s).proxyHost/Port/User/Password`, copied from `$HTTPS_PROXY`), plus `-Djdk.http.auth.tunneling.disabledSchemes=` in `GRADLE_OPTS` and in `-Dorg.gradle.jvmargs`, and `-Djava.io.tmpdir=$TMPDIR` in `-Dorg.gradle.jvmargs` (`/tmp` is read-only). Keep these in a personal wrapper script, never in the repo. The first build also needs the hosts `services.gradle.org`, `plugins.gradle.org`, `dl.google.com`, `repo.maven.apache.org` and `gcp.mirrors.maven.org` reachable.
+   - Device checks and the instrumented smoke test use the owner's **Windows Android Studio emulator**, not WSL (no `/dev/kvm`).
 
 ## 2. Build, run and test
 
@@ -31,15 +45,17 @@ _Filled in by the setup Issues: #11 (Android app), #12 (Functions and emulator),
 
 | Task | Command |
 |---|---|
-| Android build | TBD (#11) |
-| Screen screenshot tests | TBD (#11) |
+| Android build | `cd android && ./gradlew assembleDebug` (debug builds target the Emulator Suite by default; `-Pcolpool.useEmulators=false` for real Firebase, which needs `google-services.json`) |
+| Android JVM tests (Robolectric smoke test) | `cd android && ./gradlew testDebugUnitTest` |
+| Screen screenshot tests (Roborazzi) | `cd android && ./gradlew verifyRoborazziDebug`; refresh goldens with `recordRoborazziDebug` and commit the images (`app/src/test/screenshots/`) |
+| Android instrumented smoke test (owner-run) | Compiles with `./gradlew assembleDebugAndroidTest`. The owner runs `./gradlew connectedDebugAndroidTest` on the Windows emulator. CI runs it after #54. |
 | Functions unit tests (emulator) | TBD (#12) |
 | Security Rules tests (emulator) | TBD (#12) |
 | Start the emulator | TBD (#12) |
 
 ### Screens
 
-Screen PRs carry images from **screenshot tests that render on the JVM**, with no device. They run in the sandbox and in CI. The owner does the real device check against the prototype screen during the staging review. The screenshot library is chosen in #11 as part of its library list (owner decision 2026-11-11).
+Screen PRs carry images from **screenshot tests that render on the JVM**, with no device. They run in the sandbox and in CI. The owner does the real device check against the prototype screen during the staging review. The library is Roborazzi on Robolectric ([ADR 0001](docs/adr/0001-android-setup.md), owner decision 2026-11-11).
 
 ### Dependencies
 

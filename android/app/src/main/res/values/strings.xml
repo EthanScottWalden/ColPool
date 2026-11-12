@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ColPool</string>
+    <string name="placeholder_title">ColPool</string>
+    <string name="placeholder_body">Setup placeholder. No screens yet.</string>
+</resources>

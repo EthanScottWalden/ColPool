@@ -33,7 +33,7 @@ This file is the operating guide for every session. It points to the detailed do
 
 _Not set up yet. #11 (Android app), #12 (Functions + emulator) and #54 (CI) must fill in this section with the main commands and put the full detail in `DEVELOPMENT.md` §2._
 
-- Android build: `TBD`
+- Android build: `cd android && ./gradlew assembleDebug` (details: `DEVELOPMENT.md` §2)
 - Functions unit tests (emulator): `TBD`
 - Security Rules tests (emulator): `TBD`
 - Start the emulator: `TBD`
