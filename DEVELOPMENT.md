@@ -36,7 +36,7 @@ Claude Code runs in **WSL2**, where the Bash sandbox applies. On native Windows 
    - `sdkmanager` is now deprecated in favour of `android sdk` (same packages). Metrics can be turned off with `--no-metrics`.
    - Do **not** run `android init`: it installs unreviewed agent tooling.
    - Put the real Places key in `android/local.properties` (`PLACES_API_KEY=...`, never committed). Gradle finds the SDK from `ANDROID_HOME`, so no `sdk.dir` is needed. The sandbox can't read `local.properties`, so the build uses the committed placeholder there.
-   - **Gradle in the sandbox.** Gradle's JVMs ignore the sandbox's proxy settings, and `/tmp` is read-only there. Agents run Gradle through `android/scripts/sandbox-gradlew.sh <tasks>`: it sets `ANDROID_HOME`, the temp dir and the proxy for that one command only, writes no files and prints no credentials. It always runs with `--no-daemon`: a daemon left over from an earlier sandboxed command holds the cache lock and keeps stale proxy credentials. Humans use plain `./gradlew`. Never put proxy settings in `~/.gradle/gradle.properties`: it would break normal builds. The first sandboxed build needs `services.gradle.org`, `plugins.gradle.org`, `dl.google.com`, `repo.maven.apache.org` and `gcp.mirrors.maven.org` reachable.
+   - **Gradle in the sandbox.** Gradle's JVMs ignore the sandbox's proxy settings, and `/tmp` is read-only there. Agents run Gradle through `android/scripts/sandbox-gradlew.sh <tasks>`: it sets `ANDROID_HOME`, the temp dir and the proxy for that one command only, writes no files and prints no credentials. It always runs with `--no-daemon`: a daemon left over from an earlier sandboxed command holds the cache lock and keeps stale proxy credentials. Humans use plain `./gradlew`. Never put proxy settings in `~/.gradle/gradle.properties`: it would break normal builds. The sandbox enforces this: `~/.gradle/gradle.properties`, `~/.gradle/init.gradle(.kts)` and `~/.gradle/init.d` are in `sandbox.filesystem.denyWrite`, so agents can't save credentials there or plant init scripts that would run in the owner's unsandboxed builds. Inside the sandbox they read as empty files. The first sandboxed build needs `services.gradle.org`, `plugins.gradle.org`, `dl.google.com`, `repo.maven.apache.org` and `gcp.mirrors.maven.org` reachable.
    - Device checks and the instrumented smoke test use the owner's **Windows Android Studio emulator**, not WSL (no `/dev/kvm`).
 
 ## 2. Build, run and test
@@ -81,7 +81,7 @@ Configured in `.claude/settings.json`. It applies to the main session and every 
 **What's blocked:**
 - Reads of the home folder, except the tool folders in `sandbox.filesystem.allowRead`; reads of `/mnt` and secret files (`.env`, `local.properties`, service accounts).
 - Reads of the GitHub token (`~/.config/gh`). Ordinary commands can't see it.
-- Writes outside the repo, the session temp folder and the Gradle and Android caches (`~/.gradle`, `~/.android`, via `sandbox.filesystem.allowWrite`).
+- Writes outside the repo, the session temp folder and the Gradle and Android caches (`~/.gradle`, `~/.android`, via `sandbox.filesystem.allowWrite`). Inside `~/.gradle`, the files that configure or run code in every Gradle build stay blocked (`sandbox.filesystem.denyWrite`, §1).
 - Network hosts not in `sandbox.network.allowedDomains`.
 
 **What runs outside the sandbox** (`sandbox.excludedCommands`): only the GitHub script `node .claude/hooks/github.mjs` and the `next-issue` script. They are the only commands that can use the token. Both live in folders sandboxed commands can't write, and both call `/usr/bin/gh` and `/usr/bin/git` without a shell and with a minimal environment (`PATH`, `HOME`, `LANG`), so nothing from the Claude Code process, such as tokens, `TMPDIR` or `NODE_OPTIONS`, reaches them.
@@ -100,6 +100,10 @@ Configured in `.claude/settings.json`. It applies to the main session and every 
 - Raw `gh` and `git push` are denied with a pointer to the script. Outside it they would run sandboxed without the token anyway.
 - **Pacing:** at most 6 writes a minute (`GH_GUARD_MAX_WRITES_PER_MIN` raises it for one session). If the counter in `.claude/hooks/.state/` can't be saved, writes are blocked rather than allowed.
 - After an Issue body or title edit, a reminder to set Human Review back to Pending.
+
+`issue-view` and `pr-view` ask GitHub for a fixed list of fields and print them with a fixed template. Plain `gh issue view` asks for classic-Projects data, which GitHub now rejects.
+
+**Owner review in `dev`:** `.github/CODEOWNERS` names the owner for `SPEC.md`, `INTENT.md`, `CLAUDE.md`, `docs/POLICY.md` and `.claude/`. With "Require review from Code Owners" on the `dev-integration` ruleset, a PR into `dev` that touches them can't merge until the owner approves it. Other PRs still need no approval.
 
 Every other command (`curl`, `node`, `bash -c`, `gh` itself) runs inside the sandbox, where the token can't be read.
 

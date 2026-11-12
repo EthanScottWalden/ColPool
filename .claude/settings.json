@@ -91,7 +91,13 @@
         "~/.android",
         "~/Android"
       ],
-      "allowWrite": ["~/.gradle", "~/.android"]
+      "allowWrite": ["~/.gradle", "~/.android"],
+      "denyWrite": [
+        "~/.gradle/gradle.properties",
+        "~/.gradle/init.gradle",
+        "~/.gradle/init.gradle.kts",
+        "~/.gradle/init.d"
+      ]
     },
     "network": {
       "allowedDomains": [
@@ -105,6 +111,7 @@
         "maven.google.com",
         "repo.maven.apache.org",
         "repo1.maven.org",
+        "gcp.mirrors.maven.org",
         "plugins.gradle.org",
         "plugins-artifacts.gradle.org",
         "services.gradle.org",

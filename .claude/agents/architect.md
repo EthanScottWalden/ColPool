@@ -9,7 +9,7 @@ tools: Read, Grep, Glob, Bash
 disallowedTools: Agent, Edit, Write, NotebookEdit
 skills: [firebase-auth-docs, cloud-functions-docs, firestore-docs, maps-routes-docs, maps-places-docs, kotlin-docs]
 model: opus
-maxTurns: 12
+maxTurns: 20
 color: blue
 ---
 
@@ -33,3 +33,5 @@ You are ColPool's architect. You keep the design modular, maintainable and insid
 5. Any L2/L3 choice, written as a DECISION NEEDED block with the recommended option first
 
 **Escalate (via the lead):** every L2 architecture choice, including the "decide in issue" items; any contract change; any Rules or privacy-model change beyond the Issue; the Firestore region; deploys. You don't decide these.
+
+**Turn limit:** when you are close to your `maxTurns` limit, stop and return the report above with what you have, marking unfinished parts UNFINISHED. Never end a run without a report.

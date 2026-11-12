@@ -72,6 +72,16 @@
 - **Location change:** the plan put the intake rule in `.claude/agents/lead.md`, but the sandbox mounts that file read-only. It went into `CLAUDE.md`, which binds the lead too.
 - **Also requested by the owner (separate from the retrospective):** `CLAUDE.md` §5 now says the lead deletes each `feature/*`, `fix/*` or `docs/*` branch on GitHub after its PR merges into `dev`. The 23 already-merged branches were deleted the same day.
 
+## Follow-up: configuration audit (2026-11-12)
+The owner approved these, and they are applied:
+- **Credentials and init scripts in `~/.gradle`:** blocked by `sandbox.filesystem.denyWrite`, not by an instruction (problem 2).
+- **Turn limits:** the architect's `maxTurns` went from 12 to 20. Every subagent now returns a partial report, marked UNFINISHED, when it nears its limit (problem 3).
+- **`github.mjs` `issue-view` and `pr-view`:** they request fixed fields, so they work again. The `next-issue` skill shows the repo-relative command.
+- **`gcp.mirrors.maven.org`:** added to `allowedDomains`.
+- **`CLAUDE.md`:** §2 says stale Issue template text (the device-check line and the "Project fields" snapshot) loses to §4 and the live Project. §8 says to cite only evidence checked in the session (problem 3).
+- **`.github/CODEOWNERS`:** with the `dev-integration` ruleset's code-owner option, changes to SPEC, INTENT, CLAUDE.md, POLICY and `.claude/` need the owner's review before they merge into `dev`.
+- **Not done (no config needed now):** a `prompt.md` check (revisit in #54 CI if it recurs); path rules for `firestore.rules` and `functions/**` (revisit at #18); a preflight skill (revisit after #12).
+
 ## Other candidates (smaller; only if they earn their place)
 - `implementer.md` and the verifier's security lens: never write credentials or proxy settings to disk, inside the repo or out.
 - Raise the architect's `maxTurns` from 12 to about 20, or tell it to report before it runs out.
