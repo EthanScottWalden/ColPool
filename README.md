@@ -4,6 +4,7 @@ testing testing
 - main test: extreme fever achieved
 - staging test: orange pegs remaining: 25
 - dev test: the peg board has been rearranged
+
 ## Running tests
 
 Backend tests (Functions and Security Rules) run against the Firebase Emulator Suite.
