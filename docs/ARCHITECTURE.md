@@ -59,6 +59,7 @@ Not in the approved stack (don't add without a documented human decision): Cloud
 | Decision | Decided in | Value |
 |---|---|---|
 | Android UI toolkit, minimum Android version and app structure (pattern, modules) | #11 (TMP-02) | Jetpack Compose + Material 3, single Activity; minSdk 26 (compile 37, target 36); MVVM with one-way data flow, manual DI (`AppContainer`), single `:app` module packaged by feature. See [ADR 0001](adr/0001-android-setup.md). |
+| Functions toolchain and emulator harness | #12 (TMP-03) | TypeScript on a Node 22 runtime (Node >=24.12 for dev and CI), `node:test`, emulator project `demo-colpool`, default-deny `firestore.rules`, project-local `.cache/`. See [ADR 0003](adr/0003-functions-emulator-setup.md). |
 | Exact Firestore collection layout | #13 (TMP-04), #20 (TMP-14) | _TBD_ |
 | How rules recognize a consented student (custom claim vs reading the consent record) | #13 (TMP-04) | _TBD_ |
 | How profile permissions and weekday rosters are stored | #13 (TMP-04), #44 (TMP-37) | _TBD_ |
