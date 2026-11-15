@@ -49,3 +49,23 @@ Thumbs.db
 
 # Project-local tool caches (emulator jars, npm cache, XDG config) — never commit
 /.cache/
+
+# Empty read-only placeholders left by the Claude Code sandbox for protected paths
+/.bashrc
+/.bash_profile
+/.profile
+/.zshrc
+/.zprofile
+/.gitconfig
+/.gitmodules
+/.ripgreprc
+/.mcp.json
+/.idea
+/.vscode
+/.claude/commands
+/.claude/launch.json
+/.claude/loop.md
+/.claude/output-styles
+/.claude/routines
+/.claude/scheduled_tasks.json
+/.claude/workflows
