@@ -72,7 +72,7 @@ describe("option lists", () => {
   });
 
   it("majors hold the owner-supplied CBU list", () => {
-    assert.ok(MAJOR_OPTIONS.length > 0);
+    assert.equal(MAJOR_OPTIONS.length, 127);
   });
 
   it("the seed doc's parallel id arrays equal the entry ids", () => {

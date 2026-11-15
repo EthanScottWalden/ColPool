@@ -146,7 +146,7 @@ One doc holds all five predefined lists (RC-22). Each entry is `{ id, label, ord
 |---|---|
 | `genders` | `genderIds` |
 | `years` (ordered: freshman, sophomore, junior, senior, graduate; RC-21 uses closeness) | `yearIds` |
-| `majors` (CBU program list, 126 entries, alphabetical) | `majorIds` |
+| `majors` (CBU program list, 127 entries, alphabetical) | `majorIds` |
 | `interests` | `interestIds` |
 | `traits` (commute style) | `traitIds` |
 

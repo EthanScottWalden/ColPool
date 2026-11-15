@@ -32,6 +32,7 @@ export const MAJOR_OPTIONS: OptionEntry[] = list([
   ["architecture", "Architecture"],
   ["art-education", "Art Education"],
   ["art-therapy-studies", "Art Therapy Studies"],
+  ["artificial-intelligence", "Artificial Intelligence"],
   ["athletic-training", "Athletic Training"],
   ["athletics-administration-and-coaching", "Athletics Administration and Coaching"],
   ["aviation-flight", "Aviation Flight"],

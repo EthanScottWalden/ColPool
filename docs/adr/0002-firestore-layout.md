@@ -46,7 +46,7 @@ These are **not settled here**. The Issue that implements the conflict check (re
 
 - Rules read it with one `get()`, only when a write changes a list-backed field (short-circuit on `request.resource.data.diff(resource.data).affectedKeys().hasAny(['gender','year','major','interests','traits'])`; for a create, check the keys present). A profile save costs at most 2 lookups (consent and options), usually 1.
 - Profiles store stable ids, never labels. Years are ordered (RC-21 uses closeness).
-- Values are the prototype's gender, year, interests and trait lists, with stable kebab-case ids. **Majors** are the CBU program list as provided by the owner 2026-11-14 (126 entries, alphabetical, verbatim labels, kebab-case ids): online labels, degree types and concentrations removed, and minor-, certificate- and credential-only subjects excluded. The prototype's sample majors are not used (POLICY §3.1).
+- Values are the prototype's gender, year, interests and trait lists, with stable kebab-case ids. **Majors** are the CBU program list as provided by the owner 2026-11-14 (127 entries, alphabetical, verbatim labels, kebab-case ids): online labels, degree types and concentrations removed, and minor-, certificate- and credential-only subjects excluded; "Artificial Intelligence" added at the owner's request. The prototype's sample majors are not used (POLICY §3.1).
 - **Rejected: option ids baked into rules.** A list change would need a rules deploy and test cycle, and rules would drift from the data the app displays.
 - **Rejected: five option docs.** Five lookups on a profile save instead of one, and the 10-lookup rules budget per request would be consumed fast once other lookups are added.
 
