@@ -223,7 +223,6 @@ Product privacy and safety rules (who sees what, test data, verification wording
 
 | Item | Status | Owner / where |
 |---|---|---|
-| CBU majors list | Waiting on project owner | #17 (TMP-12), `human-task` |
 | Precise campus-point coordinates | Waiting on project owner | #17 (TMP-12), `human-task` |
 | Series, draft and request layout; weekday roster storage | Decide in issue, record in §2 | #20, #44 |
 | RC-32 edge semantics (pending vs posting; overlap on shared weekdays; no-trips-left) | Decide in the conflict-check Issue ([ADR 0002](adr/0002-firestore-layout.md) §4) | #13 follow-up |

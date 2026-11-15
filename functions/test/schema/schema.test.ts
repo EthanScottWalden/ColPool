@@ -71,8 +71,8 @@ describe("option lists", () => {
     assert.deepEqual(YEAR_OPTIONS.map((e) => e.id), ["freshman", "sophomore", "junior", "senior", "graduate"]);
   });
 
-  it("majors stay empty until the owner supplies the CBU list", () => {
-    assert.equal(MAJOR_OPTIONS.length, 0);
+  it("majors hold the owner-supplied CBU list", () => {
+    assert.ok(MAJOR_OPTIONS.length > 0);
   });
 
   it("the seed doc's parallel id arrays equal the entry ids", () => {

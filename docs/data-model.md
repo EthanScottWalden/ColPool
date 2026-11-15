@@ -54,7 +54,7 @@ The owner may write only these keys. Required for a student to leave onboarding 
 | `age` | integer | no | whole number, 18 or older, no upper bound | RC-30 |
 | `gender` | string id | no | in `options/profile.genderIds`; "Prefer not to say" is the id `prefer-not-to-say` | RC-22 |
 | `year` | string id | no | in `yearIds` | RC-22 |
-| `major` | string id | no | in `majorIds` (empty until the owner supplies the list) | RC-22 |
+| `major` | string id | no | in `majorIds` (CBU program list from the owner) | RC-22 |
 | `interests` | string[] of ids | no | subset of `interestIds`, no duplicates, capped only by list size; non-empty if present | RC-22 |
 | `traits` | string[] of ids | no | subset of `traitIds`, no duplicates, capped only by list size; non-empty if present | RC-22 |
 | `aboutMe` | string | no | at most 300 chars, text only | RC-30 |
@@ -146,7 +146,7 @@ One doc holds all five predefined lists (RC-22). Each entry is `{ id, label, ord
 |---|---|
 | `genders` | `genderIds` |
 | `years` (ordered: freshman, sophomore, junior, senior, graduate; RC-21 uses closeness) | `yearIds` |
-| `majors` (empty: `TODO(owner: CBU majors list)`) | `majorIds` |
+| `majors` (CBU program list, 126 entries, alphabetical) | `majorIds` |
 | `interests` | `interestIds` |
 | `traits` (commute style) | `traitIds` |
 
