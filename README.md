@@ -10,7 +10,8 @@ Backend tests (Functions and Security Rules) run against the Firebase Emulator S
 
 - Needs Node >= 24.12 and JDK 21.
 - One-time: download the Firestore emulator jar `cloud-firestore-emulator-v1.22.0.jar` into `.cache/firebase/emulators/` (git-ignored) and check its SHA-256 is `9b6498b7f62714d67f48f59b3818883cd682dbcd46b9f59511de81c97bb5166c`. Repeat if the `firebase-tools` pin changes.
-- Run: `cd functions && npm ci && npm test`
+- Run: `cd functions && npm ci && npm test` (Rules tests and function unit tests; Auth + Firestore emulators)
+- End-to-end callable test through the Functions emulator: `cd functions && npm run test:e2e` (not runnable inside the Claude Code sandbox)
 - Start the emulators by hand: `cd functions && npm run emulators`
 - The emulator project ID is `demo-colpool` (offline-only; no real Firebase project is used).
 

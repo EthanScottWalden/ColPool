@@ -15,8 +15,10 @@
 
 ### Test runner
 - Node's built-in **`node:test`** runs `.ts` files directly (type stripping), so there is no extra test dependency. `erasableSyntaxOnly` keeps the code strip-compatible.
-- `npm test` runs `pretest` (build, then typecheck with `tsconfig.test.json`), then `firebase emulators:exec` with Auth, Firestore and Functions and `node --test --test-concurrency=1 functions/test/*/*.test.ts` (paths are relative to the repo root, where the Firebase CLI runs).
-- `npm run emulators` starts the same emulators for manual work.
+- `npm test` runs `pretest` (build, then typecheck with `tsconfig.test.json`), then `firebase emulators:exec --only auth,firestore` and `node --test --test-concurrency=1 functions/test/*/*.test.ts` (paths are relative to the repo root, where the Firebase CLI runs). It runs the Rules tests and the function unit tests, and **agents can run it in the sandbox**.
+- Function unit tests import the handler directly and call it with firebase-functions v2 `.run(request)`, building the request from a real Auth-emulator ID token verified with the Admin SDK (plus an unauthenticated case). No Functions emulator is involved.
+- `npm run test:e2e` runs `functions/test/e2e/*.e2e.ts` through the Functions emulator (`--only auth,firestore,functions`) with a real client call. It is for humans and CI (#54). It **cannot run in the agent sandbox**: the Functions emulator listens on a Unix socket (`/tmp/claude-1000/fire_emu_*.sock`) and gets `EPERM`.
+- `npm run emulators` starts Auth, Firestore and Functions for manual work.
 
 ### Approved library list (owner, 2026-11-14)
 Anything else is L2 (`DEVELOPMENT.md` §2).
@@ -30,7 +32,7 @@ Anything else is L2 (`DEVELOPMENT.md` §2).
 - `firestore.rules` is **default deny all** and is never loosened as scaffolding. `firestore.indexes.json` is empty.
 
 ### Project-local caches and launcher
-`functions/scripts/emulator-env.mjs` starts the Firebase CLI without a shell and sets (only if unset) `FIREBASE_EMULATORS_PATH=<repo>/.cache/firebase/emulators`, `XDG_CONFIG_HOME=<repo>/.cache/xdg-config` and `NO_UPDATE_NOTIFIER=1`. `/.cache/` is git-ignored. `functions/scripts/sandbox-npm.sh` runs npm with `<repo>/.cache/npm` for the agent sandbox, where `~/.npm` is read-only.
+`functions/scripts/emulator-env.mjs` starts the Firebase CLI without a shell and sets (only if unset) `FIREBASE_EMULATORS_PATH=<repo>/.cache/firebase/emulators`, `XDG_CONFIG_HOME=<repo>/.cache/xdg-config`, `NO_UPDATE_NOTIFIER=1` and `METADATA_SERVER_DETECTION=none` (honoured by gcp-metadata 6.1.1 in firebase-tools; skips the GCE metadata lookup that the sandbox blocks). `/.cache/` is git-ignored. `functions/scripts/sandbox-npm.sh` runs npm with `<repo>/.cache/npm` for the agent sandbox, where `~/.npm` is read-only.
 
 ### Firestore emulator jar
 The sandbox does not allow `storage.googleapis.com`, so the owner downloads the jar once, outside the sandbox, into `<repo>/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar` and checks its SHA-256:
@@ -38,11 +40,11 @@ The sandbox does not allow `storage.googleapis.com`, so the owner downloads the 
 firebase-tools skips the checksum on cached jars, so this check is manual. **Repeat the download and check whenever the firebase-tools pin changes** (the expected jar version and hash change with it). CI (#54) downloads it itself.
 
 ### Sample callable
-`ping` (requires auth, returns `{ ok: true }`) is exported **only** when `FUNCTIONS_EMULATOR === "true"`, so it is never part of a deployed codebase. It exists to prove the harness.
+`ping` (requires auth, returns `{ ok: true }`) is defined in `src/ping.ts` so tests can import it, and `src/index.ts` exports it **only** when `FUNCTIONS_EMULATOR === "true"`, so it is never part of a deployed codebase. It exists to prove the harness.
 
 ### Test helpers
 `functions/test/helpers/personas.ts` provides `authedStudent()`, `studentWithoutConsent()`, `institutionUser()` and `unauthenticated()`, each usable as a Rules context and as an Auth-emulator user with an ID token. Fake `@calbaptist.edu` addresses only. Two open items are marked in code: `TODO(#13)` how consent is marked, and `TODO(#13/#15)` the institution claim key (provisional constant, test helpers only).
 
 ## Consequences
 - Later Issues add rules, tests and functions on this harness; each rule ships with allow and deny tests.
-- Sandbox limitation found while building this: the Functions emulator listens on a Unix socket under the temp folder, which the agent sandbox blocks (`listen EPERM`). Tests that call functions (`ping`) therefore run on the owner's machine and in CI, not in the agent sandbox. Rules tests run everywhere (`--only auth,firestore`).
+- Sandbox limitation: the Functions emulator's Unix socket is blocked in the agent sandbox, so only `test:e2e` needs the owner's machine or CI. Everything in `npm test` runs in the sandbox. The sandbox is not changed.

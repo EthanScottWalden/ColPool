@@ -49,8 +49,8 @@ _Filled in by the setup Issues: #11 (Android app), #12 (Functions and emulator),
 | Android JVM tests (Robolectric smoke test) | `cd android && ./gradlew testDebugUnitTest` |
 | Screen screenshot tests (Roborazzi) | `cd android && ./gradlew verifyRoborazziDebug`; refresh goldens with `recordRoborazziDebug` and commit the images (`app/src/test/screenshots/`) |
 | Android instrumented smoke test (owner-run) | Compiles with `./gradlew assembleDebugAndroidTest`. The owner runs `./gradlew connectedDebugAndroidTest` on the Windows emulator. CI runs it after #54. |
-| Functions unit tests (emulator) | `cd functions && npm test` runs the Functions and Rules tests together against the Auth, Firestore and Functions emulators (agents install with `functions/scripts/sandbox-npm.sh ci`). Needs Node >=24.12 and JDK 21. |
-| Security Rules tests (emulator) | Same command (`cd functions && npm test`); rules tests live in `functions/test/rules/`. |
+| Functions unit tests (emulator) | `cd functions && npm test` runs the function unit tests (handlers called with `.run`) and the Rules tests against the Auth and Firestore emulators; agents can run it (install with `functions/scripts/sandbox-npm.sh ci`). Needs Node >=24.12 and JDK 21. `cd functions && npm run test:e2e` calls functions through the Functions emulator; humans and CI (#54) only, it can't run in the agent sandbox. |
+| Security Rules tests (emulator) | Same command (`cd functions && npm test`); rules tests live in `functions/test/rules/`, function unit tests in `functions/test/functions/`. |
 | Start the emulator | `cd functions && npm run emulators`. The Firestore emulator jar is downloaded once by the owner, outside the sandbox, into `.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar`; check its SHA-256 `9b6498b7f62714d67f48f59b3818883cd682dbcd46b9f59511de81c97bb5166c` (firebase-tools does not check cached jars). Repeat whenever the firebase-tools pin changes. See [ADR 0003](docs/adr/0003-functions-emulator-setup.md). |
 
 ### Screens
@@ -121,4 +121,4 @@ Never work around a sandbox block. When a command needs a host or folder the san
 **What #12 did about them:**
 - The Firebase CLI cache, config and emulator jars live in the project-local `.cache/` (git-ignored), set by `functions/scripts/emulator-env.mjs`, so no sandbox write entry was needed. npm uses `.cache/npm` through `functions/scripts/sandbox-npm.sh`.
 - `storage.googleapis.com` stays off the allowlist. The owner downloads the Firestore emulator jar once (see §2).
-- The Functions emulator listens on a Unix socket in the temp folder, which the sandbox blocks (`listen EPERM`). Function-call tests (`ping`) run on the owner's machine and in CI; rules tests run in the sandbox with `emulators:exec --only auth,firestore`.
+- The Functions emulator listens on a Unix socket in the temp folder (`/tmp/claude-1000/fire_emu_*.sock`), which the sandbox blocks (`listen EPERM`). The sandbox is not changed: `npm test` uses only the Auth and Firestore emulators, and `npm run test:e2e` (Functions emulator) is for humans and CI.
