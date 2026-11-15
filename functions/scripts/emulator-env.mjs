@@ -10,6 +10,8 @@ const cache = join(functionsDir, "..", ".cache");
 process.env.FIREBASE_EMULATORS_PATH ??= join(cache, "firebase", "emulators");
 process.env.XDG_CONFIG_HOME ??= join(cache, "xdg-config");
 process.env.NO_UPDATE_NOTIFIER ??= "1";
+// Skip the GCE metadata lookup (google-auth-library / gcp-metadata); sandbox blocks 169.254.169.254.
+process.env.METADATA_SERVER_DETECTION ??= "none";
 
 const child = spawn(
   join(functionsDir, "node_modules", ".bin", "firebase"),
