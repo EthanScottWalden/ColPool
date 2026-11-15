@@ -1,4 +1,20 @@
 {
   "indexes": [],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "profileAccess",
+      "fieldPath": "viewers",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "profileAccess",
+      "fieldPath": "activeHostedSeries",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "schedules",
+      "fieldPath": "entries",
+      "indexes": []
+    }
+  ]
 }
