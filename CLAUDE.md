@@ -38,9 +38,9 @@ _Android is set up (#11). #12 (Functions + emulator) and #54 (CI) fill in the re
 Agents run Gradle through `android/scripts/sandbox-gradlew.sh <tasks>` (sandbox proxy and temp dir); humans use `./gradlew`.
 
 - Android build: `cd android && ./gradlew assembleDebug` (details: `DEVELOPMENT.md` §2)
-- Functions unit tests (emulator): `TBD`
-- Security Rules tests (emulator): `TBD`
-- Start the emulator: `TBD`
+- Functions unit tests (emulator): `cd functions && npm test` (agents install with `functions/scripts/sandbox-npm.sh ci`). End-to-end through the Functions emulator: `npm run test:e2e` (humans/CI only, blocked in the agent sandbox)
+- Security Rules tests (emulator): same command (`cd functions && npm test`)
+- Start the emulator: `cd functions && npm run emulators`
 
 ## 4. Definition of Done
 
@@ -135,6 +135,6 @@ The main session runs as `lead` (`.claude/settings.json`). It is the only agent 
 - **GitHub goes only through `node .claude/hooks/github.mjs <op>`** (run it with no op for the list). It is the only command outside the sandbox with the token, runs no shell, and allows only named operations (`DEVELOPMENT.md` §3). Raw `gh` and `git push` run sandboxed without the token, and the hook denies them.
 - `.claude/hooks/gh-guard.mjs`: who may run which operation (writes lead-only; `push` also implementer `feature/*` and `fix/*`, docs-keeper `docs/*`); the script must be called exactly, on its own; write pacing; a Human Review reminder after Issue edits.
 
-GitHub rulesets remain the real guard for `dev`/`staging`/`main`. `.github/CODEOWNERS` makes a PR into `dev` that changes `SPEC.md`, `INTENT.md`, `CLAUDE.md`, `docs/POLICY.md`, `.claude/` or `.github/` wait for the owner's review.
+GitHub rulesets remain the real guard for `dev`/`staging`/`main`. PRs into `dev` need no owner approval, including changes to `SPEC.md`, `INTENT.md`, `CLAUDE.md`, `docs/POLICY.md`, `.claude/` and `.github/`; the owner reviews them in the `dev` → `staging` PR (owner decision 2026-11-16). §6 still applies: `SPEC.md` and `INTENT.md` change only with the human's approval.
 
 **Sandbox:** run Claude Code in WSL2, where the sandbox in `.claude/settings.json` applies (see `DEVELOPMENT.md`). On native Windows there's no sandbox, and unsandboxed commands are off, so Claude Code there can't run commands. That's deliberate. Never work around a sandbox block; propose an allowlist change in a PR.
