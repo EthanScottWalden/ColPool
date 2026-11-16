@@ -38,9 +38,9 @@ _Android is set up (#11). #12 (Functions + emulator) and #54 (CI) fill in the re
 Agents run Gradle through `android/scripts/sandbox-gradlew.sh <tasks>` (sandbox proxy and temp dir); humans use `./gradlew`.
 
 - Android build: `cd android && ./gradlew assembleDebug` (details: `DEVELOPMENT.md` §2)
-- Functions unit tests (emulator): `TBD`
-- Security Rules tests (emulator): `TBD`
-- Start the emulator: `TBD`
+- Functions unit tests (emulator): `cd functions && npm test` (agents install with `functions/scripts/sandbox-npm.sh ci`). End-to-end through the Functions emulator: `npm run test:e2e` (humans/CI only, blocked in the agent sandbox)
+- Security Rules tests (emulator): same command (`cd functions && npm test`)
+- Start the emulator: `cd functions && npm run emulators`
 
 ## 4. Definition of Done
 
