@@ -79,7 +79,7 @@ Other RC-30 limits (riders, price, stop minutes, vehicle) belong to the series c
 | `agreedAt` | timestamp | Server time, written once with the account (RC-06). No statement version for the MVP. Immutable, no client write, never deleted (RC-24). |
 
 ### 2.5 `profileAccess/{ownerId}`
-Backend-only. One doc per student whose profile may be viewed. Reasons are **sets**, so every write is idempotent and safe to retry. Writers use blind merge writes (`set(..., {merge: true})`) with `FieldValue.delete()` to remove a reason. An emptied map means no access; entries are emptied, never counted.
+Backend-only. One doc per student whose profile may be viewed. Reasons are **sets**, so every write is idempotent and safe to retry. Writers use blind merge writes (`set(..., {merge: true})`) with `FieldValue.delete()` to remove a reason. Never use dotted-path `update()` on these maps: uids can contain `-` and reason keys contain `:`, which need quoting in field paths. An emptied map means no access; entries are emptied, never counted.
 
 ```
 {
