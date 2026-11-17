@@ -1,4 +1,6 @@
-# Agentic workflow retrospective: Issue #11 (first run)
+# Agentic workflow retrospective: Issue #11 only (Android app setup, first run)
+
+> One-off retrospective for #11, written before the weekly files started. Weekly retrospectives begin with [2026-11-15](2026-11-15.md).
 
 > 2026-11-12. Evidence comes from: PRs #81–#87; commits `a24beeb`, `a686d55`, `14e7375`, `32a800e` and `c1c2ce9`; the session transcripts `2026-11-11-161126-…txt` and `2026-11-12-122421-…txt`; and `.claude/agents/*.md`. The owner approved the improvement below, and it is applied (see "Change made").
 
