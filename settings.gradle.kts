@@ -22,3 +22,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "ColPool"
 include(":app")
+// The Gradle root is the repo root so Android Studio can open ColPool/ whole; the app stays in android/app.
+project(":app").projectDir = file("android/app")

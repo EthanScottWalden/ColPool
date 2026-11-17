@@ -24,7 +24,7 @@
 | Android Gradle Plugin | 9.5.1 |
 | Kotlin | 2.4.21 |
 | Gradle wrapper | 9.9.1, with `distributionSha256Sum` pinned |
-| Version catalog | `android/gradle/libs.versions.toml` |
+| Version catalog | `gradle/libs.versions.toml` (the Gradle root is the repo root; the app module stays in `android/app`) |
 
 AGP 9 has **built-in Kotlin**, so `org.jetbrains.kotlin.android` is not applied (AGP 9 rejects it). Only the Kotlin Compose compiler plugin is applied. The fallback to AGP 9.4.x / Gradle 9.6.0 was not needed.
 
@@ -46,7 +46,7 @@ The build targets Java 17 bytecode and compiles on JDK 21 (no toolchain provisio
 
 ### Places key
 - Places SDK 6.0.2 is wired by #16 (see "Places autocomplete (#16)" below).
-- Key via the Secrets Gradle plugin: the real key goes in uncommitted `android/local.properties` as `PLACES_API_KEY`. The committed `android/local.defaults.properties` holds a placeholder so CI and fresh clones build.
+- Key via the Secrets Gradle plugin: the real key goes in uncommitted `local.properties` at the repo root as `PLACES_API_KEY`. The committed `local.defaults.properties` (repo root) holds a placeholder so CI and fresh clones build.
 - The app's package for the key restriction is `io.github.ethanscottwalden.colpool`. The owner adds the Android-app restriction once the debug SHA-1 exists (`docs/setup/firebase.md`).
 
 ### Places autocomplete (#16)

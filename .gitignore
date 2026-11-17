@@ -15,7 +15,13 @@ service-account*.json
 .runtimeconfig.json
 functions/.secret.local
 
-# Android / Gradle
+# Android / Gradle (the Gradle root is the repo root)
+/local.properties
+/build/
+/.gradle/
+/.kotlin/
+/.idea/
+*.iml
 .gradle/
 build/
 captures/

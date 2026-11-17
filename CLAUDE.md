@@ -37,7 +37,7 @@ _Android (#11), Functions + emulator (#12) and CI (#54) are set up; full detail 
 
 Agents run Gradle through `android/scripts/sandbox-gradlew.sh <tasks>` (sandbox proxy and temp dir); humans use `./gradlew`.
 
-- Android build: `cd android && ./gradlew assembleDebug` (details: `DEVELOPMENT.md` §2)
+- Android build: `./gradlew assembleDebug` (repo root) (details: `DEVELOPMENT.md` §2)
 - Functions unit tests (emulator): `cd functions && npm test` (agents install with `functions/scripts/sandbox-npm.sh ci`). End-to-end through the Functions emulator: `npm run test:e2e` (humans/CI only, blocked in the agent sandbox)
 - Security Rules tests (emulator): same command (`cd functions && npm test`)
 - Start the emulator: `cd functions && npm run emulators`

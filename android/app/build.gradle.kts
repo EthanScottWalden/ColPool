@@ -80,7 +80,7 @@ android {
 }
 
 secrets {
-    // Real key: android/local.properties (uncommitted). CI/fresh clone: placeholder.
+    // Real key: <repo root>/local.properties (uncommitted). CI/fresh clone: placeholder.
     propertiesFileName = "local.properties"
     defaultPropertiesFileName = "local.defaults.properties"
 }
