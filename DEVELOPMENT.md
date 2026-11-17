@@ -74,7 +74,7 @@ For a setup Issue (#12, #54 and any later toolchain Issue), the lead does this b
 
 Institution accounts are created only by `functions/scripts/create-institution-account.ts` (developer-run, never part of the deployed Functions code or the app; #15). It creates the Auth user and sets the custom claim `institution: true`. It creates no consent, user, profile or private-details docs. It refuses a non-`@calbaptist.edu` email, a password under 8 characters, and any email that already has an account (it never converts a student account). The password is read from the first line of stdin only, never from an argument, and is never printed.
 
-- **Emulator:** with the Auth emulator running (`cd functions && npm run emulators`), in another shell with `FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099` set: `read -rs PW; echo "$PW" | npm run create-institution-account -- --email staff@calbaptist.edu --display-name "Test Staff"`. It targets project `demo-colpool`.
+- **Emulator:** with the Auth emulator running (`cd functions && npm run emulators`), in another shell with `FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099` set, in bash (Node 24+): `read -rs PW; printf '%s\n' "$PW" | npm run create-institution-account -- --email staff@calbaptist.edu --display-name "Test Staff"`. It targets project `demo-colpool`.
 - **Production (documented only; run by the owner, never by an agent):** set `GOOGLE_APPLICATION_CREDENTIALS` to the path of a service-account key kept outside the repo, leave `FIREBASE_AUTH_EMULATOR_HOST` unset, and run the same command with `--project <real-project-id>`. A `demo-` project id is refused in this mode. Never commit or paste the key.
 
 ### Before CI exists
