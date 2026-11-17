@@ -1,0 +1,211 @@
+# CI for ColPool (Issue #54). Builds and tests only: no deploy, no secrets.
+# Every action is pinned to a full commit SHA (version in the trailing comment).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [dev, staging, main]
+
+# Read-only token for every job. No secrets are referenced anywhere in this file.
+permissions:
+  contents: read
+
+# Cancel a superseded run on the same PR. Runs for pushes to dev, staging and main are never
+# cancelled, so quick successive merges each get their own result.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  android:
+    name: Android build and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      # Caches ~/.gradle (dependencies, wrapper, build cache). Pushes to dev, staging and main
+      # write the cache; pull requests only read it.
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+
+      # The placeholder Places key (android/local.defaults.properties) is committed and
+      # google-services.json is optional, so no files or secrets are needed.
+      - name: Build, JVM unit tests and screenshot checks
+        run: ./gradlew --no-daemon --stacktrace assembleDebug testDebugUnitTest verifyRoborazziDebug
+
+      - name: Upload test and screenshot reports
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android-reports
+          path: |
+            android/app/build/reports/
+            android/app/build/test-results/
+            android/app/build/outputs/roborazzi/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  functions:
+    name: Functions and Security Rules tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Must match the Firestore emulator jar that the pinned firebase-tools downloads
+      # (functions/node_modules/firebase-tools/lib/emulator/downloadableEmulatorInfo.json).
+      # Update both values together when the firebase-tools pin changes (ADR 0003).
+      FIRESTORE_JAR_NAME: cloud-firestore-emulator-v1.22.0.jar
+      FIRESTORE_JAR_SHA256: 9b6498b7f62714d67f48f59b3818883cd682dbcd46b9f59511de81c97bb5166c
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+
+      # package.json devEngines asks for node >=24.12.0.
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+
+      # The Firebase emulators (Auth, Firestore, Functions) run on the JVM.
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Read the firebase-tools version
+        id: tools
+        run: echo "version=$(node -p "require('./functions/package.json').devDependencies['firebase-tools']")" >> "$GITHUB_OUTPUT"
+
+      # functions/scripts/emulator-env.mjs sets FIREBASE_EMULATORS_PATH to <repo>/.cache/firebase/emulators.
+      - name: Cache emulator downloads
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+        with:
+          path: .cache/firebase/emulators
+          key: firebase-emulators-${{ runner.os }}-firebase-tools-${{ steps.tools.outputs.version }}
+
+      # Download the jar if the cache has none, then ALWAYS verify its SHA-256 (firebase-tools
+      # skips the check on cached jars). A mismatch fails the job before anything is saved to
+      # the cache (the cache is saved only when the whole job succeeds).
+      - name: Download and verify the Firestore emulator jar
+        run: |
+          set -euo pipefail
+          dir=".cache/firebase/emulators"
+          mkdir -p "$dir"
+          if [ ! -f "$dir/$FIRESTORE_JAR_NAME" ]; then
+            curl --fail --silent --show-error --location --retry 3 \
+              --output "$dir/$FIRESTORE_JAR_NAME" \
+              "https://storage.googleapis.com/firebase-preview-drop/emulator/$FIRESTORE_JAR_NAME"
+          fi
+          echo "$FIRESTORE_JAR_SHA256  $dir/$FIRESTORE_JAR_NAME" | sha256sum --check --strict
+
+      - name: Install dependencies
+        working-directory: functions
+        run: npm ci
+
+      - name: Rules and function unit tests (Auth and Firestore emulators)
+        working-directory: functions
+        run: npm test
+
+      - name: End-to-end test (Functions emulator)
+        working-directory: functions
+        run: npm run test:e2e
+
+      - name: Upload emulator logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: functions-logs
+          path: |
+            firebase-debug.log
+            firestore-debug.log
+            ui-debug.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # Informational only: runs on PRs into staging, and is NOT in ci-ok's needs (owner decision
+  # 2026-11-16, #54). Do not make it a required check.
+  android-instrumented:
+    name: Android instrumented smoke test
+    if: github.event_name == 'pull_request' && github.base_ref == 'staging'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+
+      # Hardware acceleration for the emulator on the Linux runner.
+      - name: Enable KVM
+        working-directory: .
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      # API 36 = the app's targetSdk (minSdk is 26; android/app/build.gradle.kts).
+      - name: Run connectedDebugAndroidTest
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 36
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          working-directory: android
+          script: ./gradlew --no-daemon connectedDebugAndroidTest
+
+      - name: Upload instrumented test reports
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android-instrumented-reports
+          path: |
+            android/app/build/reports/androidTests/
+            android/app/build/outputs/androidTest-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # One stable name for the required status check. Fails if either job failed or was cancelled.
+  ci-ok:
+    name: ci-ok
+    needs: [android, functions]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check results
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Job results: $RESULTS"
+          for r in $RESULTS; do
+            if [ "$r" != "success" ]; then
+              echo "A required job did not succeed." >&2
+              exit 1
+            fi
+          done
