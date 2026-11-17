@@ -47,7 +47,7 @@ Not in the approved stack (don't add without a documented human decision): Cloud
 /
 ├─ android/               Kotlin app (Gradle project)
 ├─ functions/             Cloud Functions (TypeScript); shared modules under src/shared/
-├─ scripts/               developer-only scripts (institution accounts, seeding)
+├─ scripts/               developer-only scripts (seeding). The institution account script lives in functions/scripts/ (#15).
 ├─ firebase.json          emulator + deploy config
 ├─ firestore.rules
 ├─ firestore.indexes.json
@@ -62,6 +62,7 @@ Not in the approved stack (don't add without a documented human decision): Cloud
 | Functions toolchain and emulator harness | #12 (TMP-03) | TypeScript on a Node 22 runtime (Node >=24.12 for dev and CI), `node:test`, emulator project `demo-colpool`, default-deny `firestore.rules`, project-local `.cache/`. See [ADR 0003](adr/0003-functions-emulator-setup.md). |
 | Exact Firestore collection layout | #13 (TMP-04), #20 (TMP-14) | Core: `users`, `privateDetails`, `profiles`, `consents`, `profileAccess`, `schedules`, `campusPoints`, `options/profile`, one doc per student where per-student. See [data model](data-model.md) and [ADR 0002](adr/0002-firestore-layout.md). Series, draft and request layout: #20 (_TBD_). |
 | How rules recognize a consented student (custom claim vs reading the consent record) | #13 (TMP-04) | Rules read the record: `exists(consents/{uid})`; no consent claim. See [ADR 0002](adr/0002-firestore-layout.md) §1. |
+| Institution custom claim key | #18 (TMP-13), #15 | `institution: true` (boolean). Rules treat any `institution` claim as institution; the script sets `true`. Rules check it alongside the consent record (`isInstitution()` in `firestore.rules`); #15's script sets it. Owner decision 2026-11-16. |
 | How profile permissions and weekday rosters are stored | #13 (TMP-04), #44 (TMP-37) | Permissions: one backend-only `profileAccess/{ownerId}` doc with reason sets (idempotent). See [ADR 0002](adr/0002-firestore-layout.md) §3, [data model](data-model.md) §2.5. Weekday rosters: _TBD_ (#44). |
 | How the backend finds a student's accepted and hosted weekdays across series for RC-32 conflict checks (e.g. a per-student schedule record kept in the same transactions) | #13 (TMP-04), #20 (TMP-14) | One `schedules/{uid}` doc per student, kept in the same transactions as every lifecycle change; concurrent accepts serialize on it. See [ADR 0002](adr/0002-firestore-layout.md) §4. RC-32 edge semantics still open there. |
 | Phase 6 performance dataset size | #50 (TMP-48) | _TBD_ |
@@ -94,7 +95,7 @@ Not in the approved stack (don't add without a documented human decision): Cloud
 | Cancel series | Status change (never delete); pending weekdays become declined (no per-weekday notifications); record cancel time; update permissions; notify everyone with a pending/accepted request. | US-06, RC-24 |
 | Daily end-of-series job | Scheduled, shortly after midnight America/Los_Angeles; marks ended series by server clock; pending weekdays become declined; notifies host and every rider with a pending or accepted request (one notification each); updates search fields/permissions; **idempotent**. | RC-17, INTENT §6.1 |
 | Export | Institution claim only; rejects a range whose start is after its end or whose end is after today (Pacific); builds CSV from stored records via the trip-counting module; returns the file to the app. | US-17, RC-07, RC-23 |
-| Institution account script | **Developer-run, outside the app.** Creates the account and sets the claim. | RC-07, #15 |
+| Institution account script | **Developer-run, outside the app** (`functions/scripts/create-institution-account.ts`, not in `src/`; usage in `DEVELOPMENT.md`). Creates the account and sets the claim. | RC-07, #15 |
 
 ### 3.3 Shared backend modules ("contracts")
 

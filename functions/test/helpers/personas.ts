@@ -1,10 +1,11 @@
 import type { RulesTestEnvironment } from "@firebase/rules-unit-testing";
+import { doc, setDoc } from "firebase/firestore";
 
 // Fake test accounts only. Never real students.
 const DOMAIN = "calbaptist.edu";
 
-// TODO(#15): provisional institution claim key. The real key is decided by the
-// contracts Issue and the developer account script. Test helpers only, not in rules.
+// The institution claim is `institution: true` (owner decision 2026-11-16, ARCHITECTURE §2).
+// #15's developer script must set this key; firestore.rules isInstitution() checks it.
 export const INSTITUTION_CLAIM_KEY = "institution";
 
 export interface Persona {
@@ -16,12 +17,54 @@ export interface Persona {
 }
 
 export function authedStudent(): Persona {
-  // TODO(#18): add a consents/{uid} doc for this persona in the rules env (consent = existence, ADR 0002).
+  // Consent = existence of consents/{uid} (ADR 0002 §1); seeded by seedConsents() in the rules env (#18).
   return { name: "authedStudent", uid: "student-consented", email: `test.student1@${DOMAIN}`, claims: {} };
 }
 
 export function studentWithoutConsent(): Persona {
   return { name: "studentWithoutConsent", uid: "student-no-consent", email: `test.student2@${DOMAIN}`, claims: {} };
+}
+
+/** A consented student who hosts a series with an active posting (RC-01 case 1). */
+export function hostStudent(): Persona {
+  return { name: "hostStudent", uid: "student-host", email: `test.host@${DOMAIN}`, claims: {} };
+}
+
+/** A consented student who requested the host's series (RC-01 cases 2 and 3). */
+export function requesterStudent(): Persona {
+  return { name: "requesterStudent", uid: "student-requester", email: `test.requester@${DOMAIN}`, claims: {} };
+}
+
+/** A consented student accepted on the same weekday as the requester (RC-01 case 4). */
+export function coRiderStudent(): Persona {
+  return { name: "coRiderStudent", uid: "student-corider", email: `test.corider@${DOMAIN}`, claims: {} };
+}
+
+/** A consented student with no relationship to anyone else. */
+export function unrelatedStudent(): Persona {
+  return { name: "unrelatedStudent", uid: "student-unrelated", email: `test.unrelated@${DOMAIN}`, claims: {} };
+}
+
+/** Every persona that has a consents/{uid} doc in the rules env. */
+export const consentedStudents = (): Persona[] => [
+  authedStudent(),
+  hostStudent(),
+  requesterStudent(),
+  coRiderStudent(),
+  unrelatedStudent(),
+];
+
+/**
+ * Writes consents/{uid} (rules disabled) for every consented student, plus any extra personas
+ * (for example an institution account, to test defense in depth).
+ */
+export async function seedConsents(env: RulesTestEnvironment, extra: Persona[] = []): Promise<void> {
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    for (const p of [...consentedStudents(), ...extra]) {
+      await setDoc(doc(db, "consents", p.uid as string), { agreedAt: new Date("2026-09-01T00:00:00Z") });
+    }
+  });
 }
 
 export function institutionUser(): Persona {
@@ -30,6 +73,16 @@ export function institutionUser(): Persona {
     uid: "institution-user",
     email: `test.staff@${DOMAIN}`,
     claims: { [INSTITUTION_CLAIM_KEY]: true },
+  };
+}
+
+/** Institution account whose claim value is the string "true" (rules fail closed: any value counts). */
+export function institutionStringClaimUser(): Persona {
+  return {
+    name: "institutionStringClaimUser",
+    uid: "institution-string-claim",
+    email: `test.staff2@${DOMAIN}`,
+    claims: { [INSTITUTION_CLAIM_KEY]: "true" },
   };
 }
 
