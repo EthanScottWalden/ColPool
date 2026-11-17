@@ -243,8 +243,8 @@ User-facing text uses these domain terms and never exposes database or code name
 
 | ID | Question | Status |
 |---|---|---|
-| PQ-01 | CBU majors list | Waiting on project owner (#17) |
-| PQ-02 | Campus-point coordinates | Waiting on project owner (#17) |
+| PQ-01 | CBU majors list | Answered: the owner supplied the list on 2026-11-14; it is in `functions/src/shared/schema/options.ts` (seeded by #17) |
+| PQ-02 | Campus-point coordinates | Answered: owner-provided Google Maps pins, 2026-11-16; recorded in [data-model.md](data-model.md) §2.7 (seeded by #17) |
 
 Resolved in the 2026-11-07 policy interview and written into SDD v0.5: rider schedule conflicts (RC-32), weekdays with no trips left (RC-33), pending weekdays at cancel or end (US-06, US-15, RC-17), export range ending no later than today (US-17, RC-23), and the accepted risks RISK-12 (no moderation), RISK-13 (non-students with CBU emails) and RISK-14 (cash and insurance).
 
