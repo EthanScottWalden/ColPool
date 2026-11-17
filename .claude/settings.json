@@ -125,7 +125,8 @@
         "www.its.ucla.edu",
         "stars.aashe.org",
         "localhost",
-        "127.0.0.1"
+        "127.0.0.1",
+        "release-assets.githubusercontent.com"
       ]
     }
   },
