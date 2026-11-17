@@ -101,6 +101,8 @@ describe("seed-dev-accounts guard (pure)", () => {
   });
   it("refuses emulator hosts that are not on this machine", () => {
     assert.throws(() => resolveTarget({ ...emu, FIRESTORE_EMULATOR_HOST: "example.com:8080" }), ScriptError);
+    assert.throws(() => resolveTarget({ ...emu, FUNCTIONS_EMULATOR_HOST: "example.com:5001" }), ScriptError);
+    assert.deepEqual(resolveTarget({ ...emu, FUNCTIONS_EMULATOR_HOST: "127.0.0.1:5001" }), { projectId: "demo-colpool" });
   });
   it("accepts loopback emulators and defaults to demo-colpool", () => {
     assert.deepEqual(resolveTarget(emu), { projectId: "demo-colpool" });

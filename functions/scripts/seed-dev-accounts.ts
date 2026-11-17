@@ -53,7 +53,10 @@ export function resolveTarget(env: Record<string, string | undefined>): { projec
   if (!authHost || !fsHost) {
     throw new ScriptError("Refusing to run: set both FIREBASE_AUTH_EMULATOR_HOST and FIRESTORE_EMULATOR_HOST. This script is for the emulators only.");
   }
-  for (const h of [authHost, fsHost]) {
+  // FUNCTIONS_EMULATOR_HOST is optional (default 127.0.0.1:5001) but, when set, must be local too:
+  // the signUp call sends the dev emails and the fake password over plain HTTP.
+  const fnHost = env["FUNCTIONS_EMULATOR_HOST"];
+  for (const h of fnHost ? [authHost, fsHost, fnHost] : [authHost, fsHost]) {
     if (!LOOPBACK.has(hostOf(h))) throw new ScriptError("Refusing to run: the emulator hosts must be on this machine (127.0.0.1 or localhost).");
   }
   const projectId = env["GCLOUD_PROJECT"] ?? EMULATOR_PROJECT_ID;

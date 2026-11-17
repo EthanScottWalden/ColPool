@@ -58,7 +58,7 @@ _Set up by #11 (Android app), #12 (Functions and emulator) and #54 (CI)._
 The emulators run in WSL2; Android Studio and the Android emulator run on Windows from a separate clone. Debug builds already target the emulators (`10.0.2.2`, project `demo-colpool`; ADR 0001).
 
 1. In the Windows clone, pull the branch. Open the `android/` folder in Android Studio and let Gradle sync.
-2. In the run-configuration drop-down pick **Firebase emulators + test accounts (WSL)** (shared, from `android/.run/`) and press Run. It runs `npm run emulators:dev` in the WSL checkout `~/ColPool/functions`: build, start Auth, Firestore and Functions, seed reference data and the test accounts, print the account table. Leave it running; Stop shuts the emulators down. Data isn't persisted, so every start is clean and seeded.
+2. In the run-configuration drop-down pick **Firebase emulators + test accounts (WSL)** (shared, from `android/.run/`) and press Run. It runs `npm run emulators:dev` in the WSL checkout `~/ColPool/functions`: build, start Auth, Firestore and Functions, seed reference data and the test accounts, print the account table. Leave it running; Ctrl+C in its terminal shuts the emulators down. If you used Stop and the next start says a port is in use, run `wsl pkill -f firebase` in a Windows terminal. Data isn't persisted, so every start is clean and seeded.
 3. Pick **app** and press Run on an Android emulator.
 
 All accounts use the fake, demo-only password `demo-pass-123`. The table is printed in the run console after the emulators start.
