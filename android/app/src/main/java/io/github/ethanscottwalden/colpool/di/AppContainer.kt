@@ -5,11 +5,15 @@ import com.google.android.libraries.places.api.Places
 import com.google.android.libraries.places.api.net.PlacesClient
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreSettings
+import com.google.firebase.firestore.MemoryCacheSettings
 import com.google.firebase.functions.FirebaseFunctions
 import io.github.ethanscottwalden.colpool.BuildConfig
 import io.github.ethanscottwalden.colpool.config.EmulatorConfig
 import io.github.ethanscottwalden.colpool.data.places.PlacesAutocomplete
 import io.github.ethanscottwalden.colpool.data.places.PlacesSdkAutocomplete
+import io.github.ethanscottwalden.colpool.data.session.AuthBackend
+import io.github.ethanscottwalden.colpool.data.session.FirebaseAuthBackend
 
 /**
  * Manual DI: holds the Firebase singletons. Created once in [io.github.ethanscottwalden.colpool.ColPoolApp]
@@ -18,7 +22,14 @@ import io.github.ethanscottwalden.colpool.data.places.PlacesSdkAutocomplete
  */
 class AppContainer(private val appContext: Context) {
     val auth: FirebaseAuth by lazy { FirebaseAuth.getInstance() }
-    val firestore: FirebaseFirestore by lazy { FirebaseFirestore.getInstance() }
+    // Memory-only cache: nothing is persisted to disk (ADR 0004). Set before first use and before useEmulator.
+    val firestore: FirebaseFirestore by lazy {
+        FirebaseFirestore.getInstance().also {
+            it.firestoreSettings = FirebaseFirestoreSettings.Builder()
+                .setLocalCacheSettings(MemoryCacheSettings.newBuilder().build())
+                .build()
+        }
+    }
     val functions: FirebaseFunctions by lazy { FirebaseFunctions.getInstance(EmulatorConfig.FUNCTIONS_REGION) }
 
     // Places is initialised once, on first use, with the key from the Secrets plugin (placeholder in CI).
@@ -28,4 +39,6 @@ class AppContainer(private val appContext: Context) {
         Places.createClient(appContext)
     }
     val places: PlacesAutocomplete by lazy { PlacesSdkAutocomplete { placesClient } }
+
+    val authBackend: AuthBackend by lazy { FirebaseAuthBackend(auth, firestore, functions) }
 }

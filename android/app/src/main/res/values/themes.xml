@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.ColPool" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- Android system splash (core-splashscreen). Held until routing resolves (MainActivity). -->
+    <style name="Theme.ColPool.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#FFC73D</item>
+        <item name="postSplashScreenTheme">@style/Theme.ColPool</item>
+    </style>
 </resources>
