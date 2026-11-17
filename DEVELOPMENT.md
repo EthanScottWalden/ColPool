@@ -65,7 +65,7 @@ All accounts use the fake, demo-only password `demo-pass-123`. The table is prin
 
 | Email | Routing case |
 |---|---|
-| `dev.student@calbaptist.edu` | Student with a starting address: Home |
+| `dev.student@calbaptist.edu` | Student with a starting address: Search |
 | `dev.newstudent@calbaptist.edu` | Student with no starting address: Onboarding |
 | `dev.noconsent@calbaptist.edu` | Account with no consent record: blocked (RC-06) |
 | `dev.staff@calbaptist.edu` | Institution staff (`institution: true`) |

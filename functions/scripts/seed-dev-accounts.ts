@@ -25,7 +25,7 @@ export interface DevAccount {
 }
 
 export const DEV_ACCOUNTS: readonly DevAccount[] = [
-  { email: "dev.student@calbaptist.edu", kase: "student-onboarded", covers: "Student with a starting address: goes to Home", firstName: "Dev", lastName: "Student" },
+  { email: "dev.student@calbaptist.edu", kase: "student-onboarded", covers: "Student with a starting address: goes to Search", firstName: "Dev", lastName: "Student" },
   { email: "dev.newstudent@calbaptist.edu", kase: "student-new", covers: "Student without a starting address: goes to Onboarding", firstName: "Dev", lastName: "Newcomer" },
   { email: "dev.noconsent@calbaptist.edu", kase: "no-consent", covers: "Account with no consent record: blocked (RC-06)" },
   { email: "dev.staff@calbaptist.edu", kase: "staff", covers: "Institution staff account: staff routing" },
