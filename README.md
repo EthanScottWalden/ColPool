@@ -22,6 +22,7 @@ GitHub Actions (`.github/workflows/ci.yml`) runs on every pull request and on pu
 
 - **android:** `assembleDebug`, the JVM unit tests and the Roborazzi screenshot checks (`verifyRoborazziDebug`), JDK 21.
 - **functions:** `npm ci`, `npm test` (Rules and function unit tests) and `npm run test:e2e` (Functions emulator). The Firestore emulator jar is downloaded and its SHA-256 checked on every run.
+- **android-instrumented:** the instrumented smoke test on an emulator, only for PRs into `staging`. Informational, not a required check.
 - **ci-ok:** passes only if both jobs pass. This is the one status check to require.
 
 CI uses no secrets, has read-only repository access and never deploys. Failed runs upload the test reports as artifacts.
