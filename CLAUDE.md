@@ -33,7 +33,7 @@ This file is the operating guide for every session. It points to the detailed do
 
 ## 3. Build / run / test
 
-_Android is set up (#11). #12 (Functions + emulator) and #54 (CI) fill in the rest, with the full detail in `DEVELOPMENT.md` §2._
+_Android (#11), Functions + emulator (#12) and CI (#54) are set up; full detail in `DEVELOPMENT.md` §2._
 
 Agents run Gradle through `android/scripts/sandbox-gradlew.sh <tasks>` (sandbox proxy and temp dir); humans use `./gradlew`.
 
@@ -50,7 +50,7 @@ Agents run Gradle through `android/scripts/sandbox-gradlew.sh <tasks>` (sandbox 
   - Functions: unit tests against the emulator.
   - Time-based logic: fixed data, including a daylight-saving week.
   - Screens: screenshot-test images of the screen attached to the PR; the human checks it on a device against the named prototype screen during the staging review (`DEVELOPMENT.md` §2).
-- CI is green. Until #54 adds CI, the verifier's own run of the builds and tests stands in for it (`DEVELOPMENT.md` §2). No secrets or keys committed.
+- CI is green (the `ci-ok` check, `DEVELOPMENT.md` §2). No secrets or keys committed.
 - User-facing text uses POLICY §11 terms and 12-hour Pacific times.
 - Any decision the Issue was meant to settle is recorded (§6).
 

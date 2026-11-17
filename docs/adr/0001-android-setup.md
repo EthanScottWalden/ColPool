@@ -51,7 +51,7 @@ The build targets Java 17 bytecode and compiles on JDK 21 (no toolchain provisio
 
 ### Testing
 - **JVM tests:** Robolectric 4.17 with Roborazzi 1.78.0. A smoke test starts the real app class and checks the placeholder. A screenshot test renders the placeholder (golden: `android/app/src/test/screenshots/placeholder.png`).
-- **Instrumented smoke test** (`androidTest`): written and compiled by agents (`assembleDebugAndroidTest`). The owner runs it on the Windows emulator. CI runs it after #54.
+- **Instrumented smoke test** (`androidTest`): written and compiled by agents (`assembleDebugAndroidTest`). The owner runs it on the Windows emulator. CI runs it on PRs into `staging` (not a required check; owner decision 2026-11-16, #54).
 - Robolectric needs the Android 16 (SDK 36) jar. Its own downloader can't pass the sandbox proxy, so `app/build.gradle.kts` resolves `org.robolectric:android-all-instrumented:16-robolectric-13921718-i7` through Gradle and runs tests offline. The Robolectric version fixes this coordinate: update it when Robolectric changes.
 - JDK 21 needs `--add-exports/--add-opens java.base/jdk.internal.access` for Robolectric (set in the build file).
 

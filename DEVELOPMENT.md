@@ -48,8 +48,8 @@ _Filled in by the setup Issues: #11 (Android app), #12 (Functions and emulator),
 | Android build | `cd android && ./gradlew assembleDebug` (agents: `android/scripts/sandbox-gradlew.sh assembleDebug`; same for every Gradle task below) (debug builds target the Emulator Suite by default; `-Pcolpool.useEmulators=false` for real Firebase, which needs `google-services.json`) |
 | Android JVM tests (Robolectric smoke test) | `cd android && ./gradlew testDebugUnitTest` |
 | Screen screenshot tests (Roborazzi) | `cd android && ./gradlew verifyRoborazziDebug`; refresh goldens with `recordRoborazziDebug` and commit the images (`app/src/test/screenshots/`) |
-| Android instrumented smoke test (owner-run) | Compiles with `./gradlew assembleDebugAndroidTest`. The owner runs `./gradlew connectedDebugAndroidTest` on the Windows emulator. CI runs it after #54. |
-| Functions unit tests (emulator) | `cd functions && npm test` runs the function unit tests (handlers called with `.run`) and the Rules tests against the Auth and Firestore emulators; agents can run it (install with `functions/scripts/sandbox-npm.sh ci`). Needs Node >=24.12 and JDK 21. `cd functions && npm run test:e2e` calls functions through the Functions emulator; humans and CI (#54) only, it can't run in the agent sandbox. |
+| Android instrumented smoke test (owner-run) | Compiles with `./gradlew assembleDebugAndroidTest`. The owner runs `./gradlew connectedDebugAndroidTest` on the Windows emulator. CI runs it (job `android-instrumented`) on PRs into `staging` only; not a required check (owner decision 2026-11-16, ADR 0001). |
+| Functions unit tests (emulator) | `cd functions && npm test` runs the function unit tests (handlers called with `.run`) and the Rules tests against the Auth and Firestore emulators; agents can run it (install with `functions/scripts/sandbox-npm.sh ci`). Needs Node >=24.12 and JDK 21. `cd functions && npm run test:e2e` calls functions through the Functions emulator; humans and CI only, it can't run in the agent sandbox. |
 | Security Rules tests (emulator) | Same command (`cd functions && npm test`); rules tests live in `functions/test/rules/`, function unit tests in `functions/test/functions/`. |
 | Start the emulator | `cd functions && npm run emulators`. The Firestore emulator jar is downloaded once by the owner, outside the sandbox, into `.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar`; check its SHA-256 `9b6498b7f62714d67f48f59b3818883cd682dbcd46b9f59511de81c97bb5166c` (firebase-tools does not check cached jars). Repeat whenever the firebase-tools pin changes. See [ADR 0003](docs/adr/0003-functions-emulator-setup.md). |
 
@@ -84,9 +84,22 @@ Institution accounts are created only by `functions/scripts/create-institution-a
 - **Emulator:** with the Firestore emulator running (`cd functions && npm run emulators`), in another shell with `FIRESTORE_EMULATOR_HOST=127.0.0.1:8080` set: `npm run seed-reference-data`. It targets project `demo-colpool`.
 - **Production (documented only; run by the owner, never by an agent):** set `GOOGLE_APPLICATION_CREDENTIALS` to the path of a service-account key kept outside the repo, leave `FIRESTORE_EMULATOR_HOST` unset, and run `npm run seed-reference-data -- --project <real-project-id>`. A `demo-` project id is refused in this mode. Never commit or paste the key.
 
-### Before CI exists
+### CI
 
-Until #54 merges, there is no CI to be green. The verifier's own run of the Issue's builds and tests, reported with commands and results, stands in for CI before merging to `dev`. When #54 merges, the owner adds its job as a required status check on the `dev-integration` ruleset.
+`.github/workflows/ci.yml` (#54) runs on every pull request and on pushes to `dev`, `staging` and `main`, on GitHub-hosted runners (free, the repo is public). It uses no secrets, has `contents: read` only, never deploys, and every action is pinned to a commit SHA.
+
+- **`android`:** JDK 21 (Temurin), `./gradlew assembleDebug testDebugUnitTest verifyRoborazziDebug` from `android/`. Reports are uploaded on failure.
+- **`functions`:** Node 24, JDK 21, downloads the Firestore emulator jar and **fails if its SHA-256 differs** from the one in the workflow, then `npm ci`, `npm test` and `npm run test:e2e`. Logs are uploaded on failure. When the `firebase-tools` pin changes, update `FIRESTORE_JAR_NAME` and `FIRESTORE_JAR_SHA256` in the workflow with the same manual check as above.
+- **`android-instrumented`:** runs `connectedDebugAndroidTest` on an API 36 x86_64 emulator, **only on PRs into `staging`**. It is informational: it is not in `ci-ok`, and the owner shouldn't make it a required check.
+- **`ci-ok`:** needs both and fails if either failed or was cancelled. It is the single required check name.
+
+"CI is green" means `ci-ok` passed on the PR. The verifier's own run still reports commands and results for the Issue's own tests.
+
+**Owner steps (once, after #54 is merged and `ci-ok` has run on at least one PR, so GitHub offers the name):**
+1. GitHub, repo **Settings > Rules > Rulesets > `dev-integration`**.
+2. Turn on **Require status checks to pass**, click **Add checks**, pick **`ci-ok`** (the GitHub Actions one), and save.
+3. Optional but sensible: do the same on **`promotion-gate`** so promotions to `staging` and `main` also need `ci-ok`. Because CI runs on `pull_request` for any base, the `dev` to `staging` PR gets it too.
+4. Don't add `android` or `functions` as separate required checks: `ci-ok` covers them and keeps the name stable.
 
 ## 3. Sandbox
 
