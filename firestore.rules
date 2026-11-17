@@ -1,10 +1,151 @@
 rules_version = '2';
 
-// Default deny all. The client reads, the backend writes (ARCHITECTURE §3.4).
-// Rules ship with the feature they protect (INTENT §1.3); this file is never
-// loosened as scaffolding.
+// Baseline rules (#18). Default deny for everything not listed. The client
+// reads, the backend writes (ARCHITECTURE §3.4). Design: docs/adr/0002-firestore-layout.md
+// and docs/data-model.md. Field and limit names mirror functions/src/shared/schema/
+// (PROFILE_LIMITS, COLLECTIONS). Rules never loosen as scaffolding (INTENT §1.3).
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ---- helpers -------------------------------------------------------
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // Consent is the existence of consents/{uid} (ADR 0002 §1, RC-06). No consent claim.
+    function isConsented() {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/consents/$(request.auth.uid));
+    }
+
+    // The only place the institution claim key appears.
+    function isInstitution() {
+      return signedIn() && request.auth.token.get('institution', false) == true; // claim key: ARCHITECTURE §2
+    }
+
+    // A consented, non-institution account (RC-06, RC-07).
+    function isStudent() {
+      return signedIn() && isConsented() && !isInstitution();
+    }
+
+    function isStudentOwner(uid) {
+      return isOwner(uid) && isStudent();
+    }
+
+    // ---- profile read permission (RC-01, ADR 0002 §3) ------------------
+
+    // profileAccess/{ownerId}: activeHostedSeries (case 1) or viewers[uid] non-empty (cases 2-4).
+    function hasViewAccess(ownerId) {
+      let path = /databases/$(database)/documents/profileAccess/$(ownerId);
+      return exists(path) &&
+        (
+          ('activeHostedSeries' in get(path).data &&
+            get(path).data.activeHostedSeries.size() > 0) ||
+          ('viewers' in get(path).data &&
+            request.auth.uid in get(path).data.viewers &&
+            get(path).data.viewers[request.auth.uid].size() > 0)
+        );
+    }
+
+    // ---- profile write validation (RC-30, RC-22, data-model §2.3) ------
+
+    function profileKeysAllowed(d) {
+      return d.keys().hasOnly([
+        'firstName', 'lastName', 'age', 'gender', 'year', 'major',
+        'interests', 'traits', 'aboutMe', 'updatedAt'
+      ]);
+    }
+
+    // Trimmed and non-blank: starts and ends with a non-space character.
+    function trimmedName(v, max) {
+      return v is string && v.size() <= max && v.matches('^\\S([\\s\\S]*\\S)?$');
+    }
+
+    function validIdList(v, allowed) {
+      return v is list && v.size() > 0 && v.toSet().size() == v.size() && v.hasOnly(allowed);
+    }
+
+    // Only called when a list-backed key is affected (ADR 0002 §5): one get() of options/profile.
+    function listFieldsValid(d) {
+      let o = get(/databases/$(database)/documents/options/profile).data;
+      return (!('gender' in d) || (d.gender is string && d.gender in o.genderIds)) &&
+        (!('year' in d) || (d.year is string && d.year in o.yearIds)) &&
+        (!('major' in d) || (d.major is string && d.major in o.majorIds)) &&
+        (!('interests' in d) || validIdList(d.interests, o.interestIds)) &&
+        (!('traits' in d) || validIdList(d.traits, o.traitIds));
+    }
+
+    function listFieldsAffected() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['gender', 'year', 'major', 'interests', 'traits']);
+    }
+
+    function validProfile(d) {
+      return profileKeysAllowed(d) &&
+        'firstName' in d && trimmedName(d.firstName, 30) &&   // PROFILE_LIMITS.firstNameMax
+        'lastName' in d && trimmedName(d.lastName, 30) &&     // PROFILE_LIMITS.lastNameMax
+        (!('age' in d) || (d.age is int && d.age >= 18)) &&   // PROFILE_LIMITS.ageMin
+        (!('aboutMe' in d) || (d.aboutMe is string && d.aboutMe.size() <= 300)) && // aboutMeMax
+        d.updatedAt == request.time &&
+        (!listFieldsAffected() || listFieldsValid(d));
+    }
+
+    // ---- private details (RC-05) ---------------------------------------
+
+    function validPrivateDetails(d) {
+      return d.keys().hasOnly(['startingAddress', 'updatedAt']) &&
+        d.keys().hasAll(['startingAddress', 'updatedAt']) &&
+        d.updatedAt == request.time &&
+        d.startingAddress is map &&
+        d.startingAddress.keys().hasOnly(['text', 'placeId', 'lat', 'lng']) &&
+        d.startingAddress.keys().hasAll(['text', 'placeId', 'lat', 'lng']) &&
+        d.startingAddress.text is string && d.startingAddress.text.size() > 0 &&
+        d.startingAddress.placeId is string && d.startingAddress.placeId.size() > 0 &&
+        d.startingAddress.lat is number &&
+        d.startingAddress.lat >= -90 && d.startingAddress.lat <= 90 &&
+        d.startingAddress.lng is number &&
+        d.startingAddress.lng >= -180 && d.startingAddress.lng <= 180;
+    }
+
+    // ---- collections ---------------------------------------------------
+
+    // Backend written. Owner read only.
+    match /users/{uid} {
+      allow get: if isStudentOwner(uid);
+    }
+
+    // Owner read and write, never delete (POLICY §3.1).
+    match /privateDetails/{uid} {
+      allow get: if isStudentOwner(uid);
+      allow create: if isStudentOwner(uid) && validPrivateDetails(request.resource.data);
+      allow update: if isStudentOwner(uid) && validPrivateDetails(request.resource.data);
+    }
+
+    // Created by the backend at sign-up. get only: viewers use a one-shot get, no list (ADR 0002 §7).
+    match /profiles/{uid} {
+      allow get: if isStudentOwner(uid) || (isStudent() && hasViewAccess(uid));
+      allow update: if isStudentOwner(uid) && validProfile(request.resource.data);
+    }
+
+    match /schedules/{uid} {
+      allow get: if isStudentOwner(uid);
+    }
+
+    // consents/* and profileAccess/*: backend only, no client access (default deny).
+
+    match /campusPoints/{pointId} {
+      allow read: if isStudent();
+    }
+
+    match /options/profile {
+      allow read: if isStudent();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
