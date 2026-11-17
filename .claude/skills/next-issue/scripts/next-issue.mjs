@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // Lists ColPool Issues eligible for work (CLAUDE.md §2), ranked, using one paged GraphQL read.
 // Eligible: Status = Ready, Human Review = Approved, Issue open, every "blocked by" Issue closed.
+// Also lists "promotable" Issues: open, Status = Backlog, every "blocked by" Issue closed. The lead moves
+// those to Ready (owner decision 2026-11-17); this script itself makes no GitHub writes.
 // Rank: Phase, then Sequence, then Priority (P0 first), then Issue number.
 // Usage: node next-issue.mjs [--json] [--limit N]
 import { execFileSync } from "node:child_process";
@@ -15,9 +17,12 @@ const limit = limitArg >= 0 ? Number(args[limitArg + 1]) || 5 : 5;
 
 const QUERY = `query($after: String) {
   user(login: "${OWNER}") { projectV2(number: ${PROJECT}) {
+    id
+    field(name: "Status") { ... on ProjectV2SingleSelectField { id options { id name } } }
     items(first: 100, after: $after) {
       pageInfo { hasNextPage endCursor }
       nodes {
+        id
         fieldValues(first: 30) { nodes {
           ... on ProjectV2ItemFieldSingleSelectValue { name field { ... on ProjectV2FieldCommon { name } } }
           ... on ProjectV2ItemFieldNumberValue { number field { ... on ProjectV2FieldCommon { name } } }
@@ -33,6 +38,7 @@ const QUERY = `query($after: String) {
   } }
 }`;
 
+let project = null;
 function fetchItems() {
   const items = [];
   let after = null;
@@ -42,7 +48,9 @@ function fetchItems() {
     // Absolute gh and a minimal environment: this script runs outside the sandbox (DEVELOPMENT.md §3).
     const env = { PATH: "/usr/bin:/bin", HOME: userInfo().homedir, LANG: "C.UTF-8", GH_PROMPT_DISABLED: "1" };
     const out = JSON.parse(execFileSync("/usr/bin/gh", ghArgs, { encoding: "utf8", env, maxBuffer: 32 * 1024 * 1024 }));
-    const page = out.data.user.projectV2.items;
+    const p = out.data.user.projectV2;
+    project ??= { id: p.id, statusField: p.field };
+    const page = p.items;
     items.push(...page.nodes);
     after = page.pageInfo.hasNextPage ? page.pageInfo.endCursor : null;
   } while (after);
@@ -60,6 +68,7 @@ function toIssue(item) {
   const num = (x) => (x === undefined || x === null || x === "" ? Infinity : Number(x));
   return {
     number: c.number,
+    itemId: item.id,
     title: c.title,
     url: c.url,
     open: c.state === "OPEN",
@@ -87,13 +96,23 @@ const rank = (a, b) =>
 
 const issues = fetchItems().map(toIssue).filter(Boolean);
 const eligible = issues.filter((i) => reasons(i).length === 0).sort(rank);
+const promotable = issues.filter((i) => i.open && i.status === "Backlog" && i.openBlockers.length === 0).sort(rank);
+const readyOption = project.statusField?.options.find((o) => o.name === "Ready");
+const promote = {
+  projectId: project.id,
+  statusFieldId: project.statusField?.id ?? null,
+  readyOptionId: readyOption?.id ?? null,
+  issues: promotable.map((i) => ({ number: i.number, itemId: i.itemId, title: i.title })),
+};
 const upcoming = issues
   .filter((i) => i.open && reasons(i).length > 0 && i.status !== "Done")
   .sort(rank)
   .slice(0, limit);
 
 if (asJson) {
-  console.log(JSON.stringify({ eligible, upcoming: upcoming.map((i) => ({ ...i, notEligibleBecause: reasons(i) })) }, null, 2));
+  console.log(
+    JSON.stringify({ eligible, promote, upcoming: upcoming.map((i) => ({ ...i, notEligibleBecause: reasons(i) })) }, null, 2),
+  );
   process.exit(0);
 }
 
@@ -104,5 +123,8 @@ const line = (i) =>
 console.log(`Eligible (${eligible.length}):`);
 if (eligible.length === 0) console.log("  none");
 for (const i of eligible) console.log("  " + line(i));
+console.log(`\nUnblocked in Backlog, for the lead to move to Ready (${promotable.length}):`);
+if (promotable.length === 0) console.log("  none");
+for (const i of promotable) console.log("  " + line(i));
 console.log(`\nNext in line but not eligible (top ${upcoming.length}):`);
 for (const i of upcoming) console.log(`  ${line(i)}\n      not eligible: ${reasons(i).join("; ")}`);
