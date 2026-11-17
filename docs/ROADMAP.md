@@ -32,7 +32,7 @@ Each phase builds on the data and trust boundaries of the one before. In the Pro
   - trip-counting module ([#29](https://github.com/EthanScottWalden/ColPool/issues/29))
 - **Rules come with features.** No feature ships without its Security Rules emulator tests ([#18](https://github.com/EthanScottWalden/ColPool/issues/18) sets up the baseline).
 - **Phase 5 can overlap Phase 4.** Trip counting starts once the timestamp contract (#26) is settled, without waiting for the rest of Phase 4.
-- **Human input is needed early in Phase 1:** Firebase and Maps billing ([#10](https://github.com/EthanScottWalden/ColPool/issues/10)), plus the campus-point coordinates and the CBU majors list ([#17](https://github.com/EthanScottWalden/ColPool/issues/17)).
+- **Human input is needed early in Phase 1:** Firebase and Maps billing ([#10](https://github.com/EthanScottWalden/ColPool/issues/10)), plus the campus-point coordinates and the CBU majors list ([#17](https://github.com/EthanScottWalden/ColPool/issues/17)). Both are answered: the majors list on 2026-11-14 (`functions/src/shared/schema/options.ts`) and the coordinates on 2026-11-16 (owner-provided Google Maps pins, `docs/data-model.md` §2.7).
 
 ## After the MVP
 

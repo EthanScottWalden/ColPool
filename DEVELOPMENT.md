@@ -41,7 +41,7 @@ Claude Code runs in **WSL2**, where the Bash sandbox applies. On native Windows 
 
 ## 2. Build, run and test
 
-_Filled in by the setup Issues: #11 (Android app), #12 (Functions and emulator), #54 (CI)._
+_Set up by #11 (Android app), #12 (Functions and emulator) and #54 (CI)._
 
 | Task | Command |
 |---|---|
@@ -115,6 +115,7 @@ Configured in `.claude/settings.json`. It applies to the main session and every 
 
 **The GitHub script** (`.claude/hooks/github.mjs`) is the only way agents reach GitHub. Run it with no operation for the full list.
 - **Reads (any agent):** `auth-status`, `issue-view`, `issue-list`, `pr-view`, `pr-list`, `pr-checks`, `pr-diff`, `api-get` (paths under `repos/EthanScottWalden/ColPool/` or `users/EthanScottWalden/`).
+- **Worktrees:** an agent working in a git worktree must call the script by its absolute path, `node /home/walde/ColPool/.claude/hooks/github.mjs <op>`. The owner's `settings.local.json` exempts that path from the sandbox. The relative path from a worktree points at the worktree's copy, and the guard rejects it.
 - **Lead-only read:** `graphql-query` (exactly one query, no mutations or fragments). It can read anything the helper account can see, not only ColPool, so subagents can't run it (owner decision 2026-11-11).
 - **Writes (lead):** issue create/edit/comment/close/reopen; `pr-create` (into `dev`, or `dev` into `staging`); PR edit/comment/close; `pr-merge` (PRs into `dev` only, merge commit, never `--admin`); `graphql-mutation` (Project field and Issue-link mutations only); `branch-delete` (never `dev`/`staging`/`main`).
 - **`push <branch>`:** the lead (any branch except `dev`/`staging`/`main`), implementer (`feature/*`, `fix/*`), docs-keeper (`docs/*`). It runs `git push -u origin refs/heads/<branch>:refs/heads/<branch>`. No force, refspecs or globs.

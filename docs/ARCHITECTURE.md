@@ -228,7 +228,9 @@ Product privacy and safety rules (who sees what, test data, verification wording
 | RC-32 edge semantics (pending vs posting; overlap on shared weekdays; no-trips-left) | Decide before the first RC-32 check ships ([ADR 0002](adr/0002-firestore-layout.md) §4) | #23 (shared validation); also applies to #35, #40 |
 | Performance dataset size | Decide in issue | #50 |
 
-**Accepted architectural risks** (don't "fix" by adding scope): stale permissions if a function fails mid-update (mitigated by same-transaction updates); late series ending of up to a day; partial sign-up leaving a consent-less Auth account (unusable by RC-06, logged); search won't scale past MVP without geo-filtering; unverified emails (RISK-04); estimated, not live, route times (RISK-09). See SDD §7.2 and INTENT §6.1.
+**Accepted architectural risks** (don't "fix" by adding scope): stale permissions if a function fails mid-update (mitigated by same-transaction updates); late series ending of up to a day; partial sign-up leaving a consent-less Auth account (unusable by RC-06, logged); search won't scale past MVP without geo-filtering; unverified emails (RISK-04); estimated, not live, route times (RISK-09); sign-up account enumeration (below). See SDD §7.2 and INTENT §6.1.
+
+**Sign-up account enumeration** (owner decision 2026-11-16, #14): the sign-up `email-in-use` error reveals whether a CBU email already has an account. Accepted for the MVP. App Check is deferred past the MVP and there is no rate limit. Related case: if a function crash leaves an Auth user with no docs (an orphan Auth account), that email keeps returning `email-in-use` until a developer deletes the Auth user.
 
 ---
 
