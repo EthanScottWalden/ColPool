@@ -1,15 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">ColPool</string>
-    <string name="placeholder_title">ColPool</string>
-    <string name="placeholder_body">Setup placeholder. No screens yet.</string>
     <string name="address_search_label">Search for an address or place</string>
-    <string name="address_search_hint">Choose a suggestion. Free text without a match can\u2019t be used.</string>
-    <string name="address_search_searching">Searching\u2026</string>
+    <string name="address_search_hint">Choose a suggestion. Free text without a match can’t be used.</string>
+    <string name="address_search_searching">Searching…</string>
     <string name="address_search_no_results">No matches. Try a different address or place.</string>
-    <string name="address_search_error_search">Couldn\u2019t search addresses right now. Check your connection and try again.</string>
-    <string name="address_search_error_resolve">Couldn\u2019t use that address. Choose it again or pick another.</string>
-    <string name="address_search_looking_up">Looking up address\u2026</string>
+    <string name="address_search_error_search">Couldn’t search addresses right now. Check your connection and try again.</string>
+    <string name="address_search_error_resolve">Couldn’t use that address. Choose it again or pick another.</string>
+    <string name="address_search_looking_up">Looking up address…</string>
     <string name="address_search_choose">Choose this address</string>
     <string name="address_search_close">Close</string>
+
+    <!-- Sign in / create account (#19) -->
+    <string name="auth_tagline_sign_in">Welcome back. Sign in to continue.</string>
+    <string name="auth_tagline_sign_up">Create an account with your CBU email</string>
+    <string name="auth_tab_sign_in">Sign in</string>
+    <string name="auth_tab_sign_up">Create account</string>
+    <string name="auth_first_name">First name</string>
+    <string name="auth_last_name">Last name</string>
+    <string name="auth_email">CBU email</string>
+    <string name="auth_email_hint">you@calbaptist.edu</string>
+    <string name="auth_password">Password</string>
+    <string name="auth_submit_sign_in">Sign in</string>
+    <string name="auth_submit_sign_up">Create account</string>
+    <string name="auth_working">Please wait…</string>
+    <string name="auth_no_password_reset">ColPool has no password reset, so keep your password somewhere safe.</string>
+    <string name="auth_consent_title">Data-sharing consent.</string>
+    <string name="auth_consent_body">I agree that my scheduled carpool activity (my name, email, who I ride with, which days, pickup spots and estimated miles) will be shared with my university.</string>
+
+    <string name="auth_error_invalid_credentials">Email or password is incorrect.</string>
+    <string name="auth_error_network">Couldn’t reach ColPool. Check your connection and try again.</string>
+    <string name="auth_error_unknown">Something went wrong. Try again.</string>
+    <string name="auth_error_email_domain">Use your @calbaptist.edu email.</string>
+    <string name="auth_error_password_short">Password must be at least 8 characters.</string>
+    <string name="auth_error_first_name">Enter a first name of up to 30 characters.</string>
+    <string name="auth_error_last_name">Enter a last name of up to 30 characters.</string>
+    <string name="auth_error_consent">Agree to the data-sharing consent statement to create an account.</string>
+    <string name="auth_error_email_in_use">An account with this email already exists. Try signing in.</string>
+    <string name="auth_notice_no_consent">This account has no data-sharing consent record, so it can’t use ColPool.</string>
+
+    <!-- Routing error -->
+    <string name="session_error_title">Couldn’t load your account</string>
+    <string name="session_error_body">Check your connection and try again.</string>
+    <string name="session_retry">Try again</string>
+    <string name="session_loading">Loading…</string>
+
+    <!-- Student shell and placeholders -->
+    <string name="tab_search">Search</string>
+    <string name="tab_hosting">Hosting</string>
+    <string name="tab_riding">Riding</string>
+    <string name="tab_notifications">Notifications</string>
+    <string name="tab_profile">Profile</string>
+    <string name="placeholder_coming_soon">Coming soon.</string>
+    <string name="log_out">Log out</string>
+    <string name="log_out_temporary">Temporary: the real Profile screen comes later.</string>
+    <string name="onboarding_title">Onboarding</string>
+    <string name="onboarding_temporary">Temporary: the real Onboarding screen comes later.</string>
+
+    <!-- Staff -->
+    <string name="staff_kicker">COLPOOL · UNIVERSITY STAFF</string>
+    <string name="staff_title">Export carpool data</string>
+    <string name="staff_body">The export of scheduled student carpool trips is coming soon.</string>
 </resources>

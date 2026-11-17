@@ -89,6 +89,7 @@ dependencies {
     robolectricAndroidAllJar("org.robolectric:android-all-instrumented:16-robolectric-13921718-i7")
 
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
