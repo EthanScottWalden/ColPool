@@ -118,7 +118,7 @@ fun AuthContent(
                     if (SignUpFieldError.Consent in errors) ErrorText(stringResource(R.string.auth_error_consent))
                 }
 
-                state.formError?.let { Banner(stringResource(formErrorRes(it))) }
+                state.formError?.let { Banner(stringResource(formErrorRes(it)), state.formErrorDetail) }
 
                 Button(onClick = actions.onSubmit, enabled = !state.busy, modifier = Modifier.fillMaxWidth()) {
                     Text(
@@ -182,12 +182,16 @@ private fun ErrorText(text: String) {
 }
 
 @Composable
-private fun Banner(text: String) {
+private fun Banner(text: String, detail: String? = null) {
     Box(
         Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite }
             .background(MaterialTheme.colorScheme.errorContainer, MaterialTheme.shapes.medium).padding(12.dp),
     ) {
-        Text(text, color = MaterialTheme.colorScheme.onErrorContainer, style = MaterialTheme.typography.bodyMedium)
+        Column {
+            Text(text, color = MaterialTheme.colorScheme.onErrorContainer, style = MaterialTheme.typography.bodyMedium)
+            // Debug builds only (null in release).
+            if (detail != null) Text(detail, color = MaterialTheme.colorScheme.onErrorContainer, style = MaterialTheme.typography.bodySmall)
+        }
     }
 }
 

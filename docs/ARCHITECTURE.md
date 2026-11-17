@@ -45,7 +45,7 @@ Not in the approved stack (don't add without a documented human decision): Cloud
 
 ```
 /
-├─ android/               Kotlin app (Gradle project)
+├─ android/               Kotlin app (module android/app; the Gradle root is the repo root: settings.gradle.kts, gradlew, gradle/)
 ├─ functions/             Cloud Functions (TypeScript); shared modules under src/shared/
 ├─ scripts/               reserved for developer scripts outside Functions; currently empty. The institution account (#15) and seed (#17) scripts live in functions/scripts/.
 ├─ firebase.json          emulator + deploy config

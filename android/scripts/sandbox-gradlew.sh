@@ -18,8 +18,8 @@
 # builds indefinitely. A separate home also keeps agents out of the cache the owner's
 # unsandboxed builds use. Owner decision 2026-11-16.
 set -euo pipefail
-cd "$(dirname "$0")/.."
-export GRADLE_USER_HOME="$(cd .. && pwd)/.cache/gradle-agent"
+cd "$(dirname "$0")/../.."
+export GRADLE_USER_HOME="$(pwd)/.cache/gradle-agent"
 mkdir -p "$GRADLE_USER_HOME"
 
 export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"

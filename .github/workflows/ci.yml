@@ -22,9 +22,6 @@ jobs:
     name: Android build and tests
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    defaults:
-      run:
-        working-directory: android
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
@@ -41,7 +38,7 @@ jobs:
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
 
-      # The placeholder Places key (android/local.defaults.properties) is committed and
+      # The placeholder Places key (local.defaults.properties) is committed and
       # google-services.json is optional, so no files or secrets are needed.
       - name: Build, JVM unit tests and screenshot checks
         run: ./gradlew --no-daemon --stacktrace assembleDebug testDebugUnitTest verifyRoborazziDebug
@@ -143,9 +140,6 @@ jobs:
     if: github.event_name == 'pull_request' && github.base_ref == 'staging'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: android
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
@@ -162,7 +156,6 @@ jobs:
 
       # Hardware acceleration for the emulator on the Linux runner.
       - name: Enable KVM
-        working-directory: .
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
@@ -176,7 +169,6 @@ jobs:
           arch: x86_64
           target: google_apis
           disable-animations: true
-          working-directory: android
           script: ./gradlew --no-daemon connectedDebugAndroidTest
 
       - name: Upload instrumented test reports
