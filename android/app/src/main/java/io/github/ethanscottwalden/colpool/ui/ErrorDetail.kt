@@ -12,7 +12,9 @@ object ErrorDetail {
     private val EMAIL = Regex("[^\\s@<>\"',;:()]+@[^\\s@<>\"',;:()]+")
 
     private val JWT = Regex("eyJ[A-Za-z0-9_-]*(\\.[A-Za-z0-9_-]*){0,2}")
-    private val LONG_TOKEN = Regex("[A-Za-z0-9_\\-]{24,}")
+    // Long runs that contain a digit: keys and tokens do, Firebase error codes and class names don't
+    // (INVALID_LOGIN_CREDENTIALS, account-exists-with-different-credential stay readable).
+    private val LONG_TOKEN = Regex("(?=[A-Za-z_\\-]*[0-9])[A-Za-z0-9_\\-]{24,}")
 
     /** `ClassName: message` (class simple name only), redacted and shortened. */
     fun format(e: Throwable, secrets: List<String> = emptyList()): String {

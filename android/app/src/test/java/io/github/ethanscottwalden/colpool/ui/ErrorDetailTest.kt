@@ -50,4 +50,9 @@ class ErrorDetailTest {
         val d = ErrorDetail.format(RuntimeException("key AIzaSyA1b2C3d4E5f6G7h8I9j0K_lmnop used, code auth/network-request-failed"))
         assertEquals("RuntimeException: key [token] used, code auth/network-request-failed", d)
     }
+
+    @Test fun keepsLongErrorCodesAndClassNames() {
+        val msg = "INVALID_LOGIN_CREDENTIALS account-exists-with-different-credential FirebaseAuthInvalidCredentialsException"
+        assertEquals("RuntimeException: $msg", ErrorDetail.format(RuntimeException(msg)))
+    }
 }
