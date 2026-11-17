@@ -3,6 +3,7 @@
 // Eligible: Status = Ready, Human Review = Approved, Issue open, every "blocked by" Issue closed.
 // Also lists "promotable" Issues: open, Status = Backlog, every "blocked by" Issue closed. The lead moves
 // those to Ready (owner decision 2026-11-17); this script itself makes no GitHub writes.
+// Both lists are limited to the current phase: the lowest Phase among open Issues not yet Done.
 // Rank: Phase, then Sequence, then Priority (P0 first), then Issue number.
 // Usage: node next-issue.mjs [--json] [--limit N]
 import { execFileSync } from "node:child_process";
@@ -88,6 +89,7 @@ function reasons(i) {
   if (i.status !== "Ready") r.push(`status ${i.status}`);
   if (i.review !== "Approved") r.push(`human review ${i.review}`);
   if (i.openBlockers.length) r.push(`blocked by ${i.openBlockers.map((n) => "#" + n).join(", ")}`);
+  if (i.phase > currentPhase) r.push(`later phase (current phase ${currentPhase})`);
   return r;
 }
 
@@ -95,8 +97,12 @@ const rank = (a, b) =>
   a.phase - b.phase || a.sequence - b.sequence || a.priority.localeCompare(b.priority) || a.number - b.number;
 
 const issues = fetchItems().map(toIssue).filter(Boolean);
+// Current phase: no work, and no promotion to Ready, beyond it (owner decision 2026-11-17).
+const currentPhase = Math.min(...issues.filter((i) => i.open && i.status !== "Done").map((i) => i.phase));
 const eligible = issues.filter((i) => reasons(i).length === 0).sort(rank);
-const promotable = issues.filter((i) => i.open && i.status === "Backlog" && i.openBlockers.length === 0).sort(rank);
+const promotable = issues
+  .filter((i) => i.open && i.status === "Backlog" && i.openBlockers.length === 0 && i.phase <= currentPhase)
+  .sort(rank);
 const readyOption = project.statusField?.options.find((o) => o.name === "Ready");
 const promote = {
   projectId: project.id,
@@ -111,7 +117,7 @@ const upcoming = issues
 
 if (asJson) {
   console.log(
-    JSON.stringify({ eligible, promote, upcoming: upcoming.map((i) => ({ ...i, notEligibleBecause: reasons(i) })) }, null, 2),
+    JSON.stringify({ currentPhase, eligible, promote, upcoming: upcoming.map((i) => ({ ...i, notEligibleBecause: reasons(i) })) }, null, 2),
   );
   process.exit(0);
 }
@@ -120,6 +126,7 @@ const line = (i) =>
   `#${i.number} [P${i.phase === Infinity ? "?" : i.phase}·S${i.sequence === Infinity ? "?" : i.sequence}·${i.priority}]` +
   `${i.labels.length ? " {" + i.labels.join(", ") + "}" : ""} ${i.title}`;
 
+console.log(`Current phase: ${currentPhase}\n`);
 console.log(`Eligible (${eligible.length}):`);
 if (eligible.length === 0) console.log("  none");
 for (const i of eligible) console.log("  " + line(i));
