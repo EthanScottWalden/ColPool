@@ -57,9 +57,13 @@ _Set up by #11 (Android app), #12 (Functions and emulator) and #54 (CI)._
 
 The emulators run in WSL2; Android Studio and the Android emulator run on Windows from a separate clone. Debug builds already target the emulators (`10.0.2.2`, project `demo-colpool`; ADR 0001).
 
-1. In the Windows clone, pull the branch. Open the `android/` folder in Android Studio and let Gradle sync.
-2. In the run-configuration drop-down pick **Firebase emulators + test accounts (WSL)** (shared, from `android/.run/`) and press Run. It runs `npm run emulators:dev` in the WSL checkout `~/ColPool/functions`: build, start Auth, Firestore and Functions, seed reference data and the test accounts, print the account table. Leave it running; Ctrl+C in its terminal shuts the emulators down. If you used Stop and the next start says a port is in use, run `wsl pkill -f firebase` in a Windows terminal. Data isn't persisted, so every start is clean and seeded.
-3. Pick **app** and press Run on an Android emulator.
+1. **One-time, per Windows clone.** Pull the branch. Since 2026-11-17 the Gradle root is the **repo root**: move your old `android\local.properties` (Places key, `sdk.dir`) to `ColPool\local.properties`, then in Android Studio use File > Open on the whole `ColPool` folder (not `android`) and let Gradle sync. The module list shows `app`. You can delete the old `.idea` folder under `android\` if Studio still lists the old project.
+2. **Run.** Pick **app** and press Run on an Android emulator. Before a debug build, the Gradle task `ensureFirebaseEmulators` (`android/app/build.gradle.kts`) checks `localhost:9099`:
+   - If it answers, the emulators are already up and nothing else happens.
+   - If not, it opens a **minimized console window titled "ColPool emulators"** (in the taskbar) that runs `npm run emulators:dev` in WSL (`bash -lc`, loads nvm, `cd ~/ColPool/functions`): build, start Auth, Firestore and Functions, seed reference data and the test accounts. The build then waits (up to 240 seconds, polling every 2 seconds) until `dev.staff@calbaptist.edu` can sign in, which means seeding is done, and continues to install the app.
+   - **To stop the emulators, close that window.** If the next start says a port is in use, run `wsl pkill -f firebase` in a Windows terminal. Data isn't persisted, so every start is clean and seeded.
+   - If it times out, the build fails with a message. In WSL run `cd ~/ColPool/functions && npm run emulators:dev` and read the output (or open the console window).
+3. **When it does nothing.** The task only acts on Windows, with `colpool.useEmulators=true` and `colpool.autoStartEmulators=true` (default), and no `CI` environment variable. On Linux, in CI and in the agent sandbox it is skipped. Turn it off with `-Pcolpool.autoStartEmulators=false` or in `%USERPROFILE%\.gradle\gradle.properties`. If your WSL checkout isn't `~/ColPool`, set `colpool.wslCheckout=~/path` there (no spaces). Node must come from nvm (`~/.nvm/nvm.sh`) in WSL.
 
 All accounts use the fake, demo-only password `demo-pass-123`. The table is printed in the run console after the emulators start.
 

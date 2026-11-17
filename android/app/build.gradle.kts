@@ -1,3 +1,9 @@
+import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.InetSocketAddress
+import java.net.Socket
+import java.net.URI
+
 plugins {
     alias(libs.plugins.android.application)
     // AGP 9 has built-in Kotlin: kotlin-android is intentionally not applied.
@@ -18,6 +24,81 @@ fun gradleProp(name: String, default: String): String =
 val useEmulators = gradleProp("colpool.useEmulators", "true").toBoolean()
 val emulatorHost = gradleProp("colpool.emulatorHost", "10.0.2.2")
 val emulatorProjectId = gradleProp("colpool.emulatorProjectId", "demo-colpool")
+
+// Windows only: start the Firebase emulators in WSL before a debug build (Android Studio Run).
+// Does nothing on Linux, in CI (env CI set), with colpool.useEmulators=false or
+// -Pcolpool.autoStartEmulators=false. Docs: DEVELOPMENT.md "Run the app from Android Studio (Windows)".
+abstract class EnsureFirebaseEmulators : DefaultTask() {
+    @get:Input abstract val wslCheckout: Property<String>
+
+    private fun accepts(host: String, port: Int): Boolean = try {
+        Socket().use { it.connect(InetSocketAddress(host, port), 500); true }
+    } catch (_: IOException) {
+        false
+    }
+
+    /** True once the last seeded account (dev.staff) can sign in: the seed has finished. */
+    private fun seeded(): Boolean = try {
+        val url = URI("http://localhost:9099/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=demo").toURL()
+        val conn = url.openConnection() as HttpURLConnection
+        try {
+            conn.requestMethod = "POST"
+            conn.connectTimeout = 1500
+            conn.readTimeout = 5000
+            conn.doOutput = true
+            conn.setRequestProperty("Content-Type", "application/json")
+            conn.outputStream.use {
+                it.write("""{"email":"dev.staff@calbaptist.edu","password":"demo-pass-123","returnSecureToken":true}""".toByteArray())
+            }
+            conn.responseCode == 200
+        } finally {
+            conn.disconnect()
+        }
+    } catch (_: IOException) {
+        false
+    }
+
+    @TaskAction
+    fun run() {
+        if (accepts("localhost", 9099)) {
+            logger.lifecycle("Firebase emulators already running (localhost:9099).")
+            return
+        }
+        val checkout = wslCheckout.get()
+        // Single quotes only: Java wraps this argument in double quotes for cmd.exe.
+        val inWsl = "source ~/.nvm/nvm.sh >/dev/null 2>&1; cd $checkout/functions && npm run emulators:dev; " +
+            "echo; echo Emulators stopped. Press Enter to close this window.; read"
+        logger.lifecycle("Starting the Firebase emulators in WSL (a minimized console window opens; close it to stop them)...")
+        ProcessBuilder("cmd.exe", "/c", "start", "ColPool emulators", "/min", "wsl.exe", "-e", "bash", "-lc", inWsl)
+            .redirectErrorStream(true)
+            .start()
+        val deadline = System.nanoTime() + 240_000_000_000L
+        while (System.nanoTime() < deadline) {
+            if (seeded()) {
+                logger.lifecycle("Firebase emulators are ready and seeded.")
+                return
+            }
+            Thread.sleep(2000)
+        }
+        throw GradleException(
+            "The Firebase emulators did not become ready within 240 seconds. In WSL run: " +
+                "cd $checkout/functions && npm run emulators:dev and read the output (or the minimized 'ColPool emulators' window). " +
+                "To skip auto-start: -Pcolpool.autoStartEmulators=false."
+        )
+    }
+}
+
+val autoStartEmulators = gradleProp("colpool.autoStartEmulators", "true").toBoolean()
+val wslCheckoutPath = gradleProp("colpool.wslCheckout", "~/ColPool")
+val ensureFirebaseEmulators = tasks.register<EnsureFirebaseEmulators>("ensureFirebaseEmulators") {
+    description = "Windows only: starts the Firebase emulators in WSL (and waits for the seed) before debug builds."
+    wslCheckout.set(wslCheckoutPath)
+    // Evaluated at configuration time; the values are plain booleans, so this is configuration-cache safe.
+    val active = System.getProperty("os.name").startsWith("Windows", ignoreCase = true) &&
+        useEmulators && autoStartEmulators && System.getenv("CI") == null
+    onlyIf { active }
+}
+tasks.matching { it.name == "preDebugBuild" }.configureEach { dependsOn(ensureFirebaseEmulators) }
 
 // The android-all jar Robolectric 4.17 needs for SDK 36 (part of Robolectric, not a new library).
 val robolectricAndroidAllJar = configurations.create("robolectricAndroidAllJar")
