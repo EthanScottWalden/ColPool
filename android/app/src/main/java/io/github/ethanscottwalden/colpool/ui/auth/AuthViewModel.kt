@@ -81,7 +81,7 @@ class AuthViewModel(
                     try {
                         backend.signIn(email, s.password)
                     } catch (e: AuthFailure) {
-                        if (e.kind == AuthFailureKind.Network) throw e
+                        // The account exists now, whatever the failure (network included): never stay in Create mode.
                         switchToSignIn(email, AuthFailureKind.AccountCreatedSignIn)
                         return@run false
                     }

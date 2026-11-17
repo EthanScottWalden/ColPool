@@ -121,6 +121,21 @@ class AuthViewModelTest {
         assertEquals(0, routed)
     }
 
+    @Test fun signUpThenSignInNetworkFailureAlsoSwitchesToSignIn() {
+        // The account already exists, so staying in Create mode would make a retry say "already exists".
+        backend.signInError = AuthFailure(AuthFailureKind.Network)
+        val vm = vm()
+        vm.fillSignUp()
+        vm.submit()
+        val s = vm.state.value
+        assertEquals(1, backend.signUps.size)
+        assertEquals(AuthMode.SignIn, s.mode)
+        assertEquals("jlee@calbaptist.edu", s.email)
+        assertEquals("", s.password)
+        assertEquals(AuthFailureKind.AccountCreatedSignIn, s.formError)
+        assertEquals(0, routed)
+    }
+
     @Test fun signUpTimeoutSwitchesToSignIn() {
         backend.signUpError = AuthFailure(AuthFailureKind.CouldNotConfirm)
         val vm = vm()
