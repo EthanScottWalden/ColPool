@@ -16,12 +16,18 @@ node .claude/skills/next-issue/scripts/next-issue.mjs --json
 
 Drop `--json` for a readable list, or add `--limit N` to show more of the not-yet-eligible list.
 
-**What "eligible" means** (CLAUDE.md §2): Project Status = Ready, Human Review = Approved, Issue open, and every "blocked by" Issue closed. Ranked by Phase, then Sequence, then Priority, then Issue number.
+**What "eligible" means** (CLAUDE.md §2): Project Status = Ready, Human Review = Approved, Issue open, every "blocked by" Issue closed, and in the **current phase** (the lowest Phase among open Issues not yet Done; owner decision 2026-11-17). Ranked by Phase, then Sequence, then Priority, then Issue number.
 
-**First, move unblocked Backlog Issues to Ready** (owner decision 2026-11-17). The script lists them under `promote`: open, Status = Backlog, and every "blocked by" Issue closed. For each one, the lead runs this on its own:
+**First, move unblocked Backlog Issues to Ready** (owner decision 2026-11-17). The script lists them under `promote`: open, Status = Backlog, every "blocked by" Issue closed, and in the current phase. The GitHub script won't read query files inside `.claude/`, so copy the mutation to the session temp folder once:
 
 ```
-node .claude/hooks/github.mjs graphql-mutation --query-file .claude/skills/next-issue/set-ready.graphql --var project=<promote.projectId> --var item=<itemId> --var field=<promote.statusFieldId> --var option=<promote.readyOptionId>
+cp .claude/skills/next-issue/set-ready.graphql /tmp/claude-1000/set-ready.graphql
+```
+
+Then, for each Issue, the lead runs this on its own:
+
+```
+node .claude/hooks/github.mjs graphql-mutation --query-file /tmp/claude-1000/set-ready.graphql --var project=<promote.projectId> --var item=<itemId> --var field=<promote.statusFieldId> --var option=<promote.readyOptionId>
 ```
 
 - One write at a time, at most 4 a minute (the helper account was suspended once after a burst).
