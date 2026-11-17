@@ -5,11 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -18,6 +14,17 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.Alignment
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -32,12 +39,12 @@ import io.github.ethanscottwalden.colpool.ui.theme.ColPoolTheme
 
 object AddressSearchTags {
     const val Field = "address_search_field"
-    const val Confirm = "address_search_confirm"
+    const val RowProgress = "address_search_row_progress"
     const val Error = "address_search_error"
 }
 
 /**
- * Address search sheet. Returns a [SelectedAddress] through [onConfirm]; nothing else can be submitted.
+ * Address search sheet. Tapping a suggestion resolves it and returns the [SelectedAddress] through [onConfirm]; nothing else can be returned.
  * Use a fresh [viewModel] per address entry. [title] is supplied by the caller (for example
  * "Starting address"). [notice] is an optional slot above the field, e.g. the "recommend public
  * places" note for pickup spots and stops; nothing is shown by default.
@@ -52,32 +59,39 @@ fun AddressSearchSheet(
     notice: (@Composable () -> Unit)? = null,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // A resolved suggestion is returned and the sheet closes.
+    LaunchedEffect(state.selected) { state.selected?.let(onConfirm) }
     ModalBottomSheet(onDismissRequest = onDismiss) {
         AddressSearchContent(
             title = title,
             state = state,
             onQueryChange = viewModel::onQueryChange,
             onSuggestionClick = viewModel::onSuggestionChosen,
-            onConfirm = { state.selected?.let(onConfirm) },
             onClose = onDismiss,
             notice = notice,
         )
     }
 }
 
-/** Stateless content of the sheet. */
+/** Stateless content of the sheet. Tapping a suggestion chooses it; the only button is Close. */
 @Composable
 fun AddressSearchContent(
     title: String,
     state: AddressSearchState,
     onQueryChange: (String) -> Unit,
     onSuggestionClick: (AddressSuggestion) -> Unit,
-    onConfirm: () -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
     notice: (@Composable () -> Unit)? = null,
 ) {
-    Column(modifier = modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)) {
+    val chooseLabel = stringResource(R.string.address_search_choose)
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .imePadding()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp, vertical = 8.dp),
+    ) {
         Text(title, style = MaterialTheme.typography.headlineSmall)
         notice?.let {
             Column(modifier = Modifier.padding(top = 8.dp)) { it() }
@@ -89,37 +103,51 @@ fun AddressSearchContent(
             singleLine = true,
             modifier = Modifier.fillMaxWidth().padding(top = 12.dp).testTag(AddressSearchTags.Field),
         )
-        when {
-            state.error != null -> Text(
+        state.error?.let { error ->
+            Text(
                 stringResource(
-                    if (state.error == AddressSearchError.SearchFailed) R.string.address_search_error_search
+                    if (error == AddressSearchError.SearchFailed) R.string.address_search_error_search
                     else R.string.address_search_error_resolve,
                 ),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = 12.dp).testTag(AddressSearchTags.Error),
+                modifier = Modifier.padding(top = 12.dp).semantics { liveRegion = LiveRegionMode.Polite }.testTag(AddressSearchTags.Error),
             )
-            state.searching || state.resolving -> Text(
+        }
+        if (state.searching) {
+            Text(
                 stringResource(R.string.address_search_searching),
                 style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = 12.dp),
+                modifier = Modifier.padding(top = 12.dp).semantics { liveRegion = LiveRegionMode.Polite },
             )
-            state.suggestions.isNotEmpty() -> LazyColumn(modifier = Modifier.heightIn(max = 320.dp).padding(top = 4.dp)) {
-                items(state.suggestions, key = { it.placeId }) { s ->
-                    Column(modifier = Modifier.fillMaxWidth().clickable { onSuggestionClick(s) }.padding(vertical = 10.dp)) {
+        } else if (state.suggestions.isEmpty() && state.error == null && state.query.trim().length >= AddressSearchViewModel.MIN_CHARS) {
+            Text(
+                stringResource(R.string.address_search_no_results),
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 12.dp).semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        }
+        Column(modifier = Modifier.padding(top = 4.dp)) {
+            state.suggestions.forEach { s ->
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClickLabel = chooseLabel, role = Role.Button) { onSuggestionClick(s) }
+                        .padding(vertical = 10.dp),
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(s.primaryText, style = MaterialTheme.typography.titleMedium)
                         if (s.secondaryText.isNotBlank()) {
                             Text(s.secondaryText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                    HorizontalDivider()
+                    if (state.resolvingPlaceId == s.placeId) {
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp).testTag(AddressSearchTags.RowProgress), strokeWidth = 2.dp)
+                    }
                 }
+                HorizontalDivider()
             }
-            state.selected == null && state.query.trim().length >= AddressSearchViewModel.MIN_CHARS -> Text(
-                stringResource(R.string.address_search_no_results),
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(top = 12.dp),
-            )
         }
         Text(
             stringResource(R.string.address_search_hint),
@@ -127,16 +155,8 @@ fun AddressSearchContent(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 12.dp),
         )
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 16.dp),
-        ) {
-            OutlinedButton(onClick = onClose, modifier = Modifier.weight(1f)) {
-                Text(stringResource(R.string.address_search_close))
-            }
-            Button(onClick = onConfirm, enabled = state.canConfirm, modifier = Modifier.weight(1f).testTag(AddressSearchTags.Confirm)) {
-                Text(stringResource(R.string.address_search_confirm))
-            }
+        OutlinedButton(onClick = onClose, modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 16.dp)) {
+            Text(stringResource(R.string.address_search_close))
         }
     }
 }
@@ -151,7 +171,7 @@ private fun AddressSearchPreview() {
                 query = "100 Example",
                 suggestions = listOf(AddressSuggestion("p1", "100 Example Street", "Exampleville, CA")),
             ),
-            onQueryChange = {}, onSuggestionClick = {}, onConfirm = {}, onClose = {},
+            onQueryChange = {}, onSuggestionClick = {}, onClose = {},
         )
     }
 }

@@ -8,7 +8,6 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.captureRoboImage
 import io.github.ethanscottwalden.colpool.data.places.AddressSuggestion
-import io.github.ethanscottwalden.colpool.data.places.SelectedAddress
 import io.github.ethanscottwalden.colpool.ui.theme.ColPoolTheme
 import org.junit.Rule
 import org.junit.Test
@@ -35,7 +34,7 @@ class AddressSearchScreenshotTest {
         composeRule.setContent {
             ColPoolTheme {
                 Surface {
-                    AddressSearchContent("Starting address", state, {}, {}, {}, {}, notice = notice)
+                    AddressSearchContent("Starting address", state, {}, {}, {}, notice = notice)
                 }
             }
         }
@@ -44,18 +43,22 @@ class AddressSearchScreenshotTest {
 
     @Test fun empty() = shoot("empty", AddressSearchState())
 
+    @Test fun searching() = shoot("searching", AddressSearchState(query = "100 Exam", searching = true))
+
     @Test fun suggestions() = shoot("suggestions", AddressSearchState(query = "100 Exam", suggestions = suggestions))
 
+    @Test fun noMatches() = shoot("no_matches", AddressSearchState(query = "zzzzzz"))
+
     @Test
-    fun selected() = shoot(
-        "selected",
-        AddressSearchState(
-            query = "100 Example Street, Exampleville, CA 90000",
-            selected = SelectedAddress("100 Example Street, Exampleville, CA 90000", "p1", 12.5, -34.25),
-        ),
+    fun resolving() = shoot("resolving", AddressSearchState(query = "100 Exam", suggestions = suggestions, resolvingPlaceId = "p1"))
+
+    @Test
+    fun resolveError() = shoot(
+        "resolve_error",
+        AddressSearchState(query = "100 Exam", suggestions = suggestions, error = AddressSearchError.ResolveFailed),
     )
 
-    @Test fun error() = shoot("error", AddressSearchState(query = "100 Exam", error = AddressSearchError.SearchFailed))
+    @Test fun searchError() = shoot("error", AddressSearchState(query = "100 Exam", error = AddressSearchError.SearchFailed))
 
     @Test fun withNotice() = shoot("notice", AddressSearchState(), notice = { Text("Sample notice slot content.") })
 }

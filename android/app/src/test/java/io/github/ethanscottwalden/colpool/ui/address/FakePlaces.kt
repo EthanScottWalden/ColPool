@@ -32,3 +32,20 @@ class FakePlaces : PlacesAutocomplete {
         return SelectedAddress("100 Example Street, Exampleville, CA 90000", placeId, 12.5, -34.25)
     }
 }
+
+/** Fake whose suggestion calls wait until the test completes them, to test out-of-order responses. */
+class GatedPlaces : PlacesAutocomplete {
+    private val pending = mutableMapOf<String, kotlinx.coroutines.CompletableDeferred<List<AddressSuggestion>>>()
+    private var n = 0
+
+    override fun newSession(): AddressSession = AddressSession("gated-${n++}")
+
+    override suspend fun suggestions(query: String, session: AddressSession): List<AddressSuggestion> =
+        kotlinx.coroutines.CompletableDeferred<List<AddressSuggestion>>().also { pending[query] = it }.await()
+
+    override suspend fun resolve(placeId: String, session: AddressSession): SelectedAddress = error("unused")
+
+    fun complete(query: String) {
+        pending[query]?.complete(listOf(AddressSuggestion("id-$query", query, "")))
+    }
+}

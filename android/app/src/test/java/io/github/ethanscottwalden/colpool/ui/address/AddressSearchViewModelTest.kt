@@ -10,6 +10,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -25,12 +26,11 @@ class AddressSearchViewModelTest {
     @After fun tearDown() = Dispatchers.resetMain()
 
     @Test
-    fun freeTextWithoutSelectionCannotBeSubmitted() = runTest {
+    fun freeTextWithoutSelectionReturnsNothing() = runTest {
         val vm = AddressSearchViewModel(fake)
         vm.onQueryChange("100 Example Street")
         advanceUntilIdle()
         assertEquals(2, vm.state.value.suggestions.size)
-        assertFalse(vm.state.value.canConfirm)
         assertNull(vm.state.value.selected)
     }
 
@@ -46,7 +46,7 @@ class AddressSearchViewModelTest {
         assertEquals("place-1", selected!!.placeId)
         assertEquals(12.5, selected.lat, 0.0)
         assertEquals(-34.25, selected.lng, 0.0)
-        assertTrue(vm.state.value.canConfirm)
+        assertFalse(vm.state.value.resolving)
     }
 
     @Test
@@ -58,7 +58,6 @@ class AddressSearchViewModelTest {
         advanceUntilIdle()
         vm.onQueryChange(vm.state.value.query + "x")
         assertNull(vm.state.value.selected)
-        assertFalse(vm.state.value.canConfirm)
     }
 
     @Test
@@ -70,16 +69,15 @@ class AddressSearchViewModelTest {
         advanceUntilIdle()
         vm.onSuggestionChosen(vm.state.value.suggestions.first())
         advanceUntilIdle()
-        assertEquals(1, fake.sessionsCreated.size)
-        val used = (fake.suggestionSessions + fake.resolveSessions).toSet()
-        assertEquals(setOf(fake.sessionsCreated.single()), used)
+        val first = fake.sessionsCreated.first()
+        assertEquals(setOf(first), (fake.suggestionSessions + fake.resolveSessions).toSet())
         assertTrue(fake.suggestionSessions.size >= 2)
 
         vm.startNewEntry()
         vm.onQueryChange("200 Sam")
         advanceUntilIdle()
-        assertEquals(2, fake.sessionsCreated.size)
-        assertEquals(fake.sessionsCreated[1], fake.suggestionSessions.last())
+        assertNotEquals(first, fake.suggestionSessions.last())
+        assertNotEquals(fake.resolveSessions.last(), fake.suggestionSessions.last())
     }
 
     @Test
@@ -102,7 +100,75 @@ class AddressSearchViewModelTest {
         vm.onQueryChange("100 Example")
         advanceUntilIdle()
         assertEquals(AddressSearchError.SearchFailed, vm.state.value.error)
-        assertFalse(vm.state.value.canConfirm)
+    }
+
+    @Test
+    fun searchAfterResolveUsesNewSession() = runTest {
+        val vm = AddressSearchViewModel(fake)
+        vm.onQueryChange("100 Example")
+        advanceUntilIdle()
+        vm.onSuggestionChosen(vm.state.value.suggestions.first())
+        advanceUntilIdle()
+        val resolveSession = fake.resolveSessions.single()
+        vm.onQueryChange("100 Example St")
+        advanceUntilIdle()
+        assertNotEquals(resolveSession, fake.suggestionSessions.last())
+    }
+
+    @Test
+    fun retypingSameTextAfterSearchErrorRetries() = runTest {
+        fake.failSuggestions = true
+        val vm = AddressSearchViewModel(fake)
+        vm.onQueryChange("100 Example")
+        advanceUntilIdle()
+        fake.failSuggestions = false
+        vm.onQueryChange("100 Example")
+        advanceUntilIdle()
+        assertNull(vm.state.value.error)
+        assertEquals(2, vm.state.value.suggestions.size)
+        assertEquals(2, fake.queries.size)
+    }
+
+    @Test
+    fun doubleTapWhileResolvingIsIgnored() = runTest {
+        val vm = AddressSearchViewModel(fake)
+        vm.onQueryChange("100 Example")
+        advanceUntilIdle()
+        val first = vm.state.value.suggestions
+        vm.onSuggestionChosen(first[0])
+        vm.onSuggestionChosen(first[1])
+        advanceUntilIdle()
+        assertEquals(1, fake.resolveSessions.size)
+        assertEquals("place-1", vm.state.value.selected!!.placeId)
+    }
+
+    @Test
+    fun resolveFailureKeepsSuggestionsAndEditClearsError() = runTest {
+        fake.failResolve = true
+        val vm = AddressSearchViewModel(fake)
+        vm.onQueryChange("100 Example")
+        advanceUntilIdle()
+        vm.onSuggestionChosen(vm.state.value.suggestions.first())
+        advanceUntilIdle()
+        assertEquals(AddressSearchError.ResolveFailed, vm.state.value.error)
+        assertEquals(2, vm.state.value.suggestions.size)
+        vm.onQueryChange("100 Example S")
+        assertNull(vm.state.value.error)
+    }
+
+    @Test
+    fun staleSearchResponseIsIgnored() = runTest {
+        val gated = GatedPlaces()
+        val vm = AddressSearchViewModel(gated, debounceMs = 0)
+        vm.onQueryChange("aaa")
+        advanceUntilIdle()
+        vm.onQueryChange("bbb")
+        advanceUntilIdle()
+        gated.complete("bbb")
+        gated.complete("aaa")
+        advanceUntilIdle()
+        assertEquals(listOf("bbb"), vm.state.value.suggestions.map { it.primaryText })
+        assertFalse(vm.state.value.searching)
     }
 
     @Test

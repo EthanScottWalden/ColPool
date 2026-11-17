@@ -16,7 +16,9 @@ data class AddressSuggestion(
     val placeId: String,
     val primaryText: String,
     val secondaryText: String,
-)
+) {
+    override fun toString(): String = "AddressSuggestion(redacted)"
+}
 
 /**
  * One address-entry session. Every suggestion call and the final [PlacesAutocomplete.resolve] of one

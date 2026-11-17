@@ -1,5 +1,6 @@
 package io.github.ethanscottwalden.colpool.data.places
 
+import com.google.android.gms.tasks.CancellationTokenSource
 import com.google.android.gms.tasks.Task
 import com.google.android.libraries.places.api.model.AutocompleteSessionToken
 import com.google.android.libraries.places.api.model.Place
@@ -25,12 +26,14 @@ class PlacesSdkAutocomplete(private val client: () -> PlacesClient) : PlacesAuto
     override fun newSession(): AddressSession = SdkSession(AutocompleteSessionToken.newInstance())
 
     override suspend fun suggestions(query: String, session: AddressSession): List<AddressSuggestion> {
+        val cancel = CancellationTokenSource()
         val request = FindAutocompletePredictionsRequest.builder()
             .setQuery(query)
+            .setCancellationToken(cancel.token)
             .setSessionToken(session.sdkToken())
             .setCountries(COUNTRIES)
             .build()
-        return client().findAutocompletePredictions(request).await().autocompletePredictions.map {
+        return client().findAutocompletePredictions(request).await(cancel).autocompletePredictions.map {
             AddressSuggestion(
                 placeId = it.placeId,
                 primaryText = it.getPrimaryText(null).toString(),
@@ -40,10 +43,12 @@ class PlacesSdkAutocomplete(private val client: () -> PlacesClient) : PlacesAuto
     }
 
     override suspend fun resolve(placeId: String, session: AddressSession): SelectedAddress {
+        val cancel = CancellationTokenSource()
         val request = FetchPlaceRequest.builder(placeId, FIELDS)
+            .setCancellationToken(cancel.token)
             .setSessionToken(session.sdkToken())
             .build()
-        val place = client().fetchPlace(request).await().place
+        val place = client().fetchPlace(request).await(cancel).place
         val location = place.location ?: error("Place has no location")
         val text = place.formattedAddress ?: error("Place has no address")
         return SelectedAddress(text = text, placeId = place.id ?: placeId, lat = location.latitude, lng = location.longitude)
@@ -59,7 +64,8 @@ class PlacesSdkAutocomplete(private val client: () -> PlacesClient) : PlacesAuto
     }
 }
 
-private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { cont ->
+private suspend fun <T> Task<T>.await(source: CancellationTokenSource): T = suspendCancellableCoroutine { cont ->
+    cont.invokeOnCancellation { source.cancel() }
     addOnSuccessListener { if (cont.isActive) cont.resume(it) }
     addOnFailureListener { if (cont.isActive) cont.resumeWithException(it) }
     addOnCanceledListener { cont.cancel() }
