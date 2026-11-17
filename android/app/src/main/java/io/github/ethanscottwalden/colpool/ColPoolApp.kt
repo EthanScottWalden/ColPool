@@ -14,7 +14,7 @@ class ColPoolApp : Application() {
     override fun onCreate() {
         super.onCreate()
         initFirebase()
-        container = AppContainer()
+        container = AppContainer(this)
         if (EmulatorConfig.enabled) connectEmulators(container)
     }
 
