@@ -36,20 +36,20 @@ Claude Code runs in **WSL2**, where the Bash sandbox applies. On native Windows 
    - `sdkmanager` is now deprecated in favour of `android sdk` (same packages). Metrics can be turned off with `--no-metrics`.
    - Do **not** run `android init`: it installs unreviewed agent tooling.
    - Put the real Places key in `android/local.properties` (`PLACES_API_KEY=...`, never committed). Gradle finds the SDK from `ANDROID_HOME`, so no `sdk.dir` is needed. The sandbox can't read `local.properties`, so the build uses the committed placeholder there.
-   - **Gradle in the sandbox.** Gradle's JVMs ignore the sandbox's proxy settings, and `/tmp` is read-only there. Agents run Gradle through `android/scripts/sandbox-gradlew.sh <tasks>`: it sets `ANDROID_HOME`, the temp dir and the proxy for that one command only, writes no files and prints no credentials. It always runs with `--no-daemon`: a daemon left over from an earlier sandboxed command holds the cache lock and keeps stale proxy credentials. Humans use plain `./gradlew`. Never put proxy settings in `~/.gradle/gradle.properties`: it would break normal builds. The sandbox enforces this: `~/.gradle/gradle.properties`, `~/.gradle/init.gradle(.kts)` and `~/.gradle/init.d` are in `sandbox.filesystem.denyWrite`, so agents can't save credentials there or plant init scripts that would run in the owner's unsandboxed builds. Inside the sandbox they appear empty. The first sandboxed build needs `services.gradle.org`, `plugins.gradle.org`, `dl.google.com`, `repo.maven.apache.org` and `gcp.mirrors.maven.org` reachable.
+   - **Gradle in the sandbox.** Gradle's JVMs ignore the sandbox's proxy settings, and `/tmp` is read-only there. Agents run Gradle through `android/scripts/sandbox-gradlew.sh <tasks>`: it sets `ANDROID_HOME`, the temp dir and the proxy for that one command only, writes no files and prints no credentials. It always runs with `--no-daemon`: a daemon left over from an earlier sandboxed command holds the cache lock and keeps stale proxy credentials. It uses its own Gradle home per checkout, `<checkout>/.cache/gradle-agent` (gitignored), never `~/.gradle`: Gradle releases cache locks between processes with a localhost message that can't cross the sandbox's private network, so an owner daemon, Android Studio or an orphaned build would otherwise block agent builds (owner decision 2026-11-16). The first agent build in a checkout downloads dependencies again. Humans use plain `./gradlew`. Never put proxy settings in `~/.gradle/gradle.properties`: it would break normal builds. The sandbox enforces this: `~/.gradle/gradle.properties`, `~/.gradle/init.gradle(.kts)` and `~/.gradle/init.d` are in `sandbox.filesystem.denyWrite`, so agents can't save credentials there or plant init scripts that would run in the owner's unsandboxed builds. Inside the sandbox they appear empty. The first sandboxed build needs `services.gradle.org`, `plugins.gradle.org`, `dl.google.com`, `repo.maven.apache.org` and `gcp.mirrors.maven.org` reachable.
    - Device checks and the instrumented smoke test use the owner's **Windows Android Studio emulator**, not WSL (no `/dev/kvm`).
 
 ## 2. Build, run and test
 
-_Filled in by the setup Issues: #11 (Android app), #12 (Functions and emulator), #54 (CI)._
+_Set up by #11 (Android app), #12 (Functions and emulator) and #54 (CI)._
 
 | Task | Command |
 |---|---|
 | Android build | `cd android && ./gradlew assembleDebug` (agents: `android/scripts/sandbox-gradlew.sh assembleDebug`; same for every Gradle task below) (debug builds target the Emulator Suite by default; `-Pcolpool.useEmulators=false` for real Firebase, which needs `google-services.json`) |
 | Android JVM tests (Robolectric smoke test) | `cd android && ./gradlew testDebugUnitTest` |
 | Screen screenshot tests (Roborazzi) | `cd android && ./gradlew verifyRoborazziDebug`; refresh goldens with `recordRoborazziDebug` and commit the images (`app/src/test/screenshots/`) |
-| Android instrumented smoke test (owner-run) | Compiles with `./gradlew assembleDebugAndroidTest`. The owner runs `./gradlew connectedDebugAndroidTest` on the Windows emulator. CI runs it after #54. |
-| Functions unit tests (emulator) | `cd functions && npm test` runs the function unit tests (handlers called with `.run`) and the Rules tests against the Auth and Firestore emulators; agents can run it (install with `functions/scripts/sandbox-npm.sh ci`). Needs Node >=24.12 and JDK 21. `cd functions && npm run test:e2e` calls functions through the Functions emulator; humans and CI (#54) only, it can't run in the agent sandbox. |
+| Android instrumented smoke test (owner-run) | Compiles with `./gradlew assembleDebugAndroidTest`. The owner runs `./gradlew connectedDebugAndroidTest` on the Windows emulator. CI runs it (job `android-instrumented`) on PRs into `staging` only; not a required check (owner decision 2026-11-16, ADR 0001). |
+| Functions unit tests (emulator) | `cd functions && npm test` runs the function unit tests (handlers called with `.run`) and the Rules tests against the Auth and Firestore emulators; agents can run it (install with `functions/scripts/sandbox-npm.sh ci`). Needs Node >=24.12 and JDK 21. `cd functions && npm run test:e2e` calls functions through the Functions emulator; humans and CI only, it can't run in the agent sandbox. |
 | Security Rules tests (emulator) | Same command (`cd functions && npm test`); rules tests live in `functions/test/rules/`, function unit tests in `functions/test/functions/`. |
 | Start the emulator | `cd functions && npm run emulators`. The Firestore emulator jar is downloaded once by the owner, outside the sandbox, into `.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar`; check its SHA-256 `9b6498b7f62714d67f48f59b3818883cd682dbcd46b9f59511de81c97bb5166c` (firebase-tools does not check cached jars). Repeat whenever the firebase-tools pin changes. See [ADR 0003](docs/adr/0003-functions-emulator-setup.md). |
 
@@ -63,16 +63,43 @@ Each setup Issue (#11, #12, #54) settles its whole library list as part of its s
 
 ### Setup preflight
 
-For a setup Issue (#12, #54 and any later toolchain Issue), the lead does this before starting the implementer. Owner decision 2026-11-12; see `docs/AGENTIC_RETROSPECTIVE.md`.
+For a setup Issue (#12, #54 and any later toolchain Issue), the lead does this before starting the implementer. Owner decision 2026-11-12; see `docs/agentic-retrospectives/issue-11.md`.
 
 1. List what the Issue needs: tools and versions (CLIs, SDKs, JDK, Node), the folders they write (caches, config), the network hosts they download from, and any device or hardware (e.g. `/dev/kvm`).
 2. Probe each one read-only from inside the sandbox: `which` / `--version`, `ls`, a write test in each cache folder, `curl -sI` per host. Compare with `.claude/settings.json` (`allowWrite`, `allowedDomains`). Don't install anything.
 3. For every gap, write the exact fix: an install command checked against the real download URL or package name, a `settings.json` edit, or a restart.
 4. Send the owner **one** HUMAN ACTION REQUIRED with all of them, in order. Re-run the probes after the owner is done, and start the implementer only when they pass.
 
-### Before CI exists
+### Institution accounts
 
-Until #54 merges, there is no CI to be green. The verifier's own run of the Issue's builds and tests, reported with commands and results, stands in for CI before merging to `dev`. When #54 merges, the owner adds its job as a required status check on the `dev-integration` ruleset.
+Institution accounts are created only by `functions/scripts/create-institution-account.ts` (developer-run, never part of the deployed Functions code or the app; #15). It creates the Auth user and sets the custom claim `institution: true`. It creates no consent, user, profile or private-details docs. It refuses a non-`@calbaptist.edu` email, a password under 8 characters, and any email that already has an account (it never converts a student account). The password is read from the first line of stdin only, never from an argument, and is never printed.
+
+- **Emulator:** with the Auth emulator running (`cd functions && npm run emulators`), in another shell with `FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099` set, in bash (Node 24+): `read -rs PW; printf '%s\n' "$PW" | npm run create-institution-account -- --email staff@calbaptist.edu --display-name "Test Staff"`. It targets project `demo-colpool`.
+- **Production (documented only; run by the owner, never by an agent):** set `GOOGLE_APPLICATION_CREDENTIALS` to the path of a service-account key kept outside the repo, leave `FIREBASE_AUTH_EMULATOR_HOST` unset, and run the same command with `--project <real-project-id>`. A `demo-` project id is refused in this mode. Never commit or paste the key.
+
+### Seeding reference data
+
+`functions/scripts/seed-reference-data.ts` (developer-run, outside `src/` like the institution script; #17) writes the five `campusPoints/*` docs and `options/profile`. Values come from `functions/src/shared/schema/campusPoints.ts` and `options.ts`. It is idempotent (each doc is written whole with `set()`, so a second run changes nothing) and never deletes: a campus point removed from the seed list is left in place, so retire one by setting `active: false` in Firestore. Coordinate source: `docs/data-model.md` §2.7.
+
+- **Emulator:** with the Firestore emulator running (`cd functions && npm run emulators`), in another shell with `FIRESTORE_EMULATOR_HOST=127.0.0.1:8080` set: `npm run seed-reference-data`. It targets project `demo-colpool`.
+- **Production (documented only; run by the owner, never by an agent):** set `GOOGLE_APPLICATION_CREDENTIALS` to the path of a service-account key kept outside the repo, leave `FIRESTORE_EMULATOR_HOST` unset, and run `npm run seed-reference-data -- --project <real-project-id>`. A `demo-` project id is refused in this mode. Never commit or paste the key.
+
+### CI
+
+`.github/workflows/ci.yml` (#54) runs on every pull request and on pushes to `dev`, `staging` and `main`, on GitHub-hosted runners (free, the repo is public). It uses no secrets, has `contents: read` only, never deploys, and every action is pinned to a commit SHA.
+
+- **`android`:** JDK 21 (Temurin), `./gradlew assembleDebug testDebugUnitTest verifyRoborazziDebug` from `android/`. Reports are uploaded on failure.
+- **`functions`:** Node 24, JDK 21, downloads the Firestore emulator jar and **fails if its SHA-256 differs** from the one in the workflow, then `npm ci`, `npm test` and `npm run test:e2e`. Logs are uploaded on failure. When the `firebase-tools` pin changes, update `FIRESTORE_JAR_NAME` and `FIRESTORE_JAR_SHA256` in the workflow with the same manual check as above.
+- **`android-instrumented`:** runs `connectedDebugAndroidTest` on an API 36 x86_64 emulator, **only on PRs into `staging`**. It is informational: it is not in `ci-ok`, and the owner shouldn't make it a required check.
+- **`ci-ok`:** needs both and fails if either failed or was cancelled. It is the single required check name.
+
+"CI is green" means `ci-ok` passed on the PR. The verifier's own run still reports commands and results for the Issue's own tests.
+
+**Owner steps (once, after #54 is merged and `ci-ok` has run on at least one PR, so GitHub offers the name):**
+1. GitHub, repo **Settings > Rules > Rulesets > `dev-integration`**.
+2. Turn on **Require status checks to pass**, click **Add checks**, pick **`ci-ok`** (the GitHub Actions one), and save.
+3. Optional but sensible: do the same on **`promotion-gate`** so promotions to `staging` and `main` also need `ci-ok`. Because CI runs on `pull_request` for any base, the `dev` to `staging` PR gets it too.
+4. Don't add `android` or `functions` as separate required checks: `ci-ok` covers them and keeps the name stable.
 
 ## 3. Sandbox
 
@@ -88,6 +115,7 @@ Configured in `.claude/settings.json`. It applies to the main session and every 
 
 **The GitHub script** (`.claude/hooks/github.mjs`) is the only way agents reach GitHub. Run it with no operation for the full list.
 - **Reads (any agent):** `auth-status`, `issue-view`, `issue-list`, `pr-view`, `pr-list`, `pr-checks`, `pr-diff`, `api-get` (paths under `repos/EthanScottWalden/ColPool/` or `users/EthanScottWalden/`).
+- **Worktrees:** an agent working in a git worktree must call the script by its absolute path, `node /home/walde/ColPool/.claude/hooks/github.mjs <op>`. The owner's `settings.local.json` exempts that path from the sandbox. The relative path from a worktree points at the worktree's copy, and the guard rejects it.
 - **Lead-only read:** `graphql-query` (exactly one query, no mutations or fragments). It can read anything the helper account can see, not only ColPool, so subagents can't run it (owner decision 2026-11-11).
 - **Writes (lead):** issue create/edit/comment/close/reopen; `pr-create` (into `dev`, or `dev` into `staging`); PR edit/comment/close; `pr-merge` (PRs into `dev` only, merge commit, never `--admin`); `graphql-mutation` (Project field and Issue-link mutations only); `branch-delete` (never `dev`/`staging`/`main`).
 - **`push <branch>`:** the lead (any branch except `dev`/`staging`/`main`), implementer (`feature/*`, `fix/*`), docs-keeper (`docs/*`). It runs `git push -u origin refs/heads/<branch>:refs/heads/<branch>`. No force, refspecs or globs.

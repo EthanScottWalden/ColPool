@@ -45,13 +45,21 @@ The build targets Java 17 bytecode and compiles on JDK 21 (no toolchain provisio
 - A release build without the file fails at startup with a clear message.
 
 ### Places key
-- Places SDK 6.0.2 is added as a dependency and **not wired**. Initialisation and use belong to #16.
+- Places SDK 6.0.2 is wired by #16 (see "Places autocomplete (#16)" below).
 - Key via the Secrets Gradle plugin: the real key goes in uncommitted `android/local.properties` as `PLACES_API_KEY`. The committed `android/local.defaults.properties` holds a placeholder so CI and fresh clones build.
 - The app's package for the key restriction is `io.github.ethanscottwalden.colpool`. The owner adds the Android-app restriction once the debug SHA-1 exists (`docs/setup/firebase.md`).
 
+### Places autocomplete (#16)
+- **Where:** port `data/places/PlacesAutocomplete.kt` (`newSession`, `suggestions`, `resolve`, `SelectedAddress`), SDK implementation `data/places/PlacesSdkAutocomplete.kt`, state holder `ui/address/AddressSearchViewModel.kt`, sheet `ui/address/AddressSearchSheet.kt` (`AddressSearchSheet` and stateless `AddressSearchContent`, with an optional `notice` slot for the public-places note). Tests use a fake port. No screen uses the sheet yet (#22, #24).
+- **Wiring:** `AppContainer.places` initialises Places once, on first use, with `Places.initializeWithNewPlacesApiEnabled(context, BuildConfig.PLACES_API_KEY)`. The key comes from the Secrets plugin (placeholder `DEFAULT_API_KEY` in CI). With the placeholder the app builds and runs, and the sheet shows its error state.
+- **New Places API:** used, to match the key restricted to **Places API (New)** (`docs/setup/firebase.md`). The legacy initialiser would need the legacy Places API enabled and the key restricted to it.
+- **Session token:** one `AutocompleteSessionToken` per address entry. The ViewModel creates it when the entry starts and uses it for every suggestion call and the final lookup. A successful lookup ends the Places session, so the ViewModel then starts a new one: a later edit and search never reuses the ended token. A new entry (new ViewModel, or `startNewEntry()`) gets a new token. Requests are cancelled with the coroutine, and out-of-date search responses are ignored.
+- **Field mask:** the lookup requests only `ID`, `FORMATTED_ADDRESS`, `LOCATION`.
+- **Rules:** suggestions limited to the US; no device-location bias, GPS or map. Input under 3 characters is not sent; typing is debounced 300 ms. Tap to choose (owner decision 2026-11-16): tapping a suggestion resolves it and closes the sheet with the `SelectedAddress`; the only button is "Close". The tapped row shows a progress indicator and further taps are ignored. If the lookup fails the sheet stays open with the suggestions and an error above them. The sheet calls `onConfirm(SelectedAddress)` and the caller closes it. Call `startNewEntry()` or use a fresh ViewModel for each entry: reusing a ViewModel that still holds a selection re-fires `onConfirm` with the old address. While a lookup runs, the other rows are disabled and TalkBack announces "Looking up address…". Only a resolved suggestion is ever returned; editing clears a selection or error. Typed text, suggestions and coordinates are never logged (RC-05).
+
 ### Testing
 - **JVM tests:** Robolectric 4.17 with Roborazzi 1.78.0. A smoke test starts the real app class and checks the placeholder. A screenshot test renders the placeholder (golden: `android/app/src/test/screenshots/placeholder.png`).
-- **Instrumented smoke test** (`androidTest`): written and compiled by agents (`assembleDebugAndroidTest`). The owner runs it on the Windows emulator. CI runs it after #54.
+- **Instrumented smoke test** (`androidTest`): written and compiled by agents (`assembleDebugAndroidTest`). The owner runs it on the Windows emulator. CI runs it on PRs into `staging` (not a required check; owner decision 2026-11-16, #54).
 - Robolectric needs the Android 16 (SDK 36) jar. Its own downloader can't pass the sandbox proxy, so `app/build.gradle.kts` resolves `org.robolectric:android-all-instrumented:16-robolectric-13921718-i7` through Gradle and runs tests offline. The Robolectric version fixes this coordinate: update it when Robolectric changes.
 - JDK 21 needs `--add-exports/--add-opens java.base/jdk.internal.access` for Robolectric (set in the build file).
 

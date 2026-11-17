@@ -65,7 +65,7 @@ No new product limits. `firstName` and `lastName` are required, max 30 (RC-30). 
 ## Consequences
 - The Android Kotlin models must mirror these names and shapes. A later Issue should check them against the TypeScript constants in `functions/src/shared/schema/`.
 - Weekday ids (`mon`..`sun`, `weekday.ts`) are fixed here because schedule keys need one. #20 must reuse that type; changing it is a contract change.
-- The institution claim key remains #15's decision. The test helpers' consent question is resolved by decision 1: a consented persona has a `consents/{uid}` doc, no claim. Adding that doc to the persona setup is `TODO(#18)` in `functions/test/helpers/personas.ts`.
+- The institution claim key was decided in #18: `institution: true` (owner decision 2026-11-16). The test helpers' consent question is resolved by decision 1: a consented persona has a `consents/{uid}` doc, no claim. Adding that doc to the persona setup is done in #18 (`seedConsents()` in `functions/test/helpers/personas.ts`).
 - Eventual rules shape for #18: default deny, with owner reads of `users`, `privateDetails`, `schedules`; owner write to `privateDetails` (only listed keys) and `profiles` (RC-30 and option checks); consented, non-institution reads of `campusPoints` and `options/profile`; no client write to `consents`, `profileAccess`, `schedules`, `users`.
 - Rules lookups per request are bounded (consent `exists`, `profileAccess` `get`, options `get`), well within Firestore's limits.
 - The permission tables are only as correct as the transactions that maintain them (accepted architectural risk, ARCHITECTURE §9). #44 owns maintaining them through the lifecycle.

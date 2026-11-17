@@ -47,7 +47,7 @@ Not in the approved stack (don't add without a documented human decision): Cloud
 /
 ├─ android/               Kotlin app (Gradle project)
 ├─ functions/             Cloud Functions (TypeScript); shared modules under src/shared/
-├─ scripts/               developer-only scripts (institution accounts, seeding)
+├─ scripts/               reserved for developer scripts outside Functions; currently empty. The institution account (#15) and seed (#17) scripts live in functions/scripts/.
 ├─ firebase.json          emulator + deploy config
 ├─ firestore.rules
 ├─ firestore.indexes.json
@@ -62,6 +62,7 @@ Not in the approved stack (don't add without a documented human decision): Cloud
 | Functions toolchain and emulator harness | #12 (TMP-03) | TypeScript on a Node 22 runtime (Node >=24.12 for dev and CI), `node:test`, emulator project `demo-colpool`, default-deny `firestore.rules`, project-local `.cache/`. See [ADR 0003](adr/0003-functions-emulator-setup.md). |
 | Exact Firestore collection layout | #13 (TMP-04), #20 (TMP-14) | Core: `users`, `privateDetails`, `profiles`, `consents`, `profileAccess`, `schedules`, `campusPoints`, `options/profile`, one doc per student where per-student. See [data model](data-model.md) and [ADR 0002](adr/0002-firestore-layout.md). Series, draft and request layout: #20 (_TBD_). |
 | How rules recognize a consented student (custom claim vs reading the consent record) | #13 (TMP-04) | Rules read the record: `exists(consents/{uid})`; no consent claim. See [ADR 0002](adr/0002-firestore-layout.md) §1. |
+| Institution custom claim key | #18 (TMP-13), #15 | `institution: true` (boolean). Rules treat any `institution` claim as institution; the script sets `true`. Rules check it alongside the consent record (`isInstitution()` in `firestore.rules`); #15's script sets it. Owner decision 2026-11-16. |
 | How profile permissions and weekday rosters are stored | #13 (TMP-04), #44 (TMP-37) | Permissions: one backend-only `profileAccess/{ownerId}` doc with reason sets (idempotent). See [ADR 0002](adr/0002-firestore-layout.md) §3, [data model](data-model.md) §2.5. Weekday rosters: _TBD_ (#44). |
 | How the backend finds a student's accepted and hosted weekdays across series for RC-32 conflict checks (e.g. a per-student schedule record kept in the same transactions) | #13 (TMP-04), #20 (TMP-14) | One `schedules/{uid}` doc per student, kept in the same transactions as every lifecycle change; concurrent accepts serialize on it. See [ADR 0002](adr/0002-firestore-layout.md) §4. RC-32 edge semantics still open there. |
 | Phase 6 performance dataset size | #50 (TMP-48) | _TBD_ |
@@ -85,7 +86,7 @@ Not in the approved stack (don't add without a documented human decision): Cloud
 
 | Function / job | Responsibility | Source |
 |---|---|---|
-| Sign-up | Checks `@calbaptist.edu`, password, name lengths, consent; creates Auth account + user records + consent record (server timestamp) in one step; deletes the Auth account if a later step fails, and logs failures. | RC-06, INTENT §3.1 |
+| Sign-up | Checks `@calbaptist.edu`, password, name lengths, consent; creates Auth account + user records + consent record (server timestamp) in one step; deletes the Auth account if a later step fails, and logs failures (uid and error code only). Errors carry `details.reason`, listed in `functions/src/shared/auth/reasons.ts` (`SIGN_UP_REASONS`). Every student-facing callable first runs the shared `requireStudent` check (`functions/src/shared/auth/requireStudent.ts`): signed in, no `institution` claim, consent record exists. | RC-06, INTENT §3.1 |
 | Route preview | Runs shared validation; calls Routes once per weekday × direction; computes expected times; stores result on a **server-side draft** with a "what was reviewed" marker; names the failing address. | RC-12, RC-14, RC-28 |
 | Post series | Re-runs shared validation (start date, matching date, RC-31, no weekday the host rides in a conflicting series per RC-32); confirms draft unchanged since review; saves exactly the reviewed results; idempotent on duplicate tap; makes host profile visible. | RC-12, RC-31, RC-01 |
 | Send request | One request per rider × series; checks open seat, trips left and schedule conflicts for each chosen weekday; grants host view of requester; notifies host. | RC-16, RC-01, RC-32, RC-33 |
@@ -94,7 +95,7 @@ Not in the approved stack (don't add without a documented human decision): Cloud
 | Cancel series | Status change (never delete); pending weekdays become declined (no per-weekday notifications); record cancel time; update permissions; notify everyone with a pending/accepted request. | US-06, RC-24 |
 | Daily end-of-series job | Scheduled, shortly after midnight America/Los_Angeles; marks ended series by server clock; pending weekdays become declined; notifies host and every rider with a pending or accepted request (one notification each); updates search fields/permissions; **idempotent**. | RC-17, INTENT §6.1 |
 | Export | Institution claim only; rejects a range whose start is after its end or whose end is after today (Pacific); builds CSV from stored records via the trip-counting module; returns the file to the app. | US-17, RC-07, RC-23 |
-| Institution account script | **Developer-run, outside the app.** Creates the account and sets the claim. | RC-07, #15 |
+| Institution account script | **Developer-run, outside the app** (`functions/scripts/create-institution-account.ts`, not in `src/`; usage in `DEVELOPMENT.md`). Creates the account and sets the claim. | RC-07, #15 |
 
 ### 3.3 Shared backend modules ("contracts")
 
@@ -223,12 +224,13 @@ Product privacy and safety rules (who sees what, test data, verification wording
 
 | Item | Status | Owner / where |
 |---|---|---|
-| Precise campus-point coordinates | Waiting on project owner | #17 (TMP-12), `human-task` |
 | Series, draft and request layout; weekday roster storage | Decide in issue, record in §2 | #20, #44 |
 | RC-32 edge semantics (pending vs posting; overlap on shared weekdays; no-trips-left) | Decide before the first RC-32 check ships ([ADR 0002](adr/0002-firestore-layout.md) §4) | #23 (shared validation); also applies to #35, #40 |
 | Performance dataset size | Decide in issue | #50 |
 
-**Accepted architectural risks** (don't "fix" by adding scope): stale permissions if a function fails mid-update (mitigated by same-transaction updates); late series ending of up to a day; partial sign-up leaving a consent-less Auth account (unusable by RC-06, logged); search won't scale past MVP without geo-filtering; unverified emails (RISK-04); estimated, not live, route times (RISK-09). See SDD §7.2 and INTENT §6.1.
+**Accepted architectural risks** (don't "fix" by adding scope): stale permissions if a function fails mid-update (mitigated by same-transaction updates); late series ending of up to a day; partial sign-up leaving a consent-less Auth account (unusable by RC-06, logged); search won't scale past MVP without geo-filtering; unverified emails (RISK-04); estimated, not live, route times (RISK-09); sign-up account enumeration (below). See SDD §7.2 and INTENT §6.1.
+
+**Sign-up account enumeration** (owner decision 2026-11-16, #14): the sign-up `email-in-use` error reveals whether a CBU email already has an account. Accepted for the MVP. App Check is deferred past the MVP and there is no rate limit. Related case: if a function crash leaves an Auth user with no docs (an orphan Auth account), that email keeps returning `email-in-use` until a developer deletes the Auth user.
 
 ---
 
