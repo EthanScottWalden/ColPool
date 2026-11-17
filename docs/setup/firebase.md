@@ -50,6 +50,18 @@ Done once by the owner. Tick the checklist in §3 when done.
    - Application restriction: Android apps, package `io.github.ethanscottwalden.colpool`. The owner adds it once the debug SHA-1s exist (`./gradlew signingReport`, see `android/app/google-services.README.md`), plus the release SHA-1 later.
    - Keep the value private. #11 reads it from uncommitted `local.properties` through the Secrets Gradle plugin. A committed placeholder lets CI build without it (ARCHITECTURE §6).
 
+### Places key: owner steps for #16
+
+1. **Put the key in the app build.** Create or edit `android/local.properties` (ignored by git) and add one line, with your real key:
+   ```
+   PLACES_API_KEY=<the places-android key value>
+   ```
+   Never commit it. Without it the app builds with the placeholder and the address sheet shows an error.
+2. **Restrict the API.** Google Cloud console (project `colpool`) → *APIs & Services* → *Credentials* → `places-android` → *API restrictions* → *Restrict key* → select **Places API (New)** only. #16 uses the new Places API, so this is the right variant.
+3. **Get the debug SHA-1.** From `android/`, run `./gradlew signingReport` (on Windows: `.\gradlew.bat signingReport`). Under `Variant: debug`, copy the `SHA1` line.
+4. **Restrict the app.** Same key → *Application restrictions* → *Android apps* → *Add an item*: package name `io.github.ethanscottwalden.colpool` and the debug SHA-1 from step 3. Save. Add the release SHA-1 later. Changes can take a few minutes.
+5. **Check.** On a device or emulator with the real key, open the address sheet (once #22 or #24 uses it) and confirm suggestions appear. A key that is restricted to the wrong package or SHA-1 makes the sheet show its error text.
+
 ## 3. Verification checklist
 
 Owner, in the console:

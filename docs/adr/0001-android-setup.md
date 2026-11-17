@@ -45,9 +45,17 @@ The build targets Java 17 bytecode and compiles on JDK 21 (no toolchain provisio
 - A release build without the file fails at startup with a clear message.
 
 ### Places key
-- Places SDK 6.0.2 is added as a dependency and **not wired**. Initialisation and use belong to #16.
+- Places SDK 6.0.2 is wired by #16 (see "Places autocomplete (#16)" below).
 - Key via the Secrets Gradle plugin: the real key goes in uncommitted `android/local.properties` as `PLACES_API_KEY`. The committed `android/local.defaults.properties` holds a placeholder so CI and fresh clones build.
 - The app's package for the key restriction is `io.github.ethanscottwalden.colpool`. The owner adds the Android-app restriction once the debug SHA-1 exists (`docs/setup/firebase.md`).
+
+### Places autocomplete (#16)
+- **Where:** port `data/places/PlacesAutocomplete.kt` (`newSession`, `suggestions`, `resolve`, `SelectedAddress`), SDK implementation `data/places/PlacesSdkAutocomplete.kt`, state holder `ui/address/AddressSearchViewModel.kt`, sheet `ui/address/AddressSearchSheet.kt` (`AddressSearchSheet` and stateless `AddressSearchContent`, with an optional `notice` slot for the public-places note). Tests use a fake port. No screen uses the sheet yet (#22, #24).
+- **Wiring:** `AppContainer.places` initialises Places once, on first use, with `Places.initializeWithNewPlacesApiEnabled(context, BuildConfig.PLACES_API_KEY)`. The key comes from the Secrets plugin (placeholder `DEFAULT_API_KEY` in CI). With the placeholder the app builds and runs, and the sheet shows its error state.
+- **New Places API:** used, to match the key restricted to **Places API (New)** (`docs/setup/firebase.md`). The legacy initialiser would need the legacy Places API enabled and the key restricted to it.
+- **Session token:** one `AutocompleteSessionToken` per address entry. The ViewModel creates it when the entry starts and uses it for every suggestion call and the final lookup. A new entry (new ViewModel, or `startNewEntry()`) gets a new token.
+- **Field mask:** the lookup requests only `ID`, `FORMATTED_ADDRESS`, `LOCATION`.
+- **Rules:** suggestions limited to the US; no device-location bias, GPS or map. Input under 3 characters is not sent; typing is debounced 300 ms. Only a resolved suggestion can be confirmed; editing clears it. Typed text, suggestions and coordinates are never logged (RC-05).
 
 ### Testing
 - **JVM tests:** Robolectric 4.17 with Roborazzi 1.78.0. A smoke test starts the real app class and checks the placeholder. A screenshot test renders the placeholder (golden: `android/app/src/test/screenshots/placeholder.png`).
