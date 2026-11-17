@@ -43,7 +43,7 @@ firebase-tools skips the checksum on cached jars, so this check is manual. **Rep
 `ping` (requires auth, returns `{ ok: true }`) is defined in `src/ping.ts` so tests can import it, and `src/index.ts` exports it **only** when `FUNCTIONS_EMULATOR === "true"`, so it is never part of a deployed codebase. It exists to prove the harness.
 
 ### Test helpers
-`functions/test/helpers/personas.ts` provides `authedStudent()`, `studentWithoutConsent()`, `institutionUser()` and `unauthenticated()`, each usable as a Rules context and as an Auth-emulator user with an ID token. Fake `@calbaptist.edu` addresses only. Two open items are marked in code: `TODO(#13)` how consent is marked, and `TODO(#13/#15)` the institution claim key (provisional constant, test helpers only).
+`functions/test/helpers/personas.ts` provides `authedStudent()`, `studentWithoutConsent()`, `institutionUser()` and `unauthenticated()`, each usable as a Rules context and as an Auth-emulator user with an ID token. Fake `@calbaptist.edu` addresses only. Two open items are marked in code: `TODO(#18)` give the consented persona a `consents/{uid}` doc in the rules environment (consent is that doc's existence, [ADR 0002](0002-firestore-layout.md) §1), and `TODO(#15)` the institution claim key (provisional constant, test helpers only).
 
 ## Consequences
 - Later Issues add rules, tests and functions on this harness; each rule ships with allow and deny tests.
