@@ -128,11 +128,13 @@ fun StaffExportPlaceholder(onLogOut: () -> Unit, modifier: Modifier = Modifier) 
 
 /** Routing couldn't finish: retry, or log out. Never a student or staff screen. */
 @Composable
-fun SessionErrorScreen(onRetry: () -> Unit, onLogOut: () -> Unit, modifier: Modifier = Modifier) {
+fun SessionErrorScreen(onRetry: () -> Unit, onLogOut: () -> Unit, modifier: Modifier = Modifier, detail: String? = null) {
     Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Centered {
             Text(stringResource(R.string.session_error_title), style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
             Text(stringResource(R.string.session_error_body), style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+            // Debug builds only (null in release).
+            if (detail != null) Text(detail, style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center)
             Button(onClick = onRetry) { Text(stringResource(R.string.session_retry)) }
             OutlinedButton(onClick = onLogOut) { Text(stringResource(R.string.log_out)) }
         }

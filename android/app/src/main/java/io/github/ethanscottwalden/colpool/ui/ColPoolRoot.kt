@@ -21,6 +21,7 @@ import io.github.ethanscottwalden.colpool.ui.shell.StudentShell
 fun ColPoolRoot(session: SessionViewModel, auth: AuthViewModel) {
     val state by session.state.collectAsState()
     val authState by auth.state.collectAsState()
+    val errorDetail by session.errorDetail.collectAsState()
 
     LaunchedEffect(state) {
         if (state !is SessionState.SignedOut) auth.reset()
@@ -44,6 +45,6 @@ fun ColPoolRoot(session: SessionViewModel, auth: AuthViewModel) {
         SessionState.Onboarding -> OnboardingPlaceholder(onLogOut = session::logOut)
         SessionState.Search -> StudentShell(onLogOut = session::logOut)
         SessionState.Staff -> StaffExportPlaceholder(onLogOut = session::logOut)
-        SessionState.Error -> SessionErrorScreen(onRetry = session::retry, onLogOut = session::logOut)
+        SessionState.Error -> SessionErrorScreen(onRetry = session::retry, onLogOut = session::logOut, detail = errorDetail)
     }
 }

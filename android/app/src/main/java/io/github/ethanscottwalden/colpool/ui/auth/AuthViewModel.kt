@@ -6,6 +6,7 @@ import io.github.ethanscottwalden.colpool.data.session.AuthBackend
 import io.github.ethanscottwalden.colpool.data.session.AuthFailure
 import io.github.ethanscottwalden.colpool.data.session.AuthFailureKind
 import io.github.ethanscottwalden.colpool.data.session.SignUpRequest
+import io.github.ethanscottwalden.colpool.ui.ErrorDetail
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +27,8 @@ data class AuthUiState(
     /** Field errors show only after a submit attempt. */
     val showErrors: Boolean = false,
     val formError: AuthFailureKind? = null,
+    /** Debug builds only: class and redacted message behind an Unknown error. Null in release. */
+    val formErrorDetail: String? = null,
 ) {
     val fieldErrors: Set<SignUpFieldError>
         get() = if (mode == AuthMode.SignUp && showErrors) SignUpForm.validate(firstName, lastName, email, password, consent) else emptySet()
@@ -97,6 +100,8 @@ class AuthViewModel(
         }
     }
 
+    private fun detailOf(e: Throwable, s: AuthUiState): String? = ErrorDetail.forDisplay(e, listOf(s.email, s.password))
+
     /** [block] returns true to continue to routing. */
     private fun run(block: suspend () -> Boolean) {
         _state.update { it.copy(busy = true, formError = null) }
@@ -110,9 +115,10 @@ class AuthViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: AuthFailure) {
-                _state.update { it.copy(formError = e.kind) }
+                val unknown = e.kind == AuthFailureKind.Unknown || e.kind == AuthFailureKind.Internal
+                _state.update { it.copy(formError = e.kind, formErrorDetail = if (unknown) detailOf(e.cause ?: e, it) else null) }
             } catch (e: Exception) {
-                _state.update { it.copy(formError = AuthFailureKind.Unknown) }
+                _state.update { it.copy(formError = AuthFailureKind.Unknown, formErrorDetail = detailOf(e, it)) }
             } finally {
                 _state.update { it.copy(busy = false) }
             }

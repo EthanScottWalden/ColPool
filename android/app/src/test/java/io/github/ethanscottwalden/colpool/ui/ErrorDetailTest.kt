@@ -1,0 +1,43 @@
+package io.github.ethanscottwalden.colpool.ui
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class ErrorDetailTest {
+    @Test fun usesSimpleClassNameAndMessage() {
+        assertEquals("IllegalStateException: boom", ErrorDetail.format(IllegalStateException("boom")))
+    }
+
+    @Test fun noMessageGivesJustTheClassName() {
+        assertEquals("IllegalStateException", ErrorDetail.format(IllegalStateException()))
+    }
+
+    @Test fun redactsEmailsAndSecrets() {
+        val d = ErrorDetail.format(
+            RuntimeException("The user jordan.lee@calbaptist.edu failed with pw demo-pass-123 (other@x.org)"),
+            secrets = listOf("jordan.lee@calbaptist.edu", "demo-pass-123"),
+        )
+        assertFalse(d, d.contains("@calbaptist"))
+        assertFalse(d, d.contains("other@x.org"))
+        assertFalse(d, d.contains("demo-pass-123"))
+        assertTrue(d, d.startsWith("RuntimeException: "))
+    }
+
+    @Test fun redactsSecretsCaseInsensitivelyAndIgnoresBlankSecrets() {
+        assertEquals("RuntimeException: bad [redacted]", ErrorDetail.format(RuntimeException("bad HUNTER2"), listOf("hunter2", "")))
+    }
+
+    @Test fun shortensLongMessages() {
+        val d = ErrorDetail.format(RuntimeException("x".repeat(500)))
+        assertTrue(d.length < 240)
+        assertTrue(d.endsWith("..."))
+    }
+
+    @Test fun releaseShowsNothing() {
+        assertNull(ErrorDetail.forDisplay(RuntimeException("boom"), enabled = false))
+        assertEquals("RuntimeException: boom", ErrorDetail.forDisplay(RuntimeException("boom"), enabled = true))
+    }
+}
