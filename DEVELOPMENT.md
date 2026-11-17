@@ -51,7 +51,30 @@ _Set up by #11 (Android app), #12 (Functions and emulator) and #54 (CI)._
 | Android instrumented smoke test (owner-run) | Compiles with `./gradlew assembleDebugAndroidTest`. The owner runs `./gradlew connectedDebugAndroidTest` on the Windows emulator. CI runs it (job `android-instrumented`) on PRs into `staging` only; not a required check (owner decision 2026-11-16, ADR 0001). |
 | Functions unit tests (emulator) | `cd functions && npm test` runs the function unit tests (handlers called with `.run`) and the Rules tests against the Auth and Firestore emulators; agents can run it (install with `functions/scripts/sandbox-npm.sh ci`). Needs Node >=24.12 and JDK 21. `cd functions && npm run test:e2e` calls functions through the Functions emulator; humans and CI only, it can't run in the agent sandbox. |
 | Security Rules tests (emulator) | Same command (`cd functions && npm test`); rules tests live in `functions/test/rules/`, function unit tests in `functions/test/functions/`. |
-| Start the emulator | `cd functions && npm run emulators`. The Firestore emulator jar is downloaded once by the owner, outside the sandbox, into `.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar`; check its SHA-256 `9b6498b7f62714d67f48f59b3818883cd682dbcd46b9f59511de81c97bb5166c` (firebase-tools does not check cached jars). Repeat whenever the firebase-tools pin changes. See [ADR 0003](docs/adr/0003-functions-emulator-setup.md). |
+| Start the emulator | `cd functions && npm run emulators` (empty), or `npm run emulators:dev` (also seeds reference data and test accounts; see "Run the app from Android Studio"). The Firestore emulator jar is downloaded once by the owner, outside the sandbox, into `.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar`; check its SHA-256 `9b6498b7f62714d67f48f59b3818883cd682dbcd46b9f59511de81c97bb5166c` (firebase-tools does not check cached jars). Repeat whenever the firebase-tools pin changes. See [ADR 0003](docs/adr/0003-functions-emulator-setup.md). |
+
+### Run the app from Android Studio (Windows)
+
+The emulators run in WSL2; Android Studio and the Android emulator run on Windows from a separate clone. Debug builds already target the emulators (`10.0.2.2`, project `demo-colpool`; ADR 0001).
+
+1. In the Windows clone, pull the branch. Open the `android/` folder in Android Studio and let Gradle sync.
+2. In the run-configuration drop-down pick **Firebase emulators + test accounts (WSL)** (shared, from `android/.run/`) and press Run. It runs `npm run emulators:dev` in the WSL checkout `~/ColPool/functions`: build, start Auth, Firestore and Functions, seed reference data and the test accounts, print the account table. Leave it running; Stop shuts the emulators down. Data isn't persisted, so every start is clean and seeded.
+3. Pick **app** and press Run on an Android emulator.
+
+All accounts use the fake, demo-only password `demo-pass-123`. The table is printed in the run console after the emulators start.
+
+| Email | Routing case |
+|---|---|
+| `dev.student@calbaptist.edu` | Student with a starting address: Home |
+| `dev.newstudent@calbaptist.edu` | Student with no starting address: Onboarding |
+| `dev.noconsent@calbaptist.edu` | Account with no consent record: blocked (RC-06) |
+| `dev.staff@calbaptist.edu` | Institution staff (`institution: true`) |
+
+The student accounts are created through the real `signUp` callable. Seeding is `functions/scripts/seed-dev-accounts.ts`; it refuses to run unless the Auth and Firestore emulator hosts are set (loopback only) and the project is a `demo-` one.
+
+If the app shows the retry screen, the emulators aren't reachable or haven't finished starting. Wait for "Emulators are ready and seeded" in the console, and check that WSL localhost forwarding works (from Windows, `http://localhost:9099` should answer).
+
+Not shared as a compound configuration: Android Studio creates the **app** configuration locally, so a committed compound can't reference it reliably on a fresh clone.
 
 ### Screens
 
