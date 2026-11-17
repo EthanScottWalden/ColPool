@@ -10,8 +10,17 @@
 # its own short-lived proxy credentials. A daemon left over from an earlier command
 # keeps holding the Gradle cache lock, which `--stop` can't reach, and it would keep
 # the earlier command's proxy credentials.
+#
+# Own Gradle home per checkout (<checkout>/.cache/gradle-agent, gitignored), never the
+# owner's ~/.gradle. Gradle hands a cache lock between processes with a localhost
+# message, which can't cross the sandbox's private network, so a Gradle process outside
+# the sandbox (the owner's daemon, Android Studio, an orphaned build) could block agent
+# builds indefinitely. A separate home also keeps agents out of the cache the owner's
+# unsandboxed builds use. Owner decision 2026-11-16.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+export GRADLE_USER_HOME="$(cd .. && pwd)/.cache/gradle-agent"
+mkdir -p "$GRADLE_USER_HOME"
 
 export ANDROID_HOME="${ANDROID_HOME:-$HOME/Android/Sdk}"
 tmp="${TMPDIR:-/tmp}"
