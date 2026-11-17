@@ -60,10 +60,10 @@ Not in the approved stack (don't add without a documented human decision): Cloud
 |---|---|---|
 | Android UI toolkit, minimum Android version and app structure (pattern, modules) | #11 (TMP-02) | Jetpack Compose + Material 3, single Activity; minSdk 26 (compile 37, target 36); MVVM with one-way data flow, manual DI (`AppContainer`), single `:app` module packaged by feature. See [ADR 0001](adr/0001-android-setup.md). |
 | Functions toolchain and emulator harness | #12 (TMP-03) | TypeScript on a Node 22 runtime (Node >=24.12 for dev and CI), `node:test`, emulator project `demo-colpool`, default-deny `firestore.rules`, project-local `.cache/`. See [ADR 0003](adr/0003-functions-emulator-setup.md). |
-| Exact Firestore collection layout | #13 (TMP-04), #20 (TMP-14) | _TBD_ |
-| How rules recognize a consented student (custom claim vs reading the consent record) | #13 (TMP-04) | _TBD_ |
-| How profile permissions and weekday rosters are stored | #13 (TMP-04), #44 (TMP-37) | _TBD_ |
-| How the backend finds a student's accepted and hosted weekdays across series for RC-32 conflict checks (e.g. a per-student schedule record kept in the same transactions) | #13 (TMP-04), #20 (TMP-14) | _TBD_ |
+| Exact Firestore collection layout | #13 (TMP-04), #20 (TMP-14) | Core: `users`, `privateDetails`, `profiles`, `consents`, `profileAccess`, `schedules`, `campusPoints`, `options/profile`, one doc per student where per-student. See [data model](data-model.md) and [ADR 0002](adr/0002-firestore-layout.md). Series, draft and request layout: #20 (_TBD_). |
+| How rules recognize a consented student (custom claim vs reading the consent record) | #13 (TMP-04) | Rules read the record: `exists(consents/{uid})`; no consent claim. See [ADR 0002](adr/0002-firestore-layout.md) §1. |
+| How profile permissions and weekday rosters are stored | #13 (TMP-04), #44 (TMP-37) | Permissions: one backend-only `profileAccess/{ownerId}` doc with reason sets (idempotent). See [ADR 0002](adr/0002-firestore-layout.md) §3, [data model](data-model.md) §2.5. Weekday rosters: _TBD_ (#44). |
+| How the backend finds a student's accepted and hosted weekdays across series for RC-32 conflict checks (e.g. a per-student schedule record kept in the same transactions) | #13 (TMP-04), #20 (TMP-14) | One `schedules/{uid}` doc per student, kept in the same transactions as every lifecycle change; concurrent accepts serialize on it. See [ADR 0002](adr/0002-firestore-layout.md) §4. RC-32 edge semantics still open there. |
 | Phase 6 performance dataset size | #50 (TMP-48) | _TBD_ |
 
 ---
@@ -113,15 +113,17 @@ Each exists **exactly once**. Changing one is its own reviewed contract-change i
 
 ### 3.4 Firestore (logical entities)
 
-Exact collection names are TBD (§2). Logical entities and who may touch them:
+Core collection names are decided ([data model](data-model.md)); series, draft, request and roster names are TBD (#20, #44). Logical entities and who may touch them:
 
 | Entity | Client read | Client write |
 |---|---|---|
-| Public profile | owner; permitted viewers (RC-01) | **owner only**, within RC-30 limits and predefined values |
-| Private details (starting address + coords + place ID, email) | **owner only** | owner (via profile edit) |
-| Consent record | — | **never** |
-| Profile permissions | as needed by rules | **never** |
-| Campus points, option lists (seeded) | students | **never** |
+| Public profile (`profiles`) | owner; permitted viewers (RC-01) | **owner only**, within RC-30 limits and predefined values |
+| Private details (`privateDetails`: starting address + coords + place ID) | **owner only** | owner (via profile edit) |
+| Account record (`users`: email) | **owner only** | **never** |
+| Consent record (`consents`) | — | **never** |
+| Profile permissions (`profileAccess`) | as needed by rules | **never** |
+| Student schedule (`schedules`, RC-32 lookup) | owner | **never** |
+| Campus points (`campusPoints`), option lists (`options/profile`) (seeded) | students | **never** |
 | Series draft | its host | **never** |
 | Series (incl. stored routes, per-weekday seats, status) | students | **never** |
 | Request (one per rider × series) | its rider and the series host | **never** |
@@ -171,7 +173,7 @@ Institution accounts read nothing in the app; they only call the export function
 | Device ↔ Functions | Functions trust only the auth token and server state. Re-check every rule the UI checks. | RC-12, RC-15 |
 | Consent | No student account exists without a consent record; consent-less accounts can't use the app. Consent can't be withdrawn. | RC-06, RC-24 |
 | Institution role | Custom claim, set only by the developer script. Export only — no profiles, series or writes. | RC-07 |
-| Private data | Starting address and email live in a separate owner-only record. Never in another user's view, notification text, function logs, or the export (except the email column US-17 requires). Starting address is used **only** for ranking. | RC-01, RC-05, INTENT §6.3 |
+| Private data | Starting address and email live apart from the public profile, in separate owner-only records (`privateDetails`, `users`). Never in another user's view, notification text, function logs, or the export (except the email column US-17 requires). Starting address is used **only** for ranking. | RC-01, RC-05, INTENT §6.3 |
 | Profile visibility | Only the four RC-01 cases; access ends immediately when no case holds. Permissions are maintained by functions **in the same transaction** as the change that causes them. | RC-01, INTENT §6.1 |
 | Secrets | Nothing in the repo. Routes key only in the backend's secret storage. No secrets in CI. | RC-04 |
 | Places key | Ships in the app, so it is **public by design**. Protected by restricting it to the Places API only, the Android app restriction (package name + signing-cert fingerprint), quotas and budget alerts — not by secrecy. Injected at build time with the **Secrets Gradle plugin**: real key in uncommitted `local.properties`, committed placeholder so CI builds without it. | RC-04, RC-28, RISK-08; owner decision 2026-11-07 |
@@ -221,10 +223,9 @@ Product privacy and safety rules (who sees what, test data, verification wording
 
 | Item | Status | Owner / where |
 |---|---|---|
-| CBU majors list | Waiting on project owner | #17 (TMP-12), `human-task` |
 | Precise campus-point coordinates | Waiting on project owner | #17 (TMP-12), `human-task` |
-| Firestore layout, permission/roster storage, consent check in rules | Decide in issue, record in §2 | #13, #20, #44 |
-| How RC-32 conflict checks find a student's weekdays across series | Decide in issue, record in §2 | #13, #20 |
+| Series, draft and request layout; weekday roster storage | Decide in issue, record in §2 | #20, #44 |
+| RC-32 edge semantics (pending vs posting; overlap on shared weekdays; no-trips-left) | Decide before the first RC-32 check ships ([ADR 0002](adr/0002-firestore-layout.md) §4) | #23 (shared validation); also applies to #35, #40 |
 | Performance dataset size | Decide in issue | #50 |
 
 **Accepted architectural risks** (don't "fix" by adding scope): stale permissions if a function fails mid-update (mitigated by same-transaction updates); late series ending of up to a day; partial sign-up leaving a consent-less Auth account (unusable by RC-06, logged); search won't scale past MVP without geo-filtering; unverified emails (RISK-04); estimated, not live, route times (RISK-09). See SDD §7.2 and INTENT §6.1.

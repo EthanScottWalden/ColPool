@@ -3,7 +3,7 @@ import type { RulesTestEnvironment } from "@firebase/rules-unit-testing";
 // Fake test accounts only. Never real students.
 const DOMAIN = "calbaptist.edu";
 
-// TODO(#13/#15): provisional institution claim key. The real key is decided by the
+// TODO(#15): provisional institution claim key. The real key is decided by the
 // contracts Issue and the developer account script. Test helpers only, not in rules.
 export const INSTITUTION_CLAIM_KEY = "institution";
 
@@ -16,7 +16,7 @@ export interface Persona {
 }
 
 export function authedStudent(): Persona {
-  // TODO(#13): mark consent here once the consent mechanism is decided.
+  // TODO(#18): add a consents/{uid} doc for this persona in the rules env (consent = existence, ADR 0002).
   return { name: "authedStudent", uid: "student-consented", email: `test.student1@${DOMAIN}`, claims: {} };
 }
 
