@@ -70,6 +70,13 @@ For a setup Issue (#12, #54 and any later toolchain Issue), the lead does this b
 3. For every gap, write the exact fix: an install command checked against the real download URL or package name, a `settings.json` edit, or a restart.
 4. Send the owner **one** HUMAN ACTION REQUIRED with all of them, in order. Re-run the probes after the owner is done, and start the implementer only when they pass.
 
+### Institution accounts
+
+Institution accounts are created only by `functions/scripts/create-institution-account.ts` (developer-run, never part of the deployed Functions code or the app; #15). It creates the Auth user and sets the custom claim `institution: true`. It creates no consent, user, profile or private-details docs. It refuses a non-`@calbaptist.edu` email, a password under 8 characters, and any email that already has an account (it never converts a student account). The password is read from the first line of stdin only, never from an argument, and is never printed.
+
+- **Emulator:** with the Auth emulator running (`cd functions && npm run emulators`), in another shell with `FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099` set: `read -rs PW; echo "$PW" | npm run create-institution-account -- --email staff@calbaptist.edu --display-name "Test Staff"`. It targets project `demo-colpool`.
+- **Production (documented only; run by the owner, never by an agent):** set `GOOGLE_APPLICATION_CREDENTIALS` to the path of a service-account key kept outside the repo, leave `FIREBASE_AUTH_EMULATOR_HOST` unset, and run the same command with `--project <real-project-id>`. A `demo-` project id is refused in this mode. Never commit or paste the key.
+
 ### Before CI exists
 
 Until #54 merges, there is no CI to be green. The verifier's own run of the Issue's builds and tests, reported with commands and results, stands in for CI before merging to `dev`. When #54 merges, the owner adds its job as a required status check on the `dev-integration` ruleset.
