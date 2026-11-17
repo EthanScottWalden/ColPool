@@ -21,7 +21,7 @@ This file is the operating guide for every session. It points to the detailed do
 
 ## 2. Picking up work
 
-- **Eligible:** Project Status = **Ready** *and* Human Review = **Approved**, not blocked by an open Issue, not already In progress. Prefer the lowest Phase, then Sequence. Use the `next-issue` skill to list them.
+- **Eligible:** Project Status = **Ready** *and* Human Review = **Approved**, not blocked by an open Issue, not already In progress. Prefer the lowest Phase, then Sequence. Use the `next-issue` skill to list them. The lead moves unblocked Backlog Issues in the current phase to Ready (the skill lists them); Human Review stays the owner's gate.
 - The Issue body is the spec: goal, acceptance criteria, tests expected, non-goals. Don't widen it.
 - **Stale Issue template text:** the "Tests expected → Screens: a check on an Android Emulator device" line and the "Project fields" snapshot in Issue bodies predate later decisions. §4 and the live Project win over them. That isn't a conflict to flag.
 - **`contract` label:** a shared definition other Issues depend on. Never change a contract inside a feature Issue. Stop and propose a contract-change Issue.
@@ -128,7 +128,7 @@ The main session runs as `lead` (`.claude/settings.json`). It is the only agent 
 | `docs-keeper` | Doc consistency and drift | Docs (`SPEC.md`/`INTENT.md` only with lead + human approval) |
 
 **Skills:**
-- `next-issue` lists eligible Issues in rank order (read-only).
+- `next-issue` lists eligible Issues in rank order, limited to the current phase. It also lists unblocked Backlog Issues for the lead to move to Ready (owner decision 2026-11-17); it never changes Human Review.
 - Doc-link skills, each with official links plus ColPool constraints: `firebase-auth-docs`, `cloud-functions-docs`, `firestore-docs`, `maps-routes-docs`, `maps-places-docs`, `kotlin-docs`. Use the matching one before relying on memory for an external API.
 - Preloaded: all six in `implementer` and `architect`; Auth, Functions and Firestore in `verifier`.
 **Guardrails** (`.claude/settings.json`):
