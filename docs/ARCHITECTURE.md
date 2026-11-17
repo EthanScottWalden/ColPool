@@ -173,7 +173,7 @@ Institution accounts read nothing in the app; they only call the export function
 | Device ↔ Functions | Functions trust only the auth token and server state. Re-check every rule the UI checks. | RC-12, RC-15 |
 | Consent | No student account exists without a consent record; consent-less accounts can't use the app. Consent can't be withdrawn. | RC-06, RC-24 |
 | Institution role | Custom claim, set only by the developer script. Export only — no profiles, series or writes. | RC-07 |
-| Private data | Starting address and email live in a separate owner-only record. Never in another user's view, notification text, function logs, or the export (except the email column US-17 requires). Starting address is used **only** for ranking. | RC-01, RC-05, INTENT §6.3 |
+| Private data | Starting address and email live apart from the public profile, in separate owner-only records (`privateDetails`, `users`). Never in another user's view, notification text, function logs, or the export (except the email column US-17 requires). Starting address is used **only** for ranking. | RC-01, RC-05, INTENT §6.3 |
 | Profile visibility | Only the four RC-01 cases; access ends immediately when no case holds. Permissions are maintained by functions **in the same transaction** as the change that causes them. | RC-01, INTENT §6.1 |
 | Secrets | Nothing in the repo. Routes key only in the backend's secret storage. No secrets in CI. | RC-04 |
 | Places key | Ships in the app, so it is **public by design**. Protected by restricting it to the Places API only, the Android app restriction (package name + signing-cert fingerprint), quotas and budget alerts — not by secrecy. Injected at build time with the **Secrets Gradle plugin**: real key in uncommitted `local.properties`, committed placeholder so CI builds without it. | RC-04, RC-28, RISK-08; owner decision 2026-11-07 |
@@ -225,7 +225,7 @@ Product privacy and safety rules (who sees what, test data, verification wording
 |---|---|---|
 | Precise campus-point coordinates | Waiting on project owner | #17 (TMP-12), `human-task` |
 | Series, draft and request layout; weekday roster storage | Decide in issue, record in §2 | #20, #44 |
-| RC-32 edge semantics (pending vs posting; overlap on shared weekdays; no-trips-left) | Decide in the conflict-check Issue ([ADR 0002](adr/0002-firestore-layout.md) §4) | #13 follow-up |
+| RC-32 edge semantics (pending vs posting; overlap on shared weekdays; no-trips-left) | Decide before the first RC-32 check ships ([ADR 0002](adr/0002-firestore-layout.md) §4) | #23 (shared validation); also applies to #35, #40 |
 | Performance dataset size | Decide in issue | #50 |
 
 **Accepted architectural risks** (don't "fix" by adding scope): stale permissions if a function fails mid-update (mitigated by same-transaction updates); late series ending of up to a day; partial sign-up leaving a consent-less Auth account (unusable by RC-06, logged); search won't scale past MVP without geo-filtering; unverified emails (RISK-04); estimated, not live, route times (RISK-09). See SDD §7.2 and INTENT §6.1.
