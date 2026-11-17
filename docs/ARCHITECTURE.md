@@ -47,7 +47,7 @@ Not in the approved stack (don't add without a documented human decision): Cloud
 /
 ├─ android/               Kotlin app (Gradle project)
 ├─ functions/             Cloud Functions (TypeScript); shared modules under src/shared/
-├─ scripts/               developer-only scripts (institution accounts, seeding)
+├─ scripts/               developer-only scripts (seeding). The institution account script lives in functions/scripts/ (#15).
 ├─ firebase.json          emulator + deploy config
 ├─ firestore.rules
 ├─ firestore.indexes.json
@@ -95,7 +95,7 @@ Not in the approved stack (don't add without a documented human decision): Cloud
 | Cancel series | Status change (never delete); pending weekdays become declined (no per-weekday notifications); record cancel time; update permissions; notify everyone with a pending/accepted request. | US-06, RC-24 |
 | Daily end-of-series job | Scheduled, shortly after midnight America/Los_Angeles; marks ended series by server clock; pending weekdays become declined; notifies host and every rider with a pending or accepted request (one notification each); updates search fields/permissions; **idempotent**. | RC-17, INTENT §6.1 |
 | Export | Institution claim only; rejects a range whose start is after its end or whose end is after today (Pacific); builds CSV from stored records via the trip-counting module; returns the file to the app. | US-17, RC-07, RC-23 |
-| Institution account script | **Developer-run, outside the app.** Creates the account and sets the claim. | RC-07, #15 |
+| Institution account script | **Developer-run, outside the app** (`functions/scripts/create-institution-account.ts`, not in `src/`; usage in `DEVELOPMENT.md`). Creates the account and sets the claim. | RC-07, #15 |
 
 ### 3.3 Shared backend modules ("contracts")
 
