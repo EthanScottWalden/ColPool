@@ -37,7 +37,7 @@ Anything else is L2 (`DEVELOPMENT.md` §2).
 ### Firestore emulator jar
 The sandbox does not allow `storage.googleapis.com`, so the owner downloads the jar once, outside the sandbox, into `<repo>/.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar` and checks its SHA-256:
 `9b6498b7f62714d67f48f59b3818883cd682dbcd46b9f59511de81c97bb5166c`.
-firebase-tools skips the checksum on cached jars, so this check is manual. **Repeat the download and check whenever the firebase-tools pin changes** (the expected jar version and hash change with it). CI (#54) downloads it itself.
+firebase-tools skips the checksum on cached jars, so this check is manual. **Repeat the download and check whenever the firebase-tools pin changes** (the expected jar version and hash change with it). CI (#54) downloads it itself and fails the run if the SHA-256 differs (`.github/workflows/ci.yml`, `FIRESTORE_JAR_SHA256`).
 
 ### Sample callable
 `ping` (requires auth, returns `{ ok: true }`) is defined in `src/ping.ts` so tests can import it, and `src/index.ts` exports it **only** when `FUNCTIONS_EMULATOR === "true"`, so it is never part of a deployed codebase. It exists to prove the harness.
