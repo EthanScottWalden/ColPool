@@ -24,6 +24,7 @@
     "test": "node scripts/emulator-env.mjs emulators:exec --only auth,firestore --project demo-colpool \"node --test --test-concurrency=1 functions/test/*/*.test.ts\"",
     "preemulators": "npm run build",
     "emulators": "node scripts/emulator-env.mjs emulators:start --only auth,firestore,functions --project demo-colpool",
+    "emulators:dev": "node scripts/dev-emulators.mjs",
     "pretest:e2e": "npm run build",
     "test:e2e": "node scripts/emulator-env.mjs emulators:exec --only auth,firestore,functions --project demo-colpool \"node --test --test-concurrency=1 functions/test/e2e/*.e2e.ts\""
   },
