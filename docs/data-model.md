@@ -132,12 +132,24 @@ entries: {
 | Field | Type | Notes |
 |---|---|---|
 | `name` | string | |
-| `lat`, `lng` | number | Precise coordinates come from the owner (#17). |
+| `lat`, `lng` | number | Owner-provided pins; see the table below. |
 | `placeId` | string, optional | |
 | `order` | integer | Display order. |
 | `active` | boolean | Points are never deleted (RC-24 spirit); set `false` instead. |
 
-Seeded by a developer script; students read only (RC-11).
+Seeded by a developer script (`functions/scripts/seed-reference-data.ts`; DEVELOPMENT.md "Seeding reference data"); students read only (RC-11). The seed omits `placeId` and sets `active: true`. The script never deletes: to retire a point, set `active: false`. The ids live in `functions/src/shared/schema/campusPoints.ts`.
+
+Coordinates source: owner-provided Google Maps pins, 2026-11-16 (verbatim, not rounded).
+
+| id | name | order | lat | lng |
+|---|---|---|---|---|
+| `yeager-center` | Yeager Center | 1 | 33.9291442351809 | -117.42722312301498 |
+| `music-building` | Music Building | 2 | 33.92768415162394 | -117.42566509459762 |
+| `health-science` | Health Science | 3 | 33.9248353057463 | -117.42887115540034 |
+| `lancer-plaza` | Lancer Plaza | 4 | 33.92874664207741 | -117.42216055893344 |
+| `events-center` | Events Center | 5 | 33.927733947753204 | -117.42333726656787 |
+
+Reference addresses (owner-provided 2026-11-16; not stored in the seed): main campus, 8432 Magnolia Ave, Riverside, CA 92504. Health Science campus, 3532 Monroe St #6322, Riverside, CA 92504.
 
 ### 2.8 `options/profile`
 One doc holds all five predefined lists (RC-22). Each entry is `{ id, label, order }`, with a parallel id array per list for rules.

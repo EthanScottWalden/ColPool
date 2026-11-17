@@ -77,6 +77,13 @@ Institution accounts are created only by `functions/scripts/create-institution-a
 - **Emulator:** with the Auth emulator running (`cd functions && npm run emulators`), in another shell with `FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099` set, in bash (Node 24+): `read -rs PW; printf '%s\n' "$PW" | npm run create-institution-account -- --email staff@calbaptist.edu --display-name "Test Staff"`. It targets project `demo-colpool`.
 - **Production (documented only; run by the owner, never by an agent):** set `GOOGLE_APPLICATION_CREDENTIALS` to the path of a service-account key kept outside the repo, leave `FIREBASE_AUTH_EMULATOR_HOST` unset, and run the same command with `--project <real-project-id>`. A `demo-` project id is refused in this mode. Never commit or paste the key.
 
+### Seeding reference data
+
+`functions/scripts/seed-reference-data.ts` (developer-run, outside `src/` like the institution script; #17) writes the five `campusPoints/*` docs and `options/profile`. Values come from `functions/src/shared/schema/campusPoints.ts` and `options.ts`. It is idempotent (each doc is written whole with `set()`, so a second run changes nothing) and never deletes: a campus point removed from the seed list is left in place, so retire one by setting `active: false` in Firestore. Coordinate source: `docs/data-model.md` §2.7.
+
+- **Emulator:** with the Firestore emulator running (`cd functions && npm run emulators`), in another shell with `FIRESTORE_EMULATOR_HOST=127.0.0.1:8080` set: `npm run seed-reference-data`. It targets project `demo-colpool`.
+- **Production (documented only; run by the owner, never by an agent):** set `GOOGLE_APPLICATION_CREDENTIALS` to the path of a service-account key kept outside the repo, leave `FIRESTORE_EMULATOR_HOST` unset, and run `npm run seed-reference-data -- --project <real-project-id>`. A `demo-` project id is refused in this mode. Never commit or paste the key.
+
 ### Before CI exists
 
 Until #54 merges, there is no CI to be green. The verifier's own run of the Issue's builds and tests, reported with commands and results, stands in for CI before merging to `dev`. When #54 merges, the owner adds its job as a required status check on the `dev-integration` ruleset.

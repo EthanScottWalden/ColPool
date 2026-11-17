@@ -47,7 +47,7 @@ Not in the approved stack (don't add without a documented human decision): Cloud
 /
 ├─ android/               Kotlin app (Gradle project)
 ├─ functions/             Cloud Functions (TypeScript); shared modules under src/shared/
-├─ scripts/               developer-only scripts (seeding). The institution account script lives in functions/scripts/ (#15).
+├─ scripts/               reserved for developer scripts outside Functions; currently empty. The institution account (#15) and seed (#17) scripts live in functions/scripts/.
 ├─ firebase.json          emulator + deploy config
 ├─ firestore.rules
 ├─ firestore.indexes.json
@@ -224,7 +224,6 @@ Product privacy and safety rules (who sees what, test data, verification wording
 
 | Item | Status | Owner / where |
 |---|---|---|
-| Precise campus-point coordinates | Waiting on project owner | #17 (TMP-12), `human-task` |
 | Series, draft and request layout; weekday roster storage | Decide in issue, record in §2 | #20, #44 |
 | RC-32 edge semantics (pending vs posting; overlap on shared weekdays; no-trips-left) | Decide before the first RC-32 check ships ([ADR 0002](adr/0002-firestore-layout.md) §4) | #23 (shared validation); also applies to #35, #40 |
 | Performance dataset size | Decide in issue | #50 |
