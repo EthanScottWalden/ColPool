@@ -105,6 +105,12 @@ describe("privateDetails (RC-05): owner only", () => {
     await assertFails(updateDoc(ownerRef(), { note: "x", updatedAt: serverTimestamp() }));
   });
 
+  it("field-path update of startingAddress.lat: valid allowed, out of range denied", async () => {
+    await assertSucceeds(updateDoc(ownerRef(), { "startingAddress.lat": 34.5, updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(ownerRef(), { "startingAddress.lat": 999, updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(ownerRef(), { "startingAddress.extra": 1, updatedAt: serverTimestamp() }));
+  });
+
   it("denies delete, even by the owner", async () => {
     await assertFails(deleteDoc(ownerRef()));
   });

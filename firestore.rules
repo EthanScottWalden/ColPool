@@ -23,9 +23,10 @@ service cloud.firestore {
         exists(/databases/$(database)/documents/consents/$(request.auth.uid));
     }
 
-    // The only place the institution claim key appears.
+    // The only place the institution claim key appears. Fails closed: the claim's mere
+    // presence counts as institution, whatever its value (the script sets `true`).
     function isInstitution() {
-      return signedIn() && request.auth.token.get('institution', false) == true; // claim key: ARCHITECTURE §2
+      return signedIn() && 'institution' in request.auth.token; // claim key: ARCHITECTURE §2
     }
 
     // A consented, non-institution account (RC-06, RC-07).
@@ -63,7 +64,7 @@ service cloud.firestore {
 
     // Trimmed and non-blank: starts and ends with a non-space character.
     function trimmedName(v, max) {
-      return v is string && v.size() <= max && v.matches('^\\S([\\s\\S]*\\S)?$');
+      return v is string && v.size() <= max && v.matches('^[^\\s\\p{Z}]([\\s\\S]*[^\\s\\p{Z}])?$');
     }
 
     function validIdList(v, allowed) {

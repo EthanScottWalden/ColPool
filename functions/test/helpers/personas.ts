@@ -76,6 +76,16 @@ export function institutionUser(): Persona {
   };
 }
 
+/** Institution account whose claim value is the string "true" (rules fail closed: any value counts). */
+export function institutionStringClaimUser(): Persona {
+  return {
+    name: "institutionStringClaimUser",
+    uid: "institution-string-claim",
+    email: `test.staff2@${DOMAIN}`,
+    claims: { [INSTITUTION_CLAIM_KEY]: "true" },
+  };
+}
+
 export function unauthenticated(): Persona {
   return { name: "unauthenticated", uid: null, email: null, claims: {} };
 }

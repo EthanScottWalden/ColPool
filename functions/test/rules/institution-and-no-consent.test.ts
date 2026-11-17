@@ -4,7 +4,7 @@ import type { RulesTestEnvironment } from "@firebase/rules-unit-testing";
 import { collection, doc, getDoc, getDocs, serverTimestamp, setDoc, setLogLevel } from "firebase/firestore";
 import { createRulesEnv } from "../helpers/rulesEnv.ts";
 import { ADDRESS, HOST_UID, seedAccess, seedBase } from "../helpers/rulesSeed.ts";
-import { institutionUser, rulesContext, studentWithoutConsent, type Persona } from "../helpers/personas.ts";
+import { institutionStringClaimUser, institutionUser, rulesContext, studentWithoutConsent, type Persona } from "../helpers/personas.ts";
 
 setLogLevel("silent");
 
@@ -64,6 +64,17 @@ describe("institution accounts (RC-07) and accounts without consent (RC-06)", ()
       const uid = institutionUser().uid as string;
       await seedAccess(env, HOST_UID, { viewers: { [uid]: { "req:s1": true } } });
       await assertFails(getDoc(doc(rulesContext(env, institutionUser()).firestore(), "profiles", HOST_UID)));
+    });
+  });
+
+  describe("institution claim with a non-boolean value (fails closed)", () => {
+    beforeEach(async () => {
+      await env.clearFirestore();
+      await seedBase(env, [institutionStringClaimUser()]);
+      await seedAccess(env, HOST_UID, { activeHostedSeries: { s1: true } });
+    });
+    it("is denied everything even with a consent doc", async () => {
+      await denyEverything(env, institutionStringClaimUser());
     });
   });
 

@@ -90,6 +90,25 @@ describe("profiles write (RC-30, RC-22)", () => {
     }
   });
 
+  it("denies names made only of Unicode spaces (NBSP, U+3000) and padded by them", async () => {
+    for (const v of ["\u00A0", "\u00A0\u00A0", "\u3000", "\u00A0Ann", "Ann\u3000"]) {
+      await assertFails(put({ firstName: v }));
+      await assertFails(put({ lastName: v }));
+    }
+  });
+
+  it("allows an internal NBSP", async () => {
+    await assertSucceeds(put({ firstName: "Mary\u00A0Ann" }));
+  });
+
+  it("an update touching only non-list fields succeeds when options/profile does not exist (get() skipped)", async () => {
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await deleteDoc(doc(ctx.firestore(), "options", "profile"));
+    });
+    await assertSucceeds(updateDoc(ref(), { aboutMe: "no options doc", updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(ref(), { gender: "woman", updatedAt: serverTimestamp() }));
+  });
+
   it("allows a single-character and an inner-space name", async () => {
     await assertSucceeds(put({ firstName: "A" }));
     await assertSucceeds(put({ firstName: "Mary Ann" }));
