@@ -4,6 +4,9 @@ import io.github.ethanscottwalden.colpool.data.places.AddressSession
 import io.github.ethanscottwalden.colpool.data.places.AddressSuggestion
 import io.github.ethanscottwalden.colpool.data.places.PlacesAutocomplete
 import io.github.ethanscottwalden.colpool.data.places.SelectedAddress
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 
 /** Fake port with obviously fake data. Records which session each call used. */
 class FakePlaces : PlacesAutocomplete {
@@ -33,19 +36,35 @@ class FakePlaces : PlacesAutocomplete {
     }
 }
 
-/** Fake whose suggestion calls wait until the test completes them, to test out-of-order responses. */
-class GatedPlaces : PlacesAutocomplete {
-    private val pending = mutableMapOf<String, kotlinx.coroutines.CompletableDeferred<List<AddressSuggestion>>>()
+/**
+ * Fake whose calls wait until the test completes them, to test out-of-order responses.
+ * With [ignoreCancellation] a cancelled call still returns its late result, like a port that
+ * doesn't honour cancellation.
+ */
+class GatedPlaces(private val ignoreCancellation: Boolean = false) : PlacesAutocomplete {
+    private val pending = mutableMapOf<String, CompletableDeferred<List<AddressSuggestion>>>()
+    private val pendingResolve = mutableMapOf<String, CompletableDeferred<SelectedAddress>>()
     private var n = 0
+    val resolveCalls = mutableListOf<String>()
 
     override fun newSession(): AddressSession = AddressSession("gated-${n++}")
 
-    override suspend fun suggestions(query: String, session: AddressSession): List<AddressSuggestion> =
-        kotlinx.coroutines.CompletableDeferred<List<AddressSuggestion>>().also { pending[query] = it }.await()
+    private suspend fun <T> gate(d: CompletableDeferred<T>): T =
+        if (ignoreCancellation) withContext(NonCancellable) { d.await() } else d.await()
 
-    override suspend fun resolve(placeId: String, session: AddressSession): SelectedAddress = error("unused")
+    override suspend fun suggestions(query: String, session: AddressSession): List<AddressSuggestion> =
+        gate(CompletableDeferred<List<AddressSuggestion>>().also { pending[query] = it })
+
+    override suspend fun resolve(placeId: String, session: AddressSession): SelectedAddress {
+        resolveCalls += placeId
+        return gate(CompletableDeferred<SelectedAddress>().also { pendingResolve[placeId] = it })
+    }
 
     fun complete(query: String) {
         pending[query]?.complete(listOf(AddressSuggestion("id-$query", query, "")))
+    }
+
+    fun completeResolve(placeId: String) {
+        pendingResolve[placeId]?.complete(SelectedAddress("1 Fake Way, Exampleville", placeId, 1.0, 2.0))
     }
 }

@@ -9,6 +9,7 @@
     <string name="address_search_no_results">No matches. Try a different address or place.</string>
     <string name="address_search_error_search">Couldn\u2019t search addresses right now. Check your connection and try again.</string>
     <string name="address_search_error_resolve">Couldn\u2019t use that address. Choose it again or pick another.</string>
+    <string name="address_search_looking_up">Looking up address\u2026</string>
     <string name="address_search_choose">Choose this address</string>
     <string name="address_search_close">Close</string>
 </resources>

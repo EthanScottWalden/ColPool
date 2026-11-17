@@ -157,18 +157,67 @@ class AddressSearchViewModelTest {
     }
 
     @Test
-    fun staleSearchResponseIsIgnored() = runTest {
-        val gated = GatedPlaces()
+    fun staleSearchResponseIsIgnored() = staleSearch(ignoreCancellation = false)
+
+    // Exercises the sequence guard: the late response is not cancelled before it arrives.
+    @Test
+    fun staleSearchResponseIsIgnoredEvenWhenCancellationIsIgnored() = staleSearch(ignoreCancellation = true)
+
+    private fun staleSearch(ignoreCancellation: Boolean) = runTest {
+        val gated = GatedPlaces(ignoreCancellation)
         val vm = AddressSearchViewModel(gated, debounceMs = 0)
         vm.onQueryChange("aaa")
         advanceUntilIdle()
         vm.onQueryChange("bbb")
         advanceUntilIdle()
         gated.complete("bbb")
+        advanceUntilIdle()
         gated.complete("aaa")
         advanceUntilIdle()
         assertEquals(listOf("bbb"), vm.state.value.suggestions.map { it.primaryText })
         assertFalse(vm.state.value.searching)
+    }
+
+    @Test
+    fun editDuringResolveDropsLateResult() = editDuringResolve(ignoreCancellation = false)
+
+    @Test
+    fun editDuringResolveDropsLateResultEvenWhenCancellationIsIgnored() = editDuringResolve(ignoreCancellation = true)
+
+    private fun editDuringResolve(ignoreCancellation: Boolean) = runTest {
+        val gated = GatedPlaces(ignoreCancellation)
+        val vm = AddressSearchViewModel(gated, debounceMs = 0)
+        vm.onQueryChange("aaa")
+        advanceUntilIdle()
+        gated.complete("aaa")
+        advanceUntilIdle()
+        vm.onSuggestionChosen(vm.state.value.suggestions.first())
+        advanceUntilIdle()
+        assertTrue(vm.state.value.resolving)
+        vm.onQueryChange("aaab")
+        advanceUntilIdle()
+        gated.completeResolve("id-aaa")
+        advanceUntilIdle()
+        assertNull(vm.state.value.selected)
+        assertFalse(vm.state.value.resolving)
+        assertEquals("aaab", vm.state.value.query)
+    }
+
+    @Test
+    fun resolveFailureThenSuccessfulRetapWorks() = runTest {
+        fake.failResolve = true
+        val vm = AddressSearchViewModel(fake)
+        vm.onQueryChange("100 Example")
+        advanceUntilIdle()
+        val first = vm.state.value.suggestions.first()
+        vm.onSuggestionChosen(first)
+        advanceUntilIdle()
+        assertEquals(AddressSearchError.ResolveFailed, vm.state.value.error)
+        fake.failResolve = false
+        vm.onSuggestionChosen(first)
+        advanceUntilIdle()
+        assertNull(vm.state.value.error)
+        assertEquals("place-1", vm.state.value.selected!!.placeId)
     }
 
     @Test

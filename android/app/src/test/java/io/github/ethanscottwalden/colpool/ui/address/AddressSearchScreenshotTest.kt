@@ -30,11 +30,11 @@ class AddressSearchScreenshotTest {
         AddressSuggestion("p3", "300 Test Road", "Exampleville, CA"),
     )
 
-    private fun shoot(name: String, state: AddressSearchState, notice: (@Composable () -> Unit)? = null) {
+    private fun shoot(name: String, state: AddressSearchState, notice: (@Composable () -> Unit)? = null, progress: Float? = null) {
         composeRule.setContent {
             ColPoolTheme {
                 Surface {
-                    AddressSearchContent("Starting address", state, {}, {}, {}, notice = notice)
+                    AddressSearchContent("Starting address", state, {}, {}, {}, notice = notice, progressForTest = progress)
                 }
             }
         }
@@ -50,7 +50,7 @@ class AddressSearchScreenshotTest {
     @Test fun noMatches() = shoot("no_matches", AddressSearchState(query = "zzzzzz"))
 
     @Test
-    fun resolving() = shoot("resolving", AddressSearchState(query = "100 Exam", suggestions = suggestions, resolvingPlaceId = "p1"))
+    fun resolving() = shoot("resolving", AddressSearchState(query = "100 Exam", suggestions = suggestions, resolvingPlaceId = "p1"), progress = 0.75f)
 
     @Test
     fun resolveError() = shoot(

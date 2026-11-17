@@ -53,7 +53,9 @@ class AddressSearchViewModel(
         // Retyping the same text after a search error retries the search.
         if (text == _state.value.query && _state.value.error != AddressSearchError.SearchFailed) return
         job?.cancel()
-        // Any edit drops the previous selection and error: free text can't be returned (RC-13).
+        // Any edit invalidates in-flight work, even if a port ignores cancellation, and drops the
+        // previous selection and error: free text can't be returned (RC-13).
+        val seq = ++searchSeq
         _state.update { it.copy(query = text, selected = null, resolvingPlaceId = null, error = null) }
         val trimmed = text.trim()
         if (trimmed.length < minChars) {
@@ -61,7 +63,6 @@ class AddressSearchViewModel(
             return
         }
         _state.update { it.copy(searching = true) }
-        val seq = ++searchSeq
         job = viewModelScope.launch {
             delay(debounceMs)
             try {
@@ -81,19 +82,20 @@ class AddressSearchViewModel(
     fun onSuggestionChosen(suggestion: AddressSuggestion) {
         if (_state.value.resolving) return
         job?.cancel()
-        searchSeq++
+        val seq = ++searchSeq
         _state.update { it.copy(searching = false, resolvingPlaceId = suggestion.placeId, selected = null, error = null) }
         job = viewModelScope.launch {
             try {
                 val address = places.resolve(suggestion.placeId, session)
                 // The lookup ends the Places session: a later edit and search starts a new one.
                 session = places.newSession()
-                _state.update { it.copy(query = address.text, resolvingPlaceId = null, selected = address) }
+                // An edit while the lookup was in flight drops its late result.
+                if (seq == searchSeq) _state.update { it.copy(query = address.text, resolvingPlaceId = null, selected = address) }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 // Keep the suggestions so the person can pick again without retyping.
-                _state.update { it.copy(resolvingPlaceId = null, error = AddressSearchError.ResolveFailed) }
+                if (seq == searchSeq) _state.update { it.copy(resolvingPlaceId = null, error = AddressSearchError.ResolveFailed) }
             }
         }
     }

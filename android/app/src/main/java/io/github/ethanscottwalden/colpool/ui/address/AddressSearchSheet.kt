@@ -15,6 +15,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -45,7 +46,10 @@ object AddressSearchTags {
 
 /**
  * Address search sheet. Tapping a suggestion resolves it and returns the [SelectedAddress] through [onConfirm]; nothing else can be returned.
- * Use a fresh [viewModel] per address entry. [title] is supplied by the caller (for example
+ * The sheet calls [onConfirm] when a suggestion resolves; the caller closes the sheet there.
+ * Use a fresh [viewModel] per address entry, or call [AddressSearchViewModel.startNewEntry]
+ * before showing it again: reusing a ViewModel that still holds a selection re-fires [onConfirm]
+ * with the old address. [title] is supplied by the caller (for example
  * "Starting address"). [notice] is an optional slot above the field, e.g. the "recommend public
  * places" note for pickup spots and stops; nothing is shown by default.
  */
@@ -83,8 +87,11 @@ fun AddressSearchContent(
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
     notice: (@Composable () -> Unit)? = null,
+    /** Screenshot tests only: a fixed progress value, so the golden shows a visible spinner. Production keeps it indeterminate. */
+    progressForTest: Float? = null,
 ) {
     val chooseLabel = stringResource(R.string.address_search_choose)
+    val lookingUp = stringResource(R.string.address_search_looking_up)
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -114,7 +121,13 @@ fun AddressSearchContent(
                 modifier = Modifier.padding(top = 12.dp).semantics { liveRegion = LiveRegionMode.Polite }.testTag(AddressSearchTags.Error),
             )
         }
-        if (state.searching) {
+        if (state.resolving) {
+            Text(
+                lookingUp,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(top = 12.dp).semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        } else if (state.searching) {
             Text(
                 stringResource(R.string.address_search_searching),
                 style = MaterialTheme.typography.bodyMedium,
@@ -133,7 +146,8 @@ fun AddressSearchContent(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable(onClickLabel = chooseLabel, role = Role.Button) { onSuggestionClick(s) }
+                        .clickable(enabled = !state.resolving, onClickLabel = chooseLabel, role = Role.Button) { onSuggestionClick(s) }
+                        .semantics { if (state.resolvingPlaceId == s.placeId) stateDescription = lookingUp }
                         .padding(vertical = 10.dp),
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
@@ -143,7 +157,12 @@ fun AddressSearchContent(
                         }
                     }
                     if (state.resolvingPlaceId == s.placeId) {
-                        CircularProgressIndicator(modifier = Modifier.size(24.dp).testTag(AddressSearchTags.RowProgress), strokeWidth = 2.dp)
+                        val barModifier = Modifier.size(24.dp).testTag(AddressSearchTags.RowProgress)
+                        if (progressForTest != null) {
+                            CircularProgressIndicator(progress = { progressForTest }, modifier = barModifier, strokeWidth = 2.dp)
+                        } else {
+                            CircularProgressIndicator(modifier = barModifier, strokeWidth = 2.dp)
+                        }
                     }
                 }
                 HorizontalDivider()
