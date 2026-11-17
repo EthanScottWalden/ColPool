@@ -1,3 +1,4 @@
+import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.InetSocketAddress
@@ -30,6 +31,7 @@ val emulatorProjectId = gradleProp("colpool.emulatorProjectId", "demo-colpool")
 // -Pcolpool.autoStartEmulators=false. Docs: DEVELOPMENT.md "Run the app from Android Studio (Windows)".
 abstract class EnsureFirebaseEmulators : DefaultTask() {
     @get:Input abstract val wslCheckout: Property<String>
+    @get:Internal abstract val launcherDir: DirectoryProperty
 
     private fun accepts(host: String, port: Int): Boolean = try {
         Socket().use { it.connect(InetSocketAddress(host, port), 500); true }
@@ -65,11 +67,21 @@ abstract class EnsureFirebaseEmulators : DefaultTask() {
             return
         }
         val checkout = wslCheckout.get()
-        // Single quotes only: Java wraps this argument in double quotes for cmd.exe.
-        val inWsl = "source ~/.nvm/nvm.sh >/dev/null 2>&1; cd $checkout/functions && npm run emulators:dev; " +
+        if (!Regex("^~?[A-Za-z0-9_./-]+$").matches(checkout)) {
+            throw GradleException("colpool.wslCheckout='$checkout' is not allowed: use letters, digits, _ . / - only (no spaces), e.g. ~/ColPool.")
+        }
+        val wsl = File(System.getenv("SystemRoot") ?: "C:\\Windows", "System32/wsl.exe")
+        if (!wsl.exists()) {
+            throw GradleException("wsl.exe was not found at $wsl. Install WSL2, or start the emulators yourself (cd $checkout/functions && npm run emulators:dev in WSL) and rebuild with -Pcolpool.autoStartEmulators=false.")
+        }
+        val bashPath = if (checkout.startsWith("~")) "\$HOME" + checkout.substring(1) else checkout
+        val inWsl = "source ~/.nvm/nvm.sh >/dev/null 2>&1; cd \\\"$bashPath/functions\\\" && npm run emulators:dev; " +
             "echo; echo Emulators stopped. Press Enter to close this window.; read"
+        val dir = launcherDir.get().asFile.also { it.mkdirs() }
+        val launcher = File(dir, "start-emulators.cmd")
+        launcher.writeText("@echo off\r\ntitle ColPool emulators\r\n\"${wsl.absolutePath}\" -e bash -lc \"$inWsl\"\r\n")
         logger.lifecycle("Starting the Firebase emulators in WSL (a minimized console window opens; close it to stop them)...")
-        ProcessBuilder("cmd.exe", "/c", "start", "ColPool emulators", "/min", "wsl.exe", "-e", "bash", "-lc", inWsl)
+        ProcessBuilder("cmd.exe", "/c", "start", "ColPool emulators", "/min", launcher.absolutePath)
             .redirectErrorStream(true)
             .start()
         val deadline = System.nanoTime() + 240_000_000_000L
@@ -93,12 +105,14 @@ val wslCheckoutPath = gradleProp("colpool.wslCheckout", "~/ColPool")
 val ensureFirebaseEmulators = tasks.register<EnsureFirebaseEmulators>("ensureFirebaseEmulators") {
     description = "Windows only: starts the Firebase emulators in WSL (and waits for the seed) before debug builds."
     wslCheckout.set(wslCheckoutPath)
+    launcherDir.set(layout.buildDirectory.dir("emulators"))
     // Evaluated at configuration time; the values are plain booleans, so this is configuration-cache safe.
     val active = System.getProperty("os.name").startsWith("Windows", ignoreCase = true) &&
         useEmulators && autoStartEmulators && System.getenv("CI") == null
     onlyIf { active }
 }
-tasks.matching { it.name == "preDebugBuild" }.configureEach { dependsOn(ensureFirebaseEmulators) }
+// Run (assembleDebug + deploy) and CLI installDebug only; test tasks (testDebugUnitTest, verifyRoborazziDebug) never start emulators.
+tasks.matching { it.name == "assembleDebug" || it.name == "installDebug" }.configureEach { dependsOn(ensureFirebaseEmulators) }
 
 // The android-all jar Robolectric 4.17 needs for SDK 36 (part of Robolectric, not a new library).
 val robolectricAndroidAllJar = configurations.create("robolectricAndroidAllJar")

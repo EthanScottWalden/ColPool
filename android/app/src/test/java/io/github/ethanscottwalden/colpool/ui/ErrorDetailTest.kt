@@ -31,7 +31,7 @@ class ErrorDetailTest {
     }
 
     @Test fun shortensLongMessages() {
-        val d = ErrorDetail.format(RuntimeException("x".repeat(500)))
+        val d = ErrorDetail.format(RuntimeException("word ".repeat(100)))
         assertTrue(d.length < 240)
         assertTrue(d.endsWith("..."))
     }
@@ -39,5 +39,15 @@ class ErrorDetailTest {
     @Test fun releaseShowsNothing() {
         assertNull(ErrorDetail.forDisplay(RuntimeException("boom"), enabled = false))
         assertEquals("RuntimeException: boom", ErrorDetail.forDisplay(RuntimeException("boom"), enabled = true))
+    }
+
+    @Test fun masksJwts() {
+        val d = ErrorDetail.format(RuntimeException("bad token eyJhbGciOiJSUzI1NiJ9.eyJzdWIiOiIxMjMifQ.c2lnbmF0dXJl end"))
+        assertEquals("RuntimeException: bad token [token] end", d)
+    }
+
+    @Test fun masksLongTokenRunsButKeepsShortWords() {
+        val d = ErrorDetail.format(RuntimeException("key AIzaSyA1b2C3d4E5f6G7h8I9j0K_lmnop used, code auth/network-request-failed"))
+        assertEquals("RuntimeException: key [token] used, code auth/network-request-failed", d)
     }
 }
