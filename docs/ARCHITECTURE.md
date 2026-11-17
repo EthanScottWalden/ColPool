@@ -225,7 +225,7 @@ Product privacy and safety rules (who sees what, test data, verification wording
 |---|---|---|
 | Precise campus-point coordinates | Waiting on project owner | #17 (TMP-12), `human-task` |
 | Series, draft and request layout; weekday roster storage | Decide in issue, record in §2 | #20, #44 |
-| RC-32 edge semantics (pending vs posting; overlap on shared weekdays; no-trips-left) | Decide in the conflict-check Issue ([ADR 0002](adr/0002-firestore-layout.md) §4) | #13 follow-up |
+| RC-32 edge semantics (pending vs posting; overlap on shared weekdays; no-trips-left) | Decide before the first RC-32 check ships ([ADR 0002](adr/0002-firestore-layout.md) §4) | #23 (shared validation); also applies to #35, #40 |
 | Performance dataset size | Decide in issue | #50 |
 
 **Accepted architectural risks** (don't "fix" by adding scope): stale permissions if a function fails mid-update (mitigated by same-transaction updates); late series ending of up to a day; partial sign-up leaving a consent-less Auth account (unusable by RC-06, logged); search won't scale past MVP without geo-filtering; unverified emails (RISK-04); estimated, not live, route times (RISK-09). See SDD §7.2 and INTENT §6.1.
