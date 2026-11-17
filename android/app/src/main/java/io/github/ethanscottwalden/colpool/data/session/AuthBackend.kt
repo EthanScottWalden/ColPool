@@ -15,6 +15,11 @@ enum class PrivateDetailsResult {
 /** Why sign-in or sign-up failed. Sign-up reasons mirror `functions/src/shared/auth/reasons.ts`. */
 enum class AuthFailureKind {
     InvalidCredentials,
+    FieldsRequired,
+    /** Sign-up worked but the follow-up sign-in failed. */
+    AccountCreatedSignIn,
+    /** Sign-up timed out: the account may exist. */
+    CouldNotConfirm,
     Network,
     Unknown,
     EmailDomain,

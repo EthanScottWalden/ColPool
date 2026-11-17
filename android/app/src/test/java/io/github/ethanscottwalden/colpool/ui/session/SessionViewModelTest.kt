@@ -85,4 +85,34 @@ class SessionViewModelTest {
         assertEquals(SessionState.SignedOut(), vm.state.value)
         assertEquals(1, backend.signOutCalls)
     }
+
+    @Test fun logOutDuringPendingReadIsNotOverwritten() = runTest {
+        backend.user = student
+        backend.details = PrivateDetailsResult.HasStartingAddress
+        val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+        backend.gate = gate
+        val vm = vm() // init resolve is now suspended on the read
+        vm.logOut()
+        gate.complete(Unit)
+        assertEquals(SessionState.SignedOut(), vm.state.value)
+    }
+
+    @Test fun doubleRetryLatestWins() = runTest {
+        backend.user = student
+        backend.detailsError = IOException("offline")
+        val vm = vm()
+        backend.detailsError = null
+        val first = kotlinx.coroutines.CompletableDeferred<Unit>()
+        backend.gate = first
+        backend.details = PrivateDetailsResult.Missing
+        vm.retry() // stale: will resolve Onboarding once released
+        val second = kotlinx.coroutines.CompletableDeferred<Unit>()
+        backend.gate = second
+        backend.details = PrivateDetailsResult.HasStartingAddress
+        vm.retry()
+        second.complete(Unit)
+        assertEquals(SessionState.Search, vm.state.value)
+        first.complete(Unit)
+        assertEquals(SessionState.Search, vm.state.value)
+    }
 }

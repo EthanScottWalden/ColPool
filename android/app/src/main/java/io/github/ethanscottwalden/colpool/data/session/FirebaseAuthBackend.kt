@@ -25,16 +25,15 @@ class FirebaseAuthBackend(
         val user = auth.currentUser ?: return null
         val claims = user.getIdToken(false).await().claims
         // Any value counts, matching Rules and functions (#18).
-        return SessionUser(user.uid, isStaff = claims.containsKey(INSTITUTION_CLAIM))
+        return SessionUser(user.uid, isStaff = isStaffClaims(claims))
     }
 
     override suspend fun readPrivateDetails(uid: String): PrivateDetailsResult =
         try {
             val snap = firestore.collection("privateDetails").document(uid).get(Source.SERVER).await()
-            if (snap.exists() && snap.get("startingAddress") != null) PrivateDetailsResult.HasStartingAddress
-            else PrivateDetailsResult.Missing
+            privateDetailsResult(snap.exists() && snap.get("startingAddress") != null)
         } catch (e: FirebaseFirestoreException) {
-            if (e.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) PrivateDetailsResult.NoConsent else throw e
+            noConsentOrNull(e) ?: throw e
         }
 
     override suspend fun signIn(email: String, password: String) {
@@ -76,15 +75,24 @@ class FirebaseAuthBackend(
     private fun signUpKind(e: Exception): AuthFailureKind {
         if (e is FirebaseNetworkException) return AuthFailureKind.Network
         if (e !is FirebaseFunctionsException) return AuthFailureKind.Unknown
-        if (e.code == FirebaseFunctionsException.Code.UNAVAILABLE || e.code == FirebaseFunctionsException.Code.DEADLINE_EXCEEDED) {
-            return AuthFailureKind.Network
-        }
+        if (e.code == FirebaseFunctionsException.Code.DEADLINE_EXCEEDED) return AuthFailureKind.CouldNotConfirm
+        if (e.code == FirebaseFunctionsException.Code.UNAVAILABLE) return AuthFailureKind.Network
         val reason = (e.details as? Map<*, *>)?.get("reason") as? String
         return signUpKindForReason(reason)
     }
 
     companion object {
         const val INSTITUTION_CLAIM = "institution"
+
+        /** Staff = the claim is present with any value (matches Rules and functions, #18). */
+        fun isStaffClaims(claims: Map<String, Any?>): Boolean = claims.containsKey(INSTITUTION_CLAIM)
+
+        fun privateDetailsResult(hasStartingAddress: Boolean): PrivateDetailsResult =
+            if (hasStartingAddress) PrivateDetailsResult.HasStartingAddress else PrivateDetailsResult.Missing
+
+        /** PERMISSION_DENIED means no consent record; any other failure returns null (the caller rethrows, so routing shows the retry state). */
+        fun noConsentOrNull(e: FirebaseFirestoreException): PrivateDetailsResult? =
+            if (e.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) PrivateDetailsResult.NoConsent else null
 
         fun signUpKindForReason(reason: String?): AuthFailureKind = when (reason) {
             "email-domain" -> AuthFailureKind.EmailDomain

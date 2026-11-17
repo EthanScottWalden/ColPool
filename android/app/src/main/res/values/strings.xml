@@ -29,6 +29,9 @@
     <string name="auth_consent_body">I agree that my scheduled carpool activity (my name, email, who I ride with, which days, pickup spots and estimated miles) will be shared with my university.</string>
 
     <string name="auth_error_invalid_credentials">Email or password is incorrect.</string>
+    <string name="auth_error_fields_required">Enter your email and password.</string>
+    <string name="auth_error_account_created">Your account was created. Sign in to continue.</string>
+    <string name="auth_error_could_not_confirm">Couldn\u2019t confirm your account. Try signing in.</string>
     <string name="auth_error_network">Couldn’t reach ColPool. Check your connection and try again.</string>
     <string name="auth_error_unknown">Something went wrong. Try again.</string>
     <string name="auth_error_email_domain">Use your @calbaptist.edu email.</string>

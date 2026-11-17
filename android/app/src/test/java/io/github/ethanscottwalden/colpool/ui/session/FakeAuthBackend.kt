@@ -16,6 +16,10 @@ class FakeAuthBackend : AuthBackend {
     var signUpError: AuthFailure? = null
     var signOutCalls = 0
     var detailsReads = 0
+    /** When set, readPrivateDetails suspends until it completes. */
+    /** Set by a successful signIn. */
+    var userAfterSignIn: SessionUser? = null
+    var gate: kotlinx.coroutines.CompletableDeferred<Unit>? = null
     val signUps = mutableListOf<SignUpRequest>()
     val signIns = mutableListOf<Pair<String, String>>()
 
@@ -26,6 +30,7 @@ class FakeAuthBackend : AuthBackend {
 
     override suspend fun readPrivateDetails(uid: String): PrivateDetailsResult {
         detailsReads++
+        gate?.await()
         detailsError?.let { throw it }
         return details
     }
@@ -33,6 +38,7 @@ class FakeAuthBackend : AuthBackend {
     override suspend fun signIn(email: String, password: String) {
         signInError?.let { throw it }
         signIns += email to password
+        userAfterSignIn?.let { user = it }
     }
 
     override suspend fun signUp(request: SignUpRequest) {

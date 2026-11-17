@@ -2,7 +2,13 @@ package io.github.ethanscottwalden.colpool.ui.auth
 
 import io.github.ethanscottwalden.colpool.data.session.AuthFailure
 import io.github.ethanscottwalden.colpool.data.session.AuthFailureKind
+import com.google.firebase.firestore.FirebaseFirestoreException
 import io.github.ethanscottwalden.colpool.data.session.FirebaseAuthBackend
+import io.github.ethanscottwalden.colpool.data.session.PrivateDetailsResult
+import io.github.ethanscottwalden.colpool.data.session.SessionUser
+import io.github.ethanscottwalden.colpool.ui.session.SessionState
+import io.github.ethanscottwalden.colpool.ui.session.SessionViewModel
+import io.github.ethanscottwalden.colpool.ui.session.SignedOutNotice
 import io.github.ethanscottwalden.colpool.ui.session.FakeAuthBackend
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -51,7 +57,7 @@ class AuthViewModelTest {
     @Test fun blankSignInDoesNotCallBackend() {
         val vm = vm()
         vm.submit()
-        assertEquals(AuthFailureKind.InvalidCredentials, vm.state.value.formError)
+        assertEquals(AuthFailureKind.FieldsRequired, vm.state.value.formError)
         assertEquals(0, backend.signIns.size)
     }
 
@@ -99,5 +105,46 @@ class AuthViewModelTest {
         assertEquals(AuthFailureKind.EmailInUse, m("email-in-use"))
         assertEquals(AuthFailureKind.Internal, m("internal"))
         assertEquals(AuthFailureKind.Unknown, m(null))
+    }
+
+    @Test fun signUpThenSignInFailureSwitchesToSignInKeepingEmail() {
+        backend.signInError = AuthFailure(AuthFailureKind.Unknown)
+        val vm = vm()
+        vm.fillSignUp()
+        vm.submit()
+        val s = vm.state.value
+        assertEquals(1, backend.signUps.size)
+        assertEquals(AuthMode.SignIn, s.mode)
+        assertEquals("jlee@calbaptist.edu", s.email)
+        assertEquals("", s.password)
+        assertEquals(AuthFailureKind.AccountCreatedSignIn, s.formError)
+        assertEquals(0, routed)
+    }
+
+    @Test fun signUpTimeoutSwitchesToSignIn() {
+        backend.signUpError = AuthFailure(AuthFailureKind.CouldNotConfirm)
+        val vm = vm()
+        vm.fillSignUp()
+        vm.submit()
+        val s = vm.state.value
+        assertEquals(AuthMode.SignIn, s.mode)
+        assertEquals("jlee@calbaptist.edu", s.email)
+        assertEquals(AuthFailureKind.CouldNotConfirm, s.formError)
+        assertEquals(0, backend.signIns.size)
+    }
+
+    @Test fun signInThenNoConsentClearsPasswordKeepsEmail() {
+        backend.userAfterSignIn = SessionUser("s1", isStaff = false)
+        backend.details = PrivateDetailsResult.NoConsent
+        val session = SessionViewModel(backend)
+        val vm = AuthViewModel(backend) { session.resolve() }
+        vm.setEmail("jlee@calbaptist.edu"); vm.setPassword("password1")
+        vm.submit()
+        assertEquals(SessionState.SignedOut(SignedOutNotice.NoConsent), session.state.value)
+        val s = vm.state.value
+        assertEquals("", s.password)
+        assertEquals("jlee@calbaptist.edu", s.email)
+        assertFalse(s.busy)
+        assertNull(s.formError)
     }
 }

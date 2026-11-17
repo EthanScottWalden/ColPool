@@ -60,29 +60,53 @@ class AuthViewModel(
         when (s.mode) {
             AuthMode.SignIn -> {
                 if (s.email.isBlank() || s.password.isEmpty()) {
-                    _state.update { it.copy(formError = AuthFailureKind.InvalidCredentials) }
+                    _state.update { it.copy(formError = AuthFailureKind.FieldsRequired) }
                     return
                 }
-                run { backend.signIn(s.email.trim(), s.password) }
+                run { backend.signIn(s.email.trim(), s.password); true }
             }
             AuthMode.SignUp -> {
                 _state.update { it.copy(showErrors = true) }
                 if (SignUpForm.validate(s.firstName, s.lastName, s.email, s.password, s.consent).isNotEmpty()) return
                 val email = SignUpForm.normalizeEmail(s.email)
                 run {
-                    backend.signUp(SignUpRequest(email, s.password, s.firstName.trim(), s.lastName.trim()))
-                    backend.signIn(email, s.password)
+                    try {
+                        backend.signUp(SignUpRequest(email, s.password, s.firstName.trim(), s.lastName.trim()))
+                    } catch (e: AuthFailure) {
+                        // Timed out: the account may exist, so retrying Create would say "already exists".
+                        if (e.kind != AuthFailureKind.CouldNotConfirm) throw e
+                        switchToSignIn(email, AuthFailureKind.CouldNotConfirm)
+                        return@run false
+                    }
+                    try {
+                        backend.signIn(email, s.password)
+                    } catch (e: AuthFailure) {
+                        if (e.kind == AuthFailureKind.Network) throw e
+                        switchToSignIn(email, AuthFailureKind.AccountCreatedSignIn)
+                        return@run false
+                    }
+                    true
                 }
             }
         }
     }
 
-    private fun run(block: suspend () -> Unit) {
+    private fun switchToSignIn(email: String, error: AuthFailureKind) {
+        _state.update {
+            it.copy(mode = AuthMode.SignIn, email = email, password = "", firstName = "", lastName = "", consent = false, showErrors = false, formError = error)
+        }
+    }
+
+    /** [block] returns true to continue to routing. */
+    private fun run(block: suspend () -> Boolean) {
         _state.update { it.copy(busy = true, formError = null) }
         viewModelScope.launch {
             try {
-                block()
-                onAuthenticated()
+                if (block()) {
+                    onAuthenticated()
+                    // Never keep the password after routing (a no-consent sign-out returns here with the email kept).
+                    _state.update { it.copy(password = "") }
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: AuthFailure) {

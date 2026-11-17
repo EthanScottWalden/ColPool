@@ -1,6 +1,9 @@
 package io.github.ethanscottwalden.colpool.ui.shell
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,10 +27,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.ethanscottwalden.colpool.R
+
+/** Prototype green for the staff header (26-export-carpool-data.png); dark text on it has strong contrast. */
+private val StaffGreen = Color(0xFFCDE5C4)
 
 // Letter glyphs stand in for icons: material-icons is not an approved dependency yet.
 private enum class StudentTab(val label: Int, val glyph: String) {
@@ -50,7 +57,7 @@ fun StudentShell(onLogOut: () -> Unit, initialTab: Int = 0, modifier: Modifier =
                     NavigationBarItem(
                         selected = selected == i,
                         onClick = { selected = i },
-                        icon = { Text(tab.glyph, style = MaterialTheme.typography.titleMedium) },
+                        icon = { Text(tab.glyph, Modifier.clearAndSetSemantics {}, style = MaterialTheme.typography.titleMedium) },
                         label = { Text(stringResource(tab.label), maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, letterSpacing = 0.sp)) },
                     )
                 }
@@ -100,7 +107,7 @@ fun StaffExportPlaceholder(onLogOut: () -> Unit, modifier: Modifier = Modifier) 
     Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column {
             Row(
-                Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.primary).padding(16.dp),
+                Modifier.fillMaxWidth().background(StaffGreen).padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -108,7 +115,11 @@ fun StaffExportPlaceholder(onLogOut: () -> Unit, modifier: Modifier = Modifier) 
                     Text(stringResource(R.string.staff_kicker), style = MaterialTheme.typography.labelMedium)
                     Text(stringResource(R.string.staff_title), style = MaterialTheme.typography.headlineSmall)
                 }
-                OutlinedButton(onClick = onLogOut) { Text(stringResource(R.string.log_out)) }
+                OutlinedButton(
+                    onClick = onLogOut,
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onBackground),
+                ) { Text(stringResource(R.string.log_out)) }
             }
             Text(stringResource(R.string.staff_body), Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium)
         }

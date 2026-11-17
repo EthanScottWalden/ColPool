@@ -24,6 +24,7 @@ sealed interface SessionState {
 }
 
 class SessionViewModel(private val backend: AuthBackend) : ViewModel() {
+    private var generation = 0
     private val _state = MutableStateFlow<SessionState>(SessionState.Resolving)
     val state: StateFlow<SessionState> = _state.asStateFlow()
 
@@ -36,14 +37,17 @@ class SessionViewModel(private val backend: AuthBackend) : ViewModel() {
      * [showProgress] puts the state back to Resolving first (used by Retry).
      */
     suspend fun resolve(showProgress: Boolean = false) {
+        val mine = ++generation
         if (showProgress) _state.value = SessionState.Resolving
-        _state.value = try {
+        val result = try {
             route()
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
             SessionState.Error
         }
+        // Latest call wins: a stale in-flight resolve never overwrites a newer one or a log out.
+        if (mine == generation) _state.value = result
     }
 
     private suspend fun route(): SessionState {
@@ -64,6 +68,7 @@ class SessionViewModel(private val backend: AuthBackend) : ViewModel() {
     }
 
     fun logOut() {
+        generation++
         backend.signOut()
         _state.value = SessionState.SignedOut()
     }

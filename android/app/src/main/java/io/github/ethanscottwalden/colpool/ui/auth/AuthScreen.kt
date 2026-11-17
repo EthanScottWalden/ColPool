@@ -23,7 +23,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -103,9 +108,12 @@ fun AuthContent(
                     password = true, error = SignUpFieldError.Password in errors, errorRes = R.string.auth_error_password_short)
 
                 if (signUp) {
-                    Row(verticalAlignment = Alignment.Top) {
-                        Checkbox(checked = state.consent, onCheckedChange = actions.onConsent)
-                        Text(consentText(), Modifier.padding(top = 12.dp), style = MaterialTheme.typography.bodyMedium)
+                    Row(
+                        Modifier.fillMaxWidth().toggleable(value = state.consent, role = Role.Checkbox, onValueChange = actions.onConsent),
+                        verticalAlignment = Alignment.Top,
+                    ) {
+                        Checkbox(checked = state.consent, onCheckedChange = null, modifier = Modifier.padding(12.dp))
+                        Text(consentText(), Modifier.padding(top = 12.dp, end = 8.dp), style = MaterialTheme.typography.bodyMedium)
                     }
                     if (SignUpFieldError.Consent in errors) ErrorText(stringResource(R.string.auth_error_consent))
                 }
@@ -170,13 +178,14 @@ private fun Field(
 
 @Composable
 private fun ErrorText(text: String) {
-    Text(text, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+    Text(text, Modifier.semantics { liveRegion = LiveRegionMode.Polite }, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
 }
 
 @Composable
 private fun Banner(text: String) {
     Box(
-        Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.errorContainer, MaterialTheme.shapes.medium).padding(12.dp),
+        Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite }
+            .background(MaterialTheme.colorScheme.errorContainer, MaterialTheme.shapes.medium).padding(12.dp),
     ) {
         Text(text, color = MaterialTheme.colorScheme.onErrorContainer, style = MaterialTheme.typography.bodyMedium)
     }
@@ -184,6 +193,9 @@ private fun Banner(text: String) {
 
 private fun formErrorRes(kind: AuthFailureKind): Int = when (kind) {
     AuthFailureKind.InvalidCredentials -> R.string.auth_error_invalid_credentials
+    AuthFailureKind.FieldsRequired -> R.string.auth_error_fields_required
+    AuthFailureKind.AccountCreatedSignIn -> R.string.auth_error_account_created
+    AuthFailureKind.CouldNotConfirm -> R.string.auth_error_could_not_confirm
     AuthFailureKind.Network -> R.string.auth_error_network
     AuthFailureKind.EmailDomain -> R.string.auth_error_email_domain
     AuthFailureKind.PasswordTooShort -> R.string.auth_error_password_short
