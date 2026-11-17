@@ -62,6 +62,7 @@ Branch model: `feature/*` → `dev` → `staging` → `main`.
 - **All changes reach `dev` through a PR** made with the GitHub script (`node .claude/hooks/github.mjs pr-create --base dev ...`). Never push directly to `dev`. The PR body says `Closes #N`. Merge with `node .claude/hooks/github.mjs pr-merge <n>` once CI passes and the work meets §4.
 - **When a task is complete and ready for human review**, open a PR from `dev` into `staging` (`node .claude/hooks/github.mjs pr-create --base staging --head dev ...`) with a short brief (§8).
 - `staging` and `main` are human-only. The agent account can't push, approve or merge there, and must not try to work around that.
+- After the human merges a promotion into `staging` or `main`, the lead opens a `docs/sync-promotions` PR that merges `staging` and `main` back into `dev`, so `dev` is never shown as behind for merge commits alone (owner decision 2026-11-17).
 - After a `feature/*`, `fix/*` or `docs/*` PR merges into `dev`, the lead deletes its branch on GitHub (`node .claude/hooks/github.mjs branch-delete <branch>`, owner decision 2026-11-12).
 - No force-pushes. Don't delete `dev`, `staging` or `main`.
 - If a PR includes `prompt.md`, delete `prompt.md` in that PR's final commit.
