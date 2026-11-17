@@ -25,7 +25,7 @@ export async function requireStudent(
   }
   const consent = await db.collection(COLLECTIONS.consents).doc(auth.uid).get();
   if (!consent.exists) {
-    throw new HttpsError("permission-denied", "Agree to the terms to use ColPool.", {
+    throw new HttpsError("permission-denied", "This account has no data-sharing consent record, so it can't use ColPool.", {
       reason: STUDENT_GATE_REASONS.consentMissing,
     });
   }

@@ -78,7 +78,7 @@ export function validateSignUp(data: unknown): SignUpFields & { password: string
   }
 
   if (d["consent"] !== true) {
-    fail("invalid-argument", SIGN_UP_REASONS.consentRequired, "Agree to the terms to create an account.");
+    fail("invalid-argument", SIGN_UP_REASONS.consentRequired, "Agree to the data-sharing consent statement to create an account.");
   }
 
   return { email: rawEmail, password, firstName, lastName };
