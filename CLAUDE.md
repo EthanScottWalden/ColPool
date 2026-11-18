@@ -21,7 +21,7 @@ This file is the operating guide for every session. It points to the detailed do
 
 ## 2. Picking up work
 
-- **Eligible:** Project Status = **Ready** *and* Human Review = **Approved**, not blocked by an open Issue, not already In progress. Prefer the lowest Phase, then Sequence. Use the `next-issue` skill to list them.
+- **Eligible:** Project Status = **Ready** *and* Human Review = **Approved**, not blocked by an open Issue, not already In progress. Prefer the lowest Phase, then Sequence. Use the `next-issue` skill to list them. The lead moves unblocked Backlog Issues in the current phase to Ready (the skill lists them); Human Review stays the owner's gate.
 - The Issue body is the spec: goal, acceptance criteria, tests expected, non-goals. Don't widen it.
 - **Stale Issue template text:** the "Tests expected → Screens: a check on an Android Emulator device" line and the "Project fields" snapshot in Issue bodies predate later decisions. §4 and the live Project win over them. That isn't a conflict to flag.
 - **`contract` label:** a shared definition other Issues depend on. Never change a contract inside a feature Issue. Stop and propose a contract-change Issue.
@@ -37,7 +37,7 @@ _Android (#11), Functions + emulator (#12) and CI (#54) are set up; full detail 
 
 Agents run Gradle through `android/scripts/sandbox-gradlew.sh <tasks>` (sandbox proxy and temp dir); humans use `./gradlew`.
 
-- Android build: `cd android && ./gradlew assembleDebug` (details: `DEVELOPMENT.md` §2)
+- Android build: `./gradlew assembleDebug` (repo root) (details: `DEVELOPMENT.md` §2)
 - Functions unit tests (emulator): `cd functions && npm test` (agents install with `functions/scripts/sandbox-npm.sh ci`). End-to-end through the Functions emulator: `npm run test:e2e` (humans/CI only, blocked in the agent sandbox)
 - Security Rules tests (emulator): same command (`cd functions && npm test`)
 - Start the emulator: `cd functions && npm run emulators`
@@ -62,6 +62,7 @@ Branch model: `feature/*` → `dev` → `staging` → `main`.
 - **All changes reach `dev` through a PR** made with the GitHub script (`node .claude/hooks/github.mjs pr-create --base dev ...`). Never push directly to `dev`. The PR body says `Closes #N`. Merge with `node .claude/hooks/github.mjs pr-merge <n>` once CI passes and the work meets §4.
 - **When a task is complete and ready for human review**, open a PR from `dev` into `staging` (`node .claude/hooks/github.mjs pr-create --base staging --head dev ...`) with a short brief (§8).
 - `staging` and `main` are human-only. The agent account can't push, approve or merge there, and must not try to work around that.
+- After the human merges a promotion into `staging` or `main`, the lead opens a `docs/sync-promotions` PR that merges `staging` and `main` back into `dev`, so `dev` is never shown as behind for merge commits alone (owner decision 2026-11-17).
 - After a `feature/*`, `fix/*` or `docs/*` PR merges into `dev`, the lead deletes its branch on GitHub (`node .claude/hooks/github.mjs branch-delete <branch>`, owner decision 2026-11-12).
 - No force-pushes. Don't delete `dev`, `staging` or `main`.
 - If a PR includes `prompt.md`, delete `prompt.md` in that PR's final commit.
@@ -127,7 +128,7 @@ The main session runs as `lead` (`.claude/settings.json`). It is the only agent 
 | `docs-keeper` | Doc consistency and drift | Docs (`SPEC.md`/`INTENT.md` only with lead + human approval) |
 
 **Skills:**
-- `next-issue` lists eligible Issues in rank order (read-only).
+- `next-issue` lists eligible Issues in rank order, limited to the current phase. It also lists unblocked Backlog Issues for the lead to move to Ready (owner decision 2026-11-17); it never changes Human Review.
 - Doc-link skills, each with official links plus ColPool constraints: `firebase-auth-docs`, `cloud-functions-docs`, `firestore-docs`, `maps-routes-docs`, `maps-places-docs`, `kotlin-docs`. Use the matching one before relying on memory for an external API.
 - Preloaded: all six in `implementer` and `architect`; Auth, Functions and Firestore in `verifier`.
 **Guardrails** (`.claude/settings.json`):

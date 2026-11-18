@@ -35,8 +35,8 @@ Claude Code runs in **WSL2**, where the Bash sandbox applies. On native Windows 
    ```
    - `sdkmanager` is now deprecated in favour of `android sdk` (same packages). Metrics can be turned off with `--no-metrics`.
    - Do **not** run `android init`: it installs unreviewed agent tooling.
-   - Put the real Places key in `android/local.properties` (`PLACES_API_KEY=...`, never committed). Gradle finds the SDK from `ANDROID_HOME`, so no `sdk.dir` is needed. The sandbox can't read `local.properties`, so the build uses the committed placeholder there.
-   - **Gradle in the sandbox.** Gradle's JVMs ignore the sandbox's proxy settings, and `/tmp` is read-only there. Agents run Gradle through `android/scripts/sandbox-gradlew.sh <tasks>`: it sets `ANDROID_HOME`, the temp dir and the proxy for that one command only, writes no files and prints no credentials. It always runs with `--no-daemon`: a daemon left over from an earlier sandboxed command holds the cache lock and keeps stale proxy credentials. It uses its own Gradle home per checkout, `<checkout>/.cache/gradle-agent` (gitignored), never `~/.gradle`: Gradle releases cache locks between processes with a localhost message that can't cross the sandbox's private network, so an owner daemon, Android Studio or an orphaned build would otherwise block agent builds (owner decision 2026-11-16). The first agent build in a checkout downloads dependencies again. Humans use plain `./gradlew`. Never put proxy settings in `~/.gradle/gradle.properties`: it would break normal builds. The sandbox enforces this: `~/.gradle/gradle.properties`, `~/.gradle/init.gradle(.kts)` and `~/.gradle/init.d` are in `sandbox.filesystem.denyWrite`, so agents can't save credentials there or plant init scripts that would run in the owner's unsandboxed builds. Inside the sandbox they appear empty. The first sandboxed build needs `services.gradle.org`, `plugins.gradle.org`, `dl.google.com`, `repo.maven.apache.org` and `gcp.mirrors.maven.org` reachable.
+   - Put the real Places key in `local.properties` at the **repo root** (`PLACES_API_KEY=...`, never committed; it used to be `android/local.properties`, so move your old file once per clone). Gradle finds the SDK from `ANDROID_HOME`, so no `sdk.dir` is needed. The sandbox can't read `local.properties`, so the build uses the committed placeholder there.
+   - **Gradle in the sandbox.** Gradle's JVMs ignore the sandbox's proxy settings, and `/tmp` is read-only there. Agents run Gradle through `android/scripts/sandbox-gradlew.sh <tasks>` (it runs the repo-root `./gradlew`): it sets `ANDROID_HOME`, the temp dir and the proxy for that one command only, writes no files and prints no credentials. It always runs with `--no-daemon`: a daemon left over from an earlier sandboxed command holds the cache lock and keeps stale proxy credentials. It uses its own Gradle home per checkout, `<checkout>/.cache/gradle-agent` (gitignored), never `~/.gradle`: Gradle releases cache locks between processes with a localhost message that can't cross the sandbox's private network, so an owner daemon, Android Studio or an orphaned build would otherwise block agent builds (owner decision 2026-11-16). The first agent build in a checkout downloads dependencies again. Humans use plain `./gradlew`. Never put proxy settings in `~/.gradle/gradle.properties`: it would break normal builds. The sandbox enforces this: `~/.gradle/gradle.properties`, `~/.gradle/init.gradle(.kts)` and `~/.gradle/init.d` are in `sandbox.filesystem.denyWrite`, so agents can't save credentials there or plant init scripts that would run in the owner's unsandboxed builds. Inside the sandbox they appear empty. The first sandboxed build needs `services.gradle.org`, `plugins.gradle.org`, `dl.google.com`, `repo.maven.apache.org` and `gcp.mirrors.maven.org` reachable.
    - Device checks and the instrumented smoke test use the owner's **Windows Android Studio emulator**, not WSL (no `/dev/kvm`).
 
 ## 2. Build, run and test
@@ -45,13 +45,40 @@ _Set up by #11 (Android app), #12 (Functions and emulator) and #54 (CI)._
 
 | Task | Command |
 |---|---|
-| Android build | `cd android && ./gradlew assembleDebug` (agents: `android/scripts/sandbox-gradlew.sh assembleDebug`; same for every Gradle task below) (debug builds target the Emulator Suite by default; `-Pcolpool.useEmulators=false` for real Firebase, which needs `google-services.json`) |
-| Android JVM tests (Robolectric smoke test) | `cd android && ./gradlew testDebugUnitTest` |
-| Screen screenshot tests (Roborazzi) | `cd android && ./gradlew verifyRoborazziDebug`; refresh goldens with `recordRoborazziDebug` and commit the images (`app/src/test/screenshots/`) |
+| Android build | `./gradlew assembleDebug` from the repo root, which is the Gradle root since 2026-11-17 (agents: `android/scripts/sandbox-gradlew.sh assembleDebug`; same for every Gradle task below) (debug builds target the Emulator Suite by default; `-Pcolpool.useEmulators=false` for real Firebase, which needs `google-services.json`) |
+| Android JVM tests (Robolectric smoke test) | `./gradlew testDebugUnitTest` |
+| Screen screenshot tests (Roborazzi) | `./gradlew verifyRoborazziDebug`; refresh goldens with `recordRoborazziDebug` and commit the images (`android/app/src/test/screenshots/`) |
 | Android instrumented smoke test (owner-run) | Compiles with `./gradlew assembleDebugAndroidTest`. The owner runs `./gradlew connectedDebugAndroidTest` on the Windows emulator. CI runs it (job `android-instrumented`) on PRs into `staging` only; not a required check (owner decision 2026-11-16, ADR 0001). |
 | Functions unit tests (emulator) | `cd functions && npm test` runs the function unit tests (handlers called with `.run`) and the Rules tests against the Auth and Firestore emulators; agents can run it (install with `functions/scripts/sandbox-npm.sh ci`). Needs Node >=24.12 and JDK 21. `cd functions && npm run test:e2e` calls functions through the Functions emulator; humans and CI only, it can't run in the agent sandbox. |
 | Security Rules tests (emulator) | Same command (`cd functions && npm test`); rules tests live in `functions/test/rules/`, function unit tests in `functions/test/functions/`. |
-| Start the emulator | `cd functions && npm run emulators`. The Firestore emulator jar is downloaded once by the owner, outside the sandbox, into `.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar`; check its SHA-256 `9b6498b7f62714d67f48f59b3818883cd682dbcd46b9f59511de81c97bb5166c` (firebase-tools does not check cached jars). Repeat whenever the firebase-tools pin changes. See [ADR 0003](docs/adr/0003-functions-emulator-setup.md). |
+| Start the emulator | `cd functions && npm run emulators` (empty), or `npm run emulators:dev` (also seeds reference data and test accounts; see "Run the app from Android Studio"). The Firestore emulator jar is downloaded once by the owner, outside the sandbox, into `.cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar`; check its SHA-256 `9b6498b7f62714d67f48f59b3818883cd682dbcd46b9f59511de81c97bb5166c` (firebase-tools does not check cached jars). Repeat whenever the firebase-tools pin changes. See [ADR 0003](docs/adr/0003-functions-emulator-setup.md). |
+
+### Run the app from Android Studio (Windows)
+
+The emulators run in WSL2; Android Studio and the Android emulator run on Windows from a separate clone. Debug builds already target the emulators (`10.0.2.2`, project `demo-colpool`; ADR 0001).
+
+1. **One-time, per Windows clone.** Pull the branch. Since 2026-11-17 the Gradle root is the **repo root**: move your old `android\local.properties` (Places key, `sdk.dir`) to `ColPool\local.properties`, then in Android Studio use File > Open on the whole `ColPool` folder (not `android`) and let Gradle sync. The module list shows `app`. You can delete the old `.idea` folder under `android\` if Studio still lists the old project.
+2. **Run.** Pick **app** and press Run on an Android emulator. Before a debug build, the Gradle task `ensureFirebaseEmulators` (`android/app/build.gradle.kts`) checks `localhost:9099`:
+   - If it answers, the emulators are already up and nothing else happens.
+   - If not, it opens a **minimized console window titled "ColPool emulators"** (in the taskbar) that runs `npm run emulators:dev` in WSL (`bash -lc`, loads nvm, `cd ~/ColPool/functions`): build, start Auth, Firestore and Functions, seed reference data and the test accounts. The build then waits (up to 240 seconds, polling every 2 seconds) until `dev.staff@calbaptist.edu` can sign in, which means seeding is done, and continues to install the app.
+   - **To stop the emulators, close that window.** If the next start says a port is in use, run `wsl pkill -f firebase` in a Windows terminal. Data isn't persisted, so every start is clean and seeded.
+   - If it times out, the build fails with a message. In WSL run `cd ~/ColPool/functions && npm run emulators:dev` and read the output (or open the console window).
+3. **When it does nothing.** The task only acts on Windows, with `colpool.useEmulators=true` and `colpool.autoStartEmulators=true` (default), and no `CI` environment variable. On Linux, in CI and in the agent sandbox it is skipped. Turn it off with `-Pcolpool.autoStartEmulators=false` or in `%USERPROFILE%\.gradle\gradle.properties`. If your WSL checkout isn't `~/ColPool`, set `colpool.wslCheckout=~/path` there (no spaces). Node must come from nvm (`~/.nvm/nvm.sh`) in WSL.
+
+All accounts use the fake, demo-only password `demo-pass-123`. The table is printed in the run console after the emulators start.
+
+| Email | Routing case |
+|---|---|
+| `dev.student@calbaptist.edu` | Student with a starting address: Search |
+| `dev.newstudent@calbaptist.edu` | Student with no starting address: Onboarding |
+| `dev.noconsent@calbaptist.edu` | Account with no consent record: blocked (RC-06) |
+| `dev.staff@calbaptist.edu` | Institution staff (`institution: true`) |
+
+The student accounts are created through the real `signUp` callable. Seeding is `functions/scripts/seed-dev-accounts.ts`; it refuses to run unless the Auth and Firestore emulator hosts are set (loopback only) and the project is a `demo-` one.
+
+If the app shows the retry screen, the emulators aren't reachable or haven't finished starting. Wait for "Emulators are ready and seeded" in the console, and check that WSL localhost forwarding works (from Windows, `http://localhost:9099` should answer).
+
+Not shared as a compound configuration: Android Studio creates the **app** configuration locally, so a committed compound can't reference it reliably on a fresh clone.
 
 ### Screens
 

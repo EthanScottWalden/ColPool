@@ -24,7 +24,7 @@
 | Android Gradle Plugin | 9.5.1 |
 | Kotlin | 2.4.21 |
 | Gradle wrapper | 9.9.1, with `distributionSha256Sum` pinned |
-| Version catalog | `android/gradle/libs.versions.toml` |
+| Version catalog | `gradle/libs.versions.toml` (the Gradle root is the repo root; the app module stays in `android/app`) |
 
 AGP 9 has **built-in Kotlin**, so `org.jetbrains.kotlin.android` is not applied (AGP 9 rejects it). Only the Kotlin Compose compiler plugin is applied. The fallback to AGP 9.4.x / Gradle 9.6.0 was not needed.
 
@@ -46,7 +46,7 @@ The build targets Java 17 bytecode and compiles on JDK 21 (no toolchain provisio
 
 ### Places key
 - Places SDK 6.0.2 is wired by #16 (see "Places autocomplete (#16)" below).
-- Key via the Secrets Gradle plugin: the real key goes in uncommitted `android/local.properties` as `PLACES_API_KEY`. The committed `android/local.defaults.properties` holds a placeholder so CI and fresh clones build.
+- Key via the Secrets Gradle plugin: the real key goes in uncommitted `local.properties` at the repo root as `PLACES_API_KEY`. The committed `local.defaults.properties` (repo root) holds a placeholder so CI and fresh clones build.
 - The app's package for the key restriction is `io.github.ethanscottwalden.colpool`. The owner adds the Android-app restriction once the debug SHA-1 exists (`docs/setup/firebase.md`).
 
 ### Places autocomplete (#16)
@@ -58,7 +58,7 @@ The build targets Java 17 bytecode and compiles on JDK 21 (no toolchain provisio
 - **Rules:** suggestions limited to the US; no device-location bias, GPS or map. Input under 3 characters is not sent; typing is debounced 300 ms. Tap to choose (owner decision 2026-11-16): tapping a suggestion resolves it and closes the sheet with the `SelectedAddress`; the only button is "Close". The tapped row shows a progress indicator and further taps are ignored. If the lookup fails the sheet stays open with the suggestions and an error above them. The sheet calls `onConfirm(SelectedAddress)` and the caller closes it. Call `startNewEntry()` or use a fresh ViewModel for each entry: reusing a ViewModel that still holds a selection re-fires `onConfirm` with the old address. While a lookup runs, the other rows are disabled and TalkBack announces "Looking up address…". Only a resolved suggestion is ever returned; editing clears a selection or error. Typed text, suggestions and coordinates are never logged (RC-05).
 
 ### Testing
-- **JVM tests:** Robolectric 4.17 with Roborazzi 1.78.0. A smoke test starts the real app class and checks the placeholder. A screenshot test renders the placeholder (golden: `android/app/src/test/screenshots/placeholder.png`).
+- **JVM tests:** Robolectric 4.17 with Roborazzi 1.78.0. A smoke test starts the real app class. Screenshot tests render screens into `android/app/src/test/screenshots/` (the original `placeholder.png` was replaced by the #19 and #16 goldens; [ADR 0004](0004-sign-in-routing.md)).
 - **Instrumented smoke test** (`androidTest`): written and compiled by agents (`assembleDebugAndroidTest`). The owner runs it on the Windows emulator. CI runs it on PRs into `staging` (not a required check; owner decision 2026-11-16, #54).
 - Robolectric needs the Android 16 (SDK 36) jar. Its own downloader can't pass the sandbox proxy, so `app/build.gradle.kts` resolves `org.robolectric:android-all-instrumented:16-robolectric-13921718-i7` through Gradle and runs tests offline. The Robolectric version fixes this coordinate: update it when Robolectric changes.
 - JDK 21 needs `--add-exports/--add-opens java.base/jdk.internal.access` for Robolectric (set in the build file).
