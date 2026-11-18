@@ -18,7 +18,7 @@
 2. Package name: `io.github.ethanscottwalden.colpool`. Nickname: ColPool.
 3. Debug signing certificate SHA-1: optional here; also add it to the Places key
    restriction (`docs/setup/firebase.md` section 4). Get it with
-   `./gradlew signingReport` (on Windows, run it from `android/`).
+   `./gradlew signingReport` (run it from the repo root; on Windows, `.\gradlew.bat signingReport`).
 4. **Decline Google Analytics** when asked (no Analytics, ADR 0001).
 5. Download `google-services.json` and place it at
    `android/app/google-services.json`.

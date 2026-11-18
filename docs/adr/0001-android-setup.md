@@ -39,6 +39,12 @@ The build targets Java 17 bytecode and compiles on JDK 21 (no toolchain provisio
 - The ports are the Emulator Suite defaults. **#12's `firebase.json` must match them.**
 - Override a build: `./gradlew assembleDebug -Pcolpool.useEmulators=false`.
 
+### Layout and emulator auto-start (owner decision 2026-11-17, tooling PRs #116, #117, #118)
+- **Gradle root moved to the repo root** (`settings.gradle.kts`, `gradlew`, `gradle/`, `local.properties`). The `:app` module stays at `android/app`. Run `./gradlew` from the root.
+- **`ensureFirebaseEmulators`** (`android/app/build.gradle.kts`) runs before `assembleDebug` and `installDebug`, on Windows only. It is skipped on Linux, in CI, with `colpool.useEmulators=false` or `-Pcolpool.autoStartEmulators=false`. It starts the emulators in WSL with `npm run emulators:dev` (seeded accounts) and waits for the seeded login. Procedure: `DEVELOPMENT.md` §2 "Run the app from Android Studio (Windows)".
+- **Debug-only error detail** (`ui/ErrorDetail.kt`) shows the exception class and redacted message under generic errors.
+- **Placeholder API key** for emulator builds without `google-services.json` is key-shaped (`"AIza"` plus 35 zeros, built at runtime), because an SDK check on the `signUp` path rejected the earlier placeholder.
+
 ### Firebase config
 - The google-services plugin is applied **only if `android/app/google-services.json` exists**. That file is never committed (`.gitignore`). Owner steps are in `android/app/google-services.README.md`.
 - When the file is absent, debug + emulators initialise `FirebaseApp` manually with placeholder `FirebaseOptions`. The project ID is the Gradle property `colpool.emulatorProjectId`, default `demo-colpool`. **Provisional:** #12 owns `.firebaserc` and the emulator project ID and must match or change it.
