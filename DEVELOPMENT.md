@@ -74,11 +74,11 @@ All accounts use the fake, demo-only password `demo-pass-123`. The table is prin
 | `dev.noconsent@calbaptist.edu` | Account with no consent record: blocked (RC-06) |
 | `dev.staff@calbaptist.edu` | Institution staff (`institution: true`) |
 
-The student accounts are created through the real `signUp` callable. Seeding is `functions/scripts/seed-dev-accounts.ts`; it refuses to run unless the Auth and Firestore emulator hosts are set (loopback only) and the project is a `demo-` one.
+The student accounts are created through the real `signUp` callable. Seeding is `functions/scripts/seed-dev-accounts.ts`; it refuses to run unless the Auth and Firestore emulator hosts are set, every emulator host (including the Functions host, if set) is loopback, and the project is a `demo-` one.
 
-If the app shows the retry screen, the emulators aren't reachable or haven't finished starting. Wait for "Emulators are ready and seeded" in the console, and check that WSL localhost forwarding works (from Windows, `http://localhost:9099` should answer).
+If the app shows the retry screen, the emulators aren't reachable or haven't finished starting. Debug builds also show the exception class and message under the generic error (`ui/ErrorDetail.kt`; emails, secrets and long tokens containing a digit are redacted); release builds never do. Debug emulator builds use a key-shaped fake API key (`"AIza"` plus 35 zeros, built at runtime in `ColPoolApp`) because the Firebase SDK rejects a non-key-shaped one on sign-up. Wait for "Emulators are ready and seeded" in the console, and check that WSL localhost forwarding works (from Windows, `http://localhost:9099` should answer).
 
-Not shared as a compound configuration: Android Studio creates the **app** configuration locally, so a committed compound can't reference it reliably on a fresh clone.
+No Android Studio run configuration is committed: Android Studio creates the **app** configuration itself, and the first committed one (#116) didn't work for the owner, so it was removed (#117). The one-command fallback is `cd ~/ColPool/functions && npm run emulators:dev` in WSL.
 
 ### Screens
 
@@ -115,7 +115,7 @@ Institution accounts are created only by `functions/scripts/create-institution-a
 
 `.github/workflows/ci.yml` (#54) runs on every pull request and on pushes to `dev`, `staging` and `main`, on GitHub-hosted runners (free, the repo is public). It uses no secrets, has `contents: read` only, never deploys, and every action is pinned to a commit SHA.
 
-- **`android`:** JDK 21 (Temurin), `./gradlew assembleDebug testDebugUnitTest verifyRoborazziDebug` from `android/`. Reports are uploaded on failure.
+- **`android`:** JDK 21 (Temurin), `./gradlew assembleDebug testDebugUnitTest verifyRoborazziDebug` from the repo root. Reports are uploaded on failure.
 - **`functions`:** Node 24, JDK 21, downloads the Firestore emulator jar and **fails if its SHA-256 differs** from the one in the workflow, then `npm ci`, `npm test` and `npm run test:e2e`. Logs are uploaded on failure. When the `firebase-tools` pin changes, update `FIRESTORE_JAR_NAME` and `FIRESTORE_JAR_SHA256` in the workflow with the same manual check as above.
 - **`android-instrumented`:** runs `connectedDebugAndroidTest` on an API 36 x86_64 emulator, **only on PRs into `staging`**. It is informational: it is not in `ci-ok`, and the owner shouldn't make it a required check.
 - **`ci-ok`:** needs both and fails if either failed or was cancelled. It is the single required check name.
