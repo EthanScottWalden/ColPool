@@ -74,6 +74,10 @@ One-time setup so Run works from a Windows account other than the one that owns 
    ```
    wsl --install -d Ubuntu-24.04
    ```
+   Then make it the **default** distro. The build runs plain `wsl.exe`, which opens the default, and Docker Desktop often registers itself as the default (`docker-desktop`, no `~/ColPool`). In PowerShell, `wsl -l -v` marks the default with `*`:
+   ```
+   wsl --set-default Ubuntu-24.04
+   ```
 2. **git, curl and Java 21** (the emulators run on the JVM):
    ```
    sudo apt update
@@ -102,7 +106,7 @@ One-time setup so Run works from a Windows account other than the one that owns 
 6. **Check once by hand:** `cd ~/ColPool/functions && npm run emulators:dev` prints the account table and "Emulators are ready and seeded". From Windows in that profile, `http://localhost:9099` answers. Ctrl+C to stop.
 7. **Android Studio:** in that profile, clone the repo to a Windows folder if it has none, put `local.properties` (`PLACES_API_KEY=...`) at the repo root, File > Open the whole `ColPool` folder and Run **app** (step 1 above).
 
-If it still fails: `No such file or directory` means the clone isn't at `~/ColPool` (move it, or set `colpool.wslCheckout`); `npm: command not found` means nvm isn't at `~/.nvm` (redo step 3); a port in use means run `wsl pkill -f firebase` in a Windows terminal.
+If it still fails: `No such file or directory` while the Ubuntu terminal works means the default distro is another one, usually `docker-desktop` (`wsl -l -v`, then `wsl --set-default Ubuntu-24.04`; owner-confirmed 2026-11-18); otherwise the clone isn't at `~/ColPool` (move it, or set `colpool.wslCheckout`); `npm: command not found` means nvm isn't at `~/.nvm` (redo step 3); a port in use means run `wsl pkill -f firebase` in a Windows terminal.
 
 Alternative without a second WSL: set `colpool.autoStartEmulators=false` in that profile's `%USERPROFILE%\.gradle\gradle.properties` and start the emulators from the account that has the checkout before pressing Run; the build only checks that `localhost:9099` answers.
 
