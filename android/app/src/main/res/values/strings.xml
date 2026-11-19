@@ -57,8 +57,32 @@
     <string name="placeholder_coming_soon">Coming soon.</string>
     <string name="log_out">Log out</string>
     <string name="log_out_temporary">Temporary: the real Profile screen comes later.</string>
-    <string name="onboarding_title">Onboarding</string>
-    <string name="onboarding_temporary">Temporary: the real Onboarding screen comes later.</string>
+
+    <!-- Onboarding (#22) -->
+    <string name="onboarding_welcome">Welcome to ColPool!</string>
+    <string name="onboarding_intro">Tell us where you usually leave from, so we can show you rides nearby.</string>
+    <string name="onboarding_address_label">Starting address (required)</string>
+    <string name="onboarding_address_placeholder">Choose your starting address</string>
+    <string name="onboarding_address_sheet_title">Starting address</string>
+    <string name="onboarding_address_required">Choose your starting address to continue.</string>
+    <string name="onboarding_address_private">Only used to sort search results. Nobody else ever sees it.</string>
+    <string name="onboarding_optional_note">Everything below is optional, and you can change it anytime from your profile.</string>
+    <string name="onboarding_optional">Optional</string>
+    <string name="onboarding_age">Age</string>
+    <string name="onboarding_age_error">Enter a whole number, 18 or older.</string>
+    <string name="onboarding_gender">Gender</string>
+    <string name="onboarding_year">Year</string>
+    <string name="onboarding_major">Major</string>
+    <string name="onboarding_interests">Interests</string>
+    <string name="onboarding_traits">Commute style</string>
+    <string name="onboarding_no_selection">No selection</string>
+    <string name="onboarding_options_error">Couldn’t load the profile choices. Check your connection and try again. You can still finish without them.</string>
+    <string name="onboarding_about_me">About me</string>
+    <string name="onboarding_about_me_hint">Optional. Say hi, mention your schedule…</string>
+    <string name="onboarding_about_me_count">%1$d / %2$d</string>
+    <string name="onboarding_finish">Finish</string>
+    <string name="onboarding_saving">Saving…</string>
+    <string name="onboarding_save_error">Couldn’t save your profile. Check your connection and try again.</string>
 
     <!-- Staff -->
     <string name="staff_kicker">COLPOOL · UNIVERSITY STAFF</string>

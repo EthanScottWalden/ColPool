@@ -14,6 +14,8 @@ import io.github.ethanscottwalden.colpool.data.places.PlacesAutocomplete
 import io.github.ethanscottwalden.colpool.data.places.PlacesSdkAutocomplete
 import io.github.ethanscottwalden.colpool.data.session.AuthBackend
 import io.github.ethanscottwalden.colpool.data.session.FirebaseAuthBackend
+import io.github.ethanscottwalden.colpool.data.session.FirebaseOnboardingBackend
+import io.github.ethanscottwalden.colpool.data.session.OnboardingBackend
 
 /**
  * Manual DI: holds the Firebase singletons. Created once in [io.github.ethanscottwalden.colpool.ColPoolApp]
@@ -41,4 +43,5 @@ class AppContainer(private val appContext: Context) {
     val places: PlacesAutocomplete by lazy { PlacesSdkAutocomplete { placesClient } }
 
     val authBackend: AuthBackend by lazy { FirebaseAuthBackend(auth, firestore, functions) }
+    val onboardingBackend: OnboardingBackend by lazy { FirebaseOnboardingBackend(auth, firestore) }
 }
