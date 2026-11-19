@@ -378,15 +378,17 @@ flowchart LR
     App["ColPool app<br/>(Kotlin)"]
   end
 
-  subgraph Firebase["Firebase / Google Cloud"]
-    Auth["Firebase Authentication<br/>custom claim: institution accounts"]
-    Fn["Cloud Functions (Node.js)<br/>sign-up + consent, route review,<br/>post series, requests, seats,<br/>profile permissions, notifications,<br/>CSV export, daily job: mark ended series"]
-    DB[("Cloud Firestore<br/>+ Security Rules")]
-  end
+  subgraph GCP["Google Cloud"]
+    subgraph Firebase["Firebase"]
+      Auth["Firebase Authentication<br/>custom claim: institution accounts"]
+      Fn["Cloud Functions (Node.js)<br/>sign-up + consent, route review,<br/>post series, requests, seats,<br/>profile permissions, notifications,<br/>CSV export, daily job: mark ended series"]
+      DB[("Cloud Firestore<br/>+ Security Rules")]
+    end
 
-  subgraph Maps["Google Maps Platform"]
-    Places["Places<br/>(address autocomplete)"]
-    Routes["Routes API<br/>(Compute Routes)"]
+    subgraph Maps["Google Maps Platform"]
+      Places["Places<br/>(address autocomplete)"]
+      Routes["Routes API<br/>(Compute Routes)"]
+    end
   end
 
   App <-->|"typed address → suggestions<br/>with coordinates"| Places
