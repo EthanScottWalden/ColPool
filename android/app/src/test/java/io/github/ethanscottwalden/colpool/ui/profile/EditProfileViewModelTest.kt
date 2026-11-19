@@ -169,6 +169,21 @@ class EditProfileViewModelTest {
         assertEquals(1, saved.size)
     }
 
+    @Test fun aSaveFinishingAfterResetIsIgnored() {
+        val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val slow = object : io.github.ethanscottwalden.colpool.data.session.ProfileBackend by backend {
+            override suspend fun save(changes: io.github.ethanscottwalden.colpool.data.session.ProfileChanges) { gate.await(); backend.save(changes) }
+        }
+        val vm = EditProfileViewModel(slow) { saved += it }.also { it.start(FakeProfileBackend.FULL, SeededOptions.ALL) }
+        vm.setFirstName("Casey")
+        vm.save()
+        assertTrue(vm.state.value.saving)
+        vm.reset() // e.g. log out
+        gate.complete(Unit)
+        assertTrue(saved.isEmpty())
+        assertEquals(EditProfileUiState(), vm.state.value)
+    }
+
     @Test fun resetClearsPrivateData() {
         val vm = vm()
         vm.reset()

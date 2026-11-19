@@ -28,6 +28,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -128,6 +129,13 @@ fun FormErrorText(text: String) {
     Text(text, Modifier.semantics { liveRegion = LiveRegionMode.Polite }, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
 }
 
+/** Screen readers hear that a selected chip can be tapped again to remove it. Visuals are unchanged. */
+@Composable
+private fun Modifier.chipState(selected: Boolean): Modifier {
+    val description = stringResource(if (selected) R.string.profile_chip_selected else R.string.profile_chip_not_selected)
+    return semantics { stateDescription = description }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SingleChoice(label: Int, items: List<OptionItem>, selected: String?, onSelect: (String?) -> Unit) {
@@ -136,7 +144,7 @@ private fun SingleChoice(label: Int, items: List<OptionItem>, selected: String?,
         items.forEach { item ->
             val on = item.id == selected
             // Tapping the chosen chip again clears it: every field here is optional.
-            FilterChip(selected = on, onClick = { onSelect(if (on) null else item.id) }, label = { Text(item.label) })
+            FilterChip(selected = on, onClick = { onSelect(if (on) null else item.id) }, label = { Text(item.label) }, modifier = Modifier.chipState(on))
         }
     }
 }
@@ -147,7 +155,7 @@ private fun MultiChoice(label: Int, items: List<OptionItem>, selected: Set<Strin
     FormLabel(label)
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items.forEach { item ->
-            FilterChip(selected = item.id in selected, onClick = { onToggle(item.id) }, label = { Text(item.label) })
+            FilterChip(selected = item.id in selected, onClick = { onToggle(item.id) }, label = { Text(item.label) }, modifier = Modifier.chipState(item.id in selected))
         }
     }
 }

@@ -55,10 +55,13 @@ class EditProfileViewModel(
     private val onSaved: (OwnProfile) -> Unit,
 ) : ViewModel() {
     private val _state = MutableStateFlow(EditProfileUiState())
+    /** Bumped when the form opens or closes, so a save that finishes after that is ignored. */
+    private var generation = 0
     val state: StateFlow<EditProfileUiState> = _state.asStateFlow()
 
     /** Fills the form from the stored profile. Call each time Edit Profile opens. */
     fun start(profile: OwnProfile, options: ProfileOptions) {
+        generation++
         _state.value = EditProfileUiState(
             original = profile,
             options = options,
@@ -77,6 +80,7 @@ class EditProfileViewModel(
 
     /** Clears everything (leaving the screen or logging out). */
     fun reset() {
+        generation++
         _state.value = EditProfileUiState()
     }
 
@@ -101,16 +105,19 @@ class EditProfileViewModel(
         val changes = s.changes ?: return
         if (s.saving || changes.isEmpty) return
         _state.update { it.copy(saving = true, saveFailed = false) }
+        val mine = generation
         viewModelScope.launch {
             try {
                 backend.save(changes)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _state.update { it.copy(saving = false, saveFailed = true) }
+                if (mine == generation) _state.update { it.copy(saving = false, saveFailed = true) }
                 return@launch
             }
             val saved = merged(s, original)
+            // The form was closed or reset (for example by logging out) during the save: hand nothing over.
+            if (mine != generation) return@launch
             // Saved: hand the new values over and close the form (the form being closed is `!ready`).
             onSaved(saved)
             reset()

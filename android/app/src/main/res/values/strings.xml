@@ -87,6 +87,8 @@
     <string name="onboarding_address_required">Choose your starting address to continue.</string>
     <string name="onboarding_address_private">Only used to sort search results. Nobody else ever sees it.</string>
     <string name="onboarding_optional_note">Everything below is optional, and you can change it anytime from your profile.</string>
+    <string name="profile_chip_selected">Selected. Tap again to remove.</string>
+    <string name="profile_chip_not_selected">Not selected</string>
     <string name="profile_optional">Optional</string>
     <string name="profile_age">Age</string>
     <string name="profile_age_error">Enter a whole number, 18 or older.</string>
