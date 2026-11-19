@@ -56,6 +56,7 @@ object OnboardingTags {
     const val Age = "onboarding_age"
     const val AboutMe = "onboarding_about_me"
     const val Finish = "onboarding_finish"
+    const val FinishHint = "onboarding_finish_hint"
 }
 
 class OnboardingActions(
@@ -185,6 +186,15 @@ fun OnboardingContent(state: OnboardingUiState, actions: OnboardingActions, modi
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp).testTag(OnboardingTags.Finish),
                 ) {
                     Text(stringResource(if (state.saving) R.string.onboarding_saving else if (state.saveFailed) R.string.session_retry else R.string.onboarding_finish))
+                }
+                // Finish is disabled without an address; say why instead of leaving a silent disabled button.
+                if (state.addressMissing && !state.showErrors) {
+                    Text(
+                        stringResource(R.string.onboarding_address_required),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.align(Alignment.CenterHorizontally).testTag(OnboardingTags.FinishHint),
+                    )
                 }
                 // TODO(#27): Log out moves to the real Profile screen; here it keeps a wrong-account sign-in from being a dead end.
                 TextButton(
