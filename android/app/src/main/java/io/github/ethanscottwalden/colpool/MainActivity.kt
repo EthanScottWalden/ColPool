@@ -8,7 +8,9 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import io.github.ethanscottwalden.colpool.ui.ColPoolRoot
+import io.github.ethanscottwalden.colpool.ui.address.AddressSearchViewModel
 import io.github.ethanscottwalden.colpool.ui.auth.AuthViewModel
+import io.github.ethanscottwalden.colpool.ui.onboarding.OnboardingViewModel
 import io.github.ethanscottwalden.colpool.ui.session.SessionState
 import io.github.ethanscottwalden.colpool.ui.session.SessionViewModel
 import io.github.ethanscottwalden.colpool.ui.theme.ColPoolTheme
@@ -24,13 +26,22 @@ class MainActivity : ComponentActivity() {
         viewModelFactory { initializer { AuthViewModel(backend) { session.resolve() } } }
     }
 
+    private val onboarding: OnboardingViewModel by viewModels {
+        viewModelFactory {
+            initializer { OnboardingViewModel((application as ColPoolApp).container.onboardingBackend) { session.resolve() } }
+        }
+    }
+    private val addressSearch: AddressSearchViewModel by viewModels {
+        viewModelFactory { initializer { AddressSearchViewModel((application as ColPoolApp).container.places) } }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
         splash.setKeepOnScreenCondition { session.state.value is SessionState.Resolving }
         setContent {
             ColPoolTheme {
-                ColPoolRoot(session, auth)
+                ColPoolRoot(session, auth, onboarding, addressSearch)
             }
         }
     }

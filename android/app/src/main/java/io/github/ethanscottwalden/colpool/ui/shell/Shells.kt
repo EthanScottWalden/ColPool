@@ -83,24 +83,6 @@ fun StudentShell(onLogOut: () -> Unit, initialTab: Int = 0, modifier: Modifier =
     }
 }
 
-/** Onboarding placeholder (the real screen is #22). No footer. */
-@Composable
-fun OnboardingPlaceholder(onLogOut: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Centered {
-            Text(stringResource(R.string.onboarding_title), style = MaterialTheme.typography.headlineMedium)
-            // TODO(#22): the real Onboarding screen replaces this temporary Log out.
-            Text(
-                stringResource(R.string.onboarding_temporary),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
-            Button(onClick = onLogOut) { Text(stringResource(R.string.log_out)) }
-        }
-    }
-}
-
 /** University staff: Export Carpool Data placeholder. A header with Log out, no footer and no tabs. */
 @Composable
 fun StaffExportPlaceholder(onLogOut: () -> Unit, modifier: Modifier = Modifier) {

@@ -64,6 +64,51 @@ The emulators run in WSL2; Android Studio and the Android emulator run on Window
    - **To stop the emulators, close that window.** If the next start says a port is in use, run `wsl pkill -f firebase` in a Windows terminal. Data isn't persisted, so every start is clean and seeded.
    - If it times out, the build fails with a message. In WSL run `cd ~/ColPool/functions && npm run emulators:dev` and read the output (or open the console window).
 3. **When it does nothing.** The task only acts on Windows, with `colpool.useEmulators=true` and `colpool.autoStartEmulators=true` (default), and no `CI` environment variable. On Linux, in CI and in the agent sandbox it is skipped. Turn it off with `-Pcolpool.autoStartEmulators=false` or in `%USERPROFILE%\.gradle\gradle.properties`. If your WSL checkout isn't `~/ColPool`, set `colpool.wslCheckout=~/path` there (no spaces). Node must come from nvm (`~/.nvm/nvm.sh`) in WSL.
+4. **Another Windows account.** WSL distros are per Windows account, so in a second Windows profile `wsl.exe` opens that profile's own WSL, and the "ColPool emulators" window fails with `No such file or directory` (no `~/ColPool` there). `colpool.wslCheckout` can't reach another account's WSL. Do the one-time setup in "Second Windows profile" below.
+
+### Second Windows profile
+
+One-time setup so Run works from a Windows account other than the one that owns the main WSL checkout. Do every step signed in to Windows as that account.
+
+1. **WSL with Ubuntu** (admin PowerShell), then open Ubuntu and create a Linux user:
+   ```
+   wsl --install -d Ubuntu-24.04
+   ```
+   Then make it the **default** distro. The build runs plain `wsl.exe`, which opens the default, and Docker Desktop often registers itself as the default (`docker-desktop`, no `~/ColPool`). In PowerShell, `wsl -l -v` marks the default with `*`:
+   ```
+   wsl --set-default Ubuntu-24.04
+   ```
+2. **git, curl and Java 21** (the emulators run on the JVM):
+   ```
+   sudo apt update
+   sudo apt install -y git curl openjdk-21-jre-headless
+   ```
+3. **nvm and Node 24.** The auto-start loads Node from `~/.nvm/nvm.sh`:
+   ```
+   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+   source ~/.nvm/nvm.sh
+   nvm install 24 && nvm alias default 24
+   ```
+4. **Clone to `~/ColPool`** (Linux file system, not `/mnt/c`) and install:
+   ```
+   cd ~ && git clone https://github.com/EthanScottWalden/ColPool.git
+   cd ~/ColPool/functions && npm ci
+   ```
+5. **Firestore emulator jar**, same file and SHA-256 as CI (`.github/workflows/ci.yml`). The last command must print `OK`:
+   ```
+   cd ~/ColPool
+   mkdir -p .cache/firebase/emulators
+   curl -fL -o .cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar \
+     https://storage.googleapis.com/firebase-preview-drop/emulator/cloud-firestore-emulator-v1.22.0.jar
+   echo "9b6498b7f62714d67f48f59b3818883cd682dbcd46b9f59511de81c97bb5166c  .cache/firebase/emulators/cloud-firestore-emulator-v1.22.0.jar" | sha256sum --check --strict
+   ```
+   Repeat with the new name and hash from `ci.yml` whenever the `firebase-tools` pin changes.
+6. **Check once by hand:** `cd ~/ColPool/functions && npm run emulators:dev` prints the account table and "Emulators are ready and seeded". From Windows in that profile, `http://localhost:9099` answers. Ctrl+C to stop.
+7. **Android Studio:** in that profile, clone the repo to a Windows folder if it has none, put `local.properties` (`PLACES_API_KEY=...`) at the repo root, File > Open the whole `ColPool` folder and Run **app** (step 1 above).
+
+If it still fails: `No such file or directory` while the Ubuntu terminal works means the default distro is another one, usually `docker-desktop` (`wsl -l -v`, then `wsl --set-default Ubuntu-24.04`; owner-confirmed 2026-11-18); otherwise the clone isn't at `~/ColPool` (move it, or set `colpool.wslCheckout`); `npm: command not found` means nvm isn't at `~/.nvm` (redo step 3); a port in use means run `wsl pkill -f firebase` in a Windows terminal.
+
+Alternative without a second WSL: set `colpool.autoStartEmulators=false` in that profile's `%USERPROFILE%\.gradle\gradle.properties` and start the emulators from the account that has the checkout before pressing Run; the build only checks that `localhost:9099` answers.
 
 All accounts use the fake, demo-only password `demo-pass-123`. The table is printed in the run console after the emulators start.
 
@@ -74,11 +119,11 @@ All accounts use the fake, demo-only password `demo-pass-123`. The table is prin
 | `dev.noconsent@calbaptist.edu` | Account with no consent record: blocked (RC-06) |
 | `dev.staff@calbaptist.edu` | Institution staff (`institution: true`) |
 
-The student accounts are created through the real `signUp` callable. Seeding is `functions/scripts/seed-dev-accounts.ts`; it refuses to run unless the Auth and Firestore emulator hosts are set (loopback only) and the project is a `demo-` one.
+The student accounts are created through the real `signUp` callable. Seeding is `functions/scripts/seed-dev-accounts.ts`; it refuses to run unless the Auth and Firestore emulator hosts are set, every emulator host (including the Functions host, if set) is loopback, and the project is a `demo-` one.
 
-If the app shows the retry screen, the emulators aren't reachable or haven't finished starting. Wait for "Emulators are ready and seeded" in the console, and check that WSL localhost forwarding works (from Windows, `http://localhost:9099` should answer).
+If the app shows the retry screen, the emulators aren't reachable or haven't finished starting. Debug builds also show the exception class and message under the generic error (`ui/ErrorDetail.kt`; emails, secrets and long tokens containing a digit are redacted); release builds never do. Debug emulator builds use a key-shaped fake API key (`"AIza"` plus 35 zeros, built at runtime in `ColPoolApp`) because the Firebase SDK rejects a non-key-shaped one on sign-up. Wait for "Emulators are ready and seeded" in the console, and check that WSL localhost forwarding works (from Windows, `http://localhost:9099` should answer).
 
-Not shared as a compound configuration: Android Studio creates the **app** configuration locally, so a committed compound can't reference it reliably on a fresh clone.
+No Android Studio run configuration is committed: Android Studio creates the **app** configuration itself, and the first committed one (#116) didn't work for the owner, so it was removed (#117). The one-command fallback is `cd ~/ColPool/functions && npm run emulators:dev` in WSL.
 
 ### Screens
 
@@ -115,7 +160,7 @@ Institution accounts are created only by `functions/scripts/create-institution-a
 
 `.github/workflows/ci.yml` (#54) runs on every pull request and on pushes to `dev`, `staging` and `main`, on GitHub-hosted runners (free, the repo is public). It uses no secrets, has `contents: read` only, never deploys, and every action is pinned to a commit SHA.
 
-- **`android`:** JDK 21 (Temurin), `./gradlew assembleDebug testDebugUnitTest verifyRoborazziDebug` from `android/`. Reports are uploaded on failure.
+- **`android`:** JDK 21 (Temurin), `./gradlew assembleDebug testDebugUnitTest verifyRoborazziDebug` from the repo root. Reports are uploaded on failure.
 - **`functions`:** Node 24, JDK 21, downloads the Firestore emulator jar and **fails if its SHA-256 differs** from the one in the workflow, then `npm ci`, `npm test` and `npm run test:e2e`. Logs are uploaded on failure. When the `firebase-tools` pin changes, update `FIRESTORE_JAR_NAME` and `FIRESTORE_JAR_SHA256` in the workflow with the same manual check as above.
 - **`android-instrumented`:** runs `connectedDebugAndroidTest` on an API 36 x86_64 emulator, **only on PRs into `staging`**. It is informational: it is not in `ci-ok`, and the owner shouldn't make it a required check.
 - **`ci-ok`:** needs both and fails if either failed or was cancelled. It is the single required check name.

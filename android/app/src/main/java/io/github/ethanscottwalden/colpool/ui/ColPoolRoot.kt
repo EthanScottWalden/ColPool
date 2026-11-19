@@ -7,24 +7,28 @@ import androidx.compose.runtime.getValue
 import io.github.ethanscottwalden.colpool.ui.auth.AuthActions
 import io.github.ethanscottwalden.colpool.ui.auth.AuthContent
 import io.github.ethanscottwalden.colpool.ui.auth.AuthMode
+import io.github.ethanscottwalden.colpool.ui.address.AddressSearchViewModel
 import io.github.ethanscottwalden.colpool.ui.auth.AuthViewModel
+import io.github.ethanscottwalden.colpool.ui.onboarding.OnboardingScreen
+import io.github.ethanscottwalden.colpool.ui.onboarding.OnboardingViewModel
 import io.github.ethanscottwalden.colpool.ui.session.SessionState
 import io.github.ethanscottwalden.colpool.ui.session.SessionViewModel
 import io.github.ethanscottwalden.colpool.ui.shell.LoadingScreen
-import io.github.ethanscottwalden.colpool.ui.shell.OnboardingPlaceholder
 import io.github.ethanscottwalden.colpool.ui.shell.SessionErrorScreen
 import io.github.ethanscottwalden.colpool.ui.shell.StaffExportPlaceholder
 import io.github.ethanscottwalden.colpool.ui.shell.StudentShell
 
 /** Picks the screen for the current [SessionState]. No navigation library yet. */
 @Composable
-fun ColPoolRoot(session: SessionViewModel, auth: AuthViewModel) {
+fun ColPoolRoot(session: SessionViewModel, auth: AuthViewModel, onboarding: OnboardingViewModel, addressSearch: AddressSearchViewModel) {
     val state by session.state.collectAsState()
     val authState by auth.state.collectAsState()
     val errorDetail by session.errorDetail.collectAsState()
 
     LaunchedEffect(state) {
         if (state !is SessionState.SignedOut) auth.reset()
+        // Onboarding state (including the private address) never outlives the screen.
+        if (state == SessionState.Onboarding) onboarding.loadOptions() else onboarding.reset()
     }
 
     when (val s = state) {
@@ -42,7 +46,7 @@ fun ColPoolRoot(session: SessionViewModel, auth: AuthViewModel) {
                 onSubmit = auth::submit,
             ),
         )
-        SessionState.Onboarding -> OnboardingPlaceholder(onLogOut = session::logOut)
+        SessionState.Onboarding -> OnboardingScreen(onboarding, addressSearch, onLogOut = session::logOut)
         SessionState.Search -> StudentShell(onLogOut = session::logOut)
         SessionState.Staff -> StaffExportPlaceholder(onLogOut = session::logOut)
         SessionState.Error -> SessionErrorScreen(onRetry = session::retry, onLogOut = session::logOut, detail = errorDetail)
