@@ -129,6 +129,8 @@ No Android Studio run configuration is committed: Android Studio creates the **a
 
 Screen PRs carry images from **screenshot tests that render on the JVM**, with no device. They run in the sandbox and in CI. The owner does the real device check against the prototype screen during the staging review. The library is Roborazzi on Robolectric ([ADR 0001](docs/adr/0001-android-setup.md), owner decision 2026-11-11).
 
+Sample data in screenshot tests matches what users will see. For profile option lists (gender, year, major, interests, commute style), use the full seeded lists from `functions/src/shared/schema/options.ts`, not a short subset, so the images show the real chip wrapping. Where the Android tests keep a Kotlin copy of those lists, a test checks it against that file so the two can't drift (owner decision 2026-11-19).
+
 ### Dependencies
 
 Each setup Issue (#11, #12, #54) settles its whole library list as part of its setup decision: the architect proposes the list, the owner approves it once, and it's recorded in that Issue's ADR. Adding a library outside an approved list later is L2 (owner decision 2026-11-11).
