@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onRoot
 import com.github.takahirom.roborazzi.captureRoboImage
 import io.github.ethanscottwalden.colpool.data.places.SelectedAddress
+import io.github.ethanscottwalden.colpool.ui.profile.OptionsStatus
 import io.github.ethanscottwalden.colpool.ui.theme.ColPoolTheme
 import org.junit.Rule
 import org.junit.Test

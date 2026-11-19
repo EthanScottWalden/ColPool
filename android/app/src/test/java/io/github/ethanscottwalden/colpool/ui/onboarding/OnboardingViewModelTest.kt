@@ -1,6 +1,9 @@
 package io.github.ethanscottwalden.colpool.ui.onboarding
 
 import io.github.ethanscottwalden.colpool.data.places.SelectedAddress
+import io.github.ethanscottwalden.colpool.ui.profile.AgeParse
+import io.github.ethanscottwalden.colpool.ui.profile.OptionsStatus
+import io.github.ethanscottwalden.colpool.ui.profile.ProfileFieldRules
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -66,11 +69,11 @@ class OnboardingViewModelTest {
     }
 
     @Test fun ageRules() {
-        assertEquals(AgeParse.Blank, OnboardingViewModel.parseAge(""))
-        assertEquals(AgeParse.Valid(18), OnboardingViewModel.parseAge("18"))
-        assertEquals(AgeParse.Valid(120), OnboardingViewModel.parseAge("120"))
+        assertEquals(AgeParse.Blank, ProfileFieldRules.parseAge(""))
+        assertEquals(AgeParse.Valid(18), ProfileFieldRules.parseAge("18"))
+        assertEquals(AgeParse.Valid(120), ProfileFieldRules.parseAge("120"))
         for (bad in listOf("17", "0", "18.5", "-20", "twenty", "1e2", "99999999999")) {
-            assertEquals(bad, AgeParse.Invalid, OnboardingViewModel.parseAge(bad))
+            assertEquals(bad, AgeParse.Invalid, ProfileFieldRules.parseAge(bad))
         }
     }
 

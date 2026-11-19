@@ -45,9 +45,9 @@ private enum class StudentTab(val label: Int, val glyph: String) {
     Profile(R.string.tab_profile, "P"),
 }
 
-/** Student footer with five placeholder tabs. The real tab screens replace the placeholders in later Issues. */
+/** Student footer with five tabs. Profile is real; the other tabs are placeholders until their Issues. */
 @Composable
-fun StudentShell(onLogOut: () -> Unit, initialTab: Int = 0, modifier: Modifier = Modifier) {
+fun StudentShell(profileTab: @Composable (Modifier) -> Unit, initialTab: Int = 0, modifier: Modifier = Modifier) {
     var selected by rememberSaveable { mutableIntStateOf(initialTab) }
     Scaffold(
         modifier = modifier,
@@ -65,18 +65,11 @@ fun StudentShell(onLogOut: () -> Unit, initialTab: Int = 0, modifier: Modifier =
         },
     ) { padding ->
         val tab = StudentTab.entries[selected]
-        Centered(Modifier.padding(padding)) {
-            Text(stringResource(tab.label), style = MaterialTheme.typography.headlineMedium)
-            if (tab == StudentTab.Profile) {
-                // TODO(#27): the real Profile screen replaces this temporary Log out.
-                Text(
-                    stringResource(R.string.log_out_temporary),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                )
-                Button(onClick = onLogOut) { Text(stringResource(R.string.log_out)) }
-            } else {
+        if (tab == StudentTab.Profile) {
+            profileTab(Modifier.padding(padding))
+        } else {
+            Centered(Modifier.padding(padding)) {
+                Text(stringResource(tab.label), style = MaterialTheme.typography.headlineMedium)
                 Text(stringResource(R.string.placeholder_coming_soon), style = MaterialTheme.typography.bodyMedium)
             }
         }
