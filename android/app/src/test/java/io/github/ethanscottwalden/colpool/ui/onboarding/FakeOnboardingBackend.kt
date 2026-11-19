@@ -1,9 +1,9 @@
 package io.github.ethanscottwalden.colpool.ui.onboarding
 
-import io.github.ethanscottwalden.colpool.data.model.OptionItem
 import io.github.ethanscottwalden.colpool.data.model.ProfileOptions
 import io.github.ethanscottwalden.colpool.data.session.OnboardingBackend
 import io.github.ethanscottwalden.colpool.data.session.OnboardingSave
+import io.github.ethanscottwalden.colpool.ui.profile.SeededOptions
 
 /** Fake backend with made-up option lists. */
 class FakeOnboardingBackend : OnboardingBackend {
@@ -22,12 +22,7 @@ class FakeOnboardingBackend : OnboardingBackend {
     }
 
     companion object {
-        val TEST_OPTIONS = ProfileOptions(
-            genders = listOf(OptionItem("woman", "Woman"), OptionItem("man", "Man"), OptionItem("prefer-not-to-say", "Prefer not to say")),
-            years = listOf(OptionItem("freshman", "Freshman"), OptionItem("sophomore", "Sophomore"), OptionItem("junior", "Junior")),
-            majors = listOf(OptionItem("biology", "Biology"), OptionItem("computer-science", "Computer Science")),
-            interests = listOf(OptionItem("music", "Music"), OptionItem("coffee", "Coffee"), OptionItem("hiking", "Hiking")),
-            traits = listOf(OptionItem("chatty", "Chatty"), OptionItem("quiet", "Quiet")),
-        )
+        /** The full seeded lists, as users see them. */
+        val TEST_OPTIONS = SeededOptions.ALL
     }
 }

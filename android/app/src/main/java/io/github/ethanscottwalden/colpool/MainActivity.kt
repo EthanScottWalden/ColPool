@@ -11,6 +11,8 @@ import io.github.ethanscottwalden.colpool.ui.ColPoolRoot
 import io.github.ethanscottwalden.colpool.ui.address.AddressSearchViewModel
 import io.github.ethanscottwalden.colpool.ui.auth.AuthViewModel
 import io.github.ethanscottwalden.colpool.ui.onboarding.OnboardingViewModel
+import io.github.ethanscottwalden.colpool.ui.profile.EditProfileViewModel
+import io.github.ethanscottwalden.colpool.ui.profile.ProfileViewModel
 import io.github.ethanscottwalden.colpool.ui.session.SessionState
 import io.github.ethanscottwalden.colpool.ui.session.SessionViewModel
 import io.github.ethanscottwalden.colpool.ui.theme.ColPoolTheme
@@ -31,6 +33,14 @@ class MainActivity : ComponentActivity() {
             initializer { OnboardingViewModel((application as ColPoolApp).container.onboardingBackend) { session.resolve() } }
         }
     }
+    private val profile: ProfileViewModel by viewModels {
+        viewModelFactory { initializer { ProfileViewModel((application as ColPoolApp).container.profileBackend) } }
+    }
+    private val editProfile: EditProfileViewModel by viewModels {
+        viewModelFactory {
+            initializer { EditProfileViewModel((application as ColPoolApp).container.profileBackend) { profile.applySaved(it) } }
+        }
+    }
     private val addressSearch: AddressSearchViewModel by viewModels {
         viewModelFactory { initializer { AddressSearchViewModel((application as ColPoolApp).container.places) } }
     }
@@ -41,7 +51,7 @@ class MainActivity : ComponentActivity() {
         splash.setKeepOnScreenCondition { session.state.value is SessionState.Resolving }
         setContent {
             ColPoolTheme {
-                ColPoolRoot(session, auth, onboarding, addressSearch)
+                ColPoolRoot(session, auth, onboarding, profile, editProfile, addressSearch)
             }
         }
     }
