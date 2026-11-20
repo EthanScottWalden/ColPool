@@ -2,6 +2,7 @@ package io.github.ethanscottwalden.colpool.ui.onboarding
 
 import android.app.Application
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import io.github.ethanscottwalden.colpool.ui.address.AddressSearchTags
@@ -28,6 +29,8 @@ class OnboardingAddressWiringTest {
         rule.setContent { ColPoolTheme { OnboardingScreen(onboarding, search, onLogOut = {}) } }
         rule.onNodeWithTag(OnboardingTags.AddressField).performClick()
         rule.waitForIdle()
-        rule.onNodeWithTag(AddressSearchTags.Field).assertExists()
+        rule.mainClock.advanceTimeBy(2000)
+        rule.waitForIdle()
+        rule.onNodeWithTag(AddressSearchTags.Field, useUnmergedTree = true).assertIsDisplayed()
     }
 }
