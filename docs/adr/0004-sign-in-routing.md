@@ -16,7 +16,7 @@
    - The existing Rules already allow this read (`allow get: if isStudentOwner(uid)`), and a missing doc is not an error, so nothing changes in Rules.
 2. **Splash: the Android system splash** (`androidx.core:core-splashscreen` 1.2.0, from Google Maven), held with `setKeepOnScreenCondition` until routing resolves. No Compose splash and no tap-to-continue.
 3. **Firestore cache: memory only.** `AppContainer` sets `MemoryCacheSettings` before first use, so nothing is written to disk. The in-memory cache lives only as long as the app process.
-4. **Temporary Log out on the Profile placeholder tab**, visibly marked temporary (`TODO(#27)` replaces it). The Onboarding placeholder has the same temporary Log out (`TODO(#22)`).
+4. **Temporary Log out on the Profile placeholder tab**, visibly marked temporary (`TODO(#27)` replaces it). The Onboarding placeholder has the same temporary Log out (`TODO(#22)`). _Update: #27 replaced the Profile placeholder with the real Profile screen, which has a permanent Log out button. Onboarding (#22) keeps a Log out so a wrong-account sign-in is not a dead end._
 
 ## Notes
 - Sign-up calls the `signUp` callable (#14) and then signs in with the same credentials. Callable reasons map to messages in `AuthScreen.kt`.

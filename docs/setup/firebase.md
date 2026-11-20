@@ -60,7 +60,8 @@ Done once by the owner. Tick the checklist in §3 when done.
 2. **Restrict the API.** Google Cloud console (project `colpool`) → *APIs & Services* → *Credentials* → `places-android` → *API restrictions* → *Restrict key* → select **Places API (New)** only. #16 uses the new Places API, so this is the right variant.
 3. **Get the debug SHA-1.** From the repo root, run `./gradlew signingReport` (on Windows: `.\gradlew.bat signingReport`). Under `Variant: debug`, copy the `SHA1` line.
 4. **Restrict the app.** Same key → *Application restrictions* → *Android apps* → *Add an item*: package name `io.github.ethanscottwalden.colpool` and the debug SHA-1 from step 3. Save. Add the release SHA-1 later. Changes can take a few minutes.
-5. **Check.** On a device or emulator with the real key, open the address sheet (once #22 or #24 uses it) and confirm suggestions appear. A key that is restricted to the wrong package or SHA-1 makes the sheet show its error text.
+   - **Each Windows account or machine has its own debug keystore, so its own debug SHA-1.** Every developer account that runs the app must have its SHA-1 added to `places-android`; without it the address sheet shows "Couldn’t search addresses right now" (see the 2026-11-19 note in the [week-of-15-Nov retrospective](../agentic-retrospectives/2026-11-15.md)).
+5. **Check.** On a device or emulator with the real key, open the address sheet (Onboarding #22 and Edit Profile #27 use it) and confirm suggestions appear. A key that is restricted to the wrong package or SHA-1 makes the sheet show its error text.
 
 ## 3. Verification checklist
 
