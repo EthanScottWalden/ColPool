@@ -1,14 +1,10 @@
 package io.github.ethanscottwalden.colpool.data.session
 
-import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import io.github.ethanscottwalden.colpool.data.model.OptionItem
 import io.github.ethanscottwalden.colpool.data.model.ProfileOptions
-import kotlin.coroutines.resume
-import kotlin.coroutines.resumeWithException
-import kotlinx.coroutines.suspendCancellableCoroutine
 
 class FirebaseOnboardingBackend(
     private val auth: FirebaseAuth,
@@ -70,11 +66,5 @@ class FirebaseOnboardingBackend(
                 }
                 .sortedBy { it.first }
                 .map { OptionItem(it.second, it.third) }
-    }
-}
-
-private suspend fun <T> Task<T>.await(): T = suspendCancellableCoroutine { cont ->
-    addOnCompleteListener { t ->
-        if (t.isSuccessful) cont.resume(t.result) else cont.resumeWithException(t.exception ?: IllegalStateException("Task failed"))
     }
 }
