@@ -7,7 +7,7 @@ Core rule: **the client reads, the backend writes.** Seats, requests, consent, p
 ## Stack
 
 - **Android app:** Kotlin, Jetpack Compose, Material 3 (min SDK 26, target SDK 36). Lives in `android/`.
-- **Backend:** Firebase Auth, Cloud Firestore and Cloud Functions (TypeScript, Node 24). Lives in `functions/`; rules in `firestore.rules`.
+- **Backend:** Firebase Auth, Cloud Firestore and Cloud Functions (TypeScript, Node 22 runtime). Lives in `functions/`; rules in `firestore.rules`.
 - **Maps:** Places SDK for address entry (in the app) and Routes API for route previews (from Functions only).
 
 ## Documentation
