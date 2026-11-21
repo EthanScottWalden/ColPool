@@ -31,8 +31,22 @@ Full setup (Windows + WSL2, a second Windows profile, the emulators) is in [DEVE
 
 - **Open the repo root** (`ColPool`) in Android Studio, not `android/`. It is the Gradle root.
 - **Gradle JDK:** use Android Studio's bundled JetBrains Runtime (Settings → Build Tools → Gradle → Gradle JDK). A JRE without `jlink`, such as the one VS Code's Java extension ships, fails the build.
-- **Places key:** put `PLACES_API_KEY=<key>` in `local.properties` at the repo root (not committed). Each Windows account or machine has its own debug signing key, so add its SHA-1 (`.\gradlew.bat signingReport`, `Variant: debug`) to the `places-android` key's Android-app restriction. Without both, address search shows "Couldn't search addresses right now". Steps: [docs/setup/firebase.md](docs/setup/firebase.md).
-- **Emulators:** debug builds talk to the local Firebase Emulator Suite (project `demo-colpool`), not the real project. Running from Android Studio on Windows starts and seeds them in WSL automatically.
+- **Emulators:** for now, debug builds use a local Firebase Emulator Suite (offline project `demo-colpool`) instead of a real Firebase project. Running from Android Studio on Windows starts and seeds them in WSL automatically. This will change once the real Firebase and Google Cloud setup is ready for general use.
+
+### What works without access to the owner's Google Cloud project
+
+Almost everything. All tests, and the app itself, run on the local emulators and need no Google account, keys or secrets.
+
+**Address search is the exception.** The address sheet (Onboarding, Edit Profile) calls Google's Places API, which runs on the project owner's Google Cloud project and needs that project's API key. Without it the app still builds and runs, but the sheet shows "Couldn't search addresses right now". So you can't finish Onboarding for a new account or change an address.
+
+To test without address search, sign in with a seeded account that already has an address: `dev.student@calbaptist.edu` (password `demo-pass-123`, a fake, emulator-only account). All seeded test accounts are listed in [DEVELOPMENT.md](DEVELOPMENT.md) §2 (the table of `dev.*@calbaptist.edu` accounts).
+
+**To get address search working,** ask the project owner. Two things are needed, because the key is restricted to builds the owner has approved:
+
+1. **The owner gives you the API key.** Put it in a file named `local.properties` at the repo root, as `PLACES_API_KEY=<key>`. Git ignores this file; never commit it.
+2. **You send the owner your debug signing fingerprint (SHA-1),** and the owner adds it to the key. Each computer, and each Windows account, has its own debug signing key, so each one needs its own entry. To get yours, run `.\gradlew.bat signingReport` (Windows) or `./gradlew signingReport` from the repo root and copy the `SHA1:` line under `Variant: debug`. The fingerprint isn't secret.
+
+Changes to the key can take a few minutes to apply. The owner-side steps are in [docs/setup/firebase.md](docs/setup/firebase.md).
 
 ## Running tests
 
