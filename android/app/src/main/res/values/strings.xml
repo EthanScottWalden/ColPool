@@ -56,7 +56,27 @@
     <string name="tab_profile">Profile</string>
     <string name="placeholder_coming_soon">Coming soon.</string>
     <string name="log_out">Log out</string>
-    <string name="log_out_temporary">Temporary: the real Profile screen comes later.</string>
+
+    <!-- Profile and Edit Profile (#27) -->
+    <string name="profile_title">Your profile</string>
+    <string name="profile_load_error">Couldn’t load your profile. Check your connection and try again.</string>
+    <string name="profile_address_label">Starting address (only you can see this)</string>
+    <string name="profile_address_note">Only used to sort search results. Nobody else ever sees it.</string>
+    <string name="profile_email_label">Signed in as</string>
+    <string name="profile_email_note">Only you can see your email.</string>
+    <string name="profile_edit">Edit profile</string>
+    <string name="edit_profile_title">Edit profile</string>
+    <string name="edit_profile_intro">Name and starting address are required. Tap a selected option again to remove it.</string>
+    <string name="edit_first_name">First name</string>
+    <string name="edit_last_name">Last name</string>
+    <string name="edit_address_label">Starting address</string>
+    <string name="edit_name_error">Enter a name of 1 to %1$d characters.</string>
+    <string name="edit_save">Save profile</string>
+    <string name="edit_saving">Saving…</string>
+    <string name="edit_cancel">Cancel</string>
+    <string name="edit_save_error">Couldn’t save your profile. Check your connection and try again.</string>
+    <string name="edit_hint_invalid">Fix the fields marked above to save.</string>
+    <string name="edit_hint_unchanged">Change something to save.</string>
 
     <!-- Onboarding (#22) -->
     <string name="onboarding_welcome">Welcome to ColPool!</string>
@@ -67,19 +87,21 @@
     <string name="onboarding_address_required">Choose your starting address to continue.</string>
     <string name="onboarding_address_private">Only used to sort search results. Nobody else ever sees it.</string>
     <string name="onboarding_optional_note">Everything below is optional, and you can change it anytime from your profile.</string>
-    <string name="onboarding_optional">Optional</string>
-    <string name="onboarding_age">Age</string>
-    <string name="onboarding_age_error">Enter a whole number, 18 or older.</string>
-    <string name="onboarding_gender">Gender</string>
-    <string name="onboarding_year">Year</string>
-    <string name="onboarding_major">Major</string>
-    <string name="onboarding_interests">Interests</string>
-    <string name="onboarding_traits">Commute style</string>
-    <string name="onboarding_no_selection">No selection</string>
+    <string name="profile_chip_selected">Selected. Tap again to remove.</string>
+    <string name="profile_chip_not_selected">Not selected</string>
+    <string name="profile_optional">Optional</string>
+    <string name="profile_age">Age</string>
+    <string name="profile_age_error">Enter a whole number, 18 or older.</string>
+    <string name="profile_gender">Gender</string>
+    <string name="profile_year">Year</string>
+    <string name="profile_major">Major</string>
+    <string name="profile_interests">Interests</string>
+    <string name="profile_traits">Commute style</string>
+    <string name="profile_no_selection">No selection</string>
     <string name="onboarding_options_error">Couldn’t load the profile choices. Check your connection and try again. You can still finish without them.</string>
-    <string name="onboarding_about_me">About me</string>
-    <string name="onboarding_about_me_hint">Optional. Say hi, mention your schedule…</string>
-    <string name="onboarding_about_me_count">%1$d / %2$d</string>
+    <string name="profile_about_me">About me</string>
+    <string name="profile_about_me_hint">Optional. Say hi, mention your schedule…</string>
+    <string name="profile_about_me_count">%1$d / %2$d</string>
     <string name="onboarding_finish">Finish</string>
     <string name="onboarding_saving">Saving…</string>
     <string name="onboarding_save_error">Couldn’t save your profile. Check your connection and try again.</string>

@@ -7,7 +7,6 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import io.github.ethanscottwalden.colpool.ui.session.SignedOutNotice
 import io.github.ethanscottwalden.colpool.ui.shell.SessionErrorScreen
 import io.github.ethanscottwalden.colpool.ui.shell.StaffExportPlaceholder
-import io.github.ethanscottwalden.colpool.ui.shell.StudentShell
 import io.github.ethanscottwalden.colpool.ui.theme.ColPoolTheme
 import org.junit.Rule
 import org.junit.Test
@@ -41,8 +40,6 @@ class ShellScreenshotTest {
     }
 
     @Test fun noConsentError() = shoot("auth_no_consent") { AuthContent(AuthUiState(), SignedOutNotice.NoConsent, AuthActions()) }
-
-    @Test fun studentShellProfileTab() = shoot("shell_student_profile") { StudentShell(onLogOut = {}, initialTab = 4) }
 
     @Test fun staffExport() = shoot("staff_export") { StaffExportPlaceholder(onLogOut = {}) }
 
