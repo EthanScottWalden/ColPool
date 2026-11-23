@@ -189,6 +189,8 @@ Values come from the prototype (24-edit-profile) with stable kebab-case ids; see
 `Leg` = `{departTime: "HH:mm", campusPointId, stops: [{address: {text, placeId, lat, lng}, minutes}], route: RouteResult}`. Stop `minutes` is 0 to 120 (RC-30), at most 25 stops per direction (provisional).
 `RouteResult` = `{legs: [{meters, durationSec}], totalMeters, totalDurationSec, times: [{arriveMin?, departMin?}]}`; times are minutes after local midnight and may exceed 1439.
 
+Created by the post-series function in one transaction with the draft update, the host's `schedules` entries and `profileAccess.activeHostedSeries` ([ADR 0009](adr/0009-post-series.md)).
+
 After posting only `SERIES_MUTABLE_FIELDS` (`openSeats`, `openWeekdays`, `status`) change, and only from functions. #26 adds `cancelledAt` and `endedAt`. Routes never change (RC-12).
 
 Constants (code: `SERIES_LIMITS`; a test checks this table against the code):
@@ -219,6 +221,8 @@ Written by the route-preview and post functions. The host may `get` their own dr
 | `reviewedAt`, `createdAt`, `updatedAt` | timestamp | Server time. |
 | `status` | `"reviewed"` \| `"posted"` | |
 | `postedAt` | timestamp, optional | |
+
+Post series (#30, [ADR 0009](adr/0009-post-series.md)) sets `status: "posted"` and `postedAt`.
 
 Route preview (#28, [ADR 0008](adr/0008-route-preview.md)) writes it in one Firestore transaction with no external calls inside it:
 - **Create** (no draft id sent): auto id, `status: "reviewed"`, all three timestamps set to server time.
