@@ -34,7 +34,9 @@ class SeriesBackendParsingTest {
         assertEquals(RoutePreviewResult.Unavailable, FirebaseSeriesBackend.mapFailure("UNAVAILABLE", mapOf("reason" to "routes-unavailable")))
         assertEquals(RoutePreviewResult.Failed, FirebaseSeriesBackend.mapFailure("INTERNAL", null))
         assertEquals(RoutePreviewResult.Failed, FirebaseSeriesBackend.mapFailure("INVALID_ARGUMENT", null))
-        assertEquals(RoutePreviewResult.Failed, FirebaseSeriesBackend.mapFailure("FAILED_PRECONDITION", mapOf("reason" to "draft-posted")))
+        assertEquals(RoutePreviewResult.DraftRejected, FirebaseSeriesBackend.mapFailure("FAILED_PRECONDITION", mapOf("reason" to "draft-posted")))
+        assertEquals(RoutePreviewResult.DraftRejected, FirebaseSeriesBackend.mapFailure("NOT_FOUND", null))
+        assertEquals(RoutePreviewResult.Failed, FirebaseSeriesBackend.mapFailure("FAILED_PRECONDITION", mapOf("reason" to "other")))
     }
 
     @Test fun successNeedsADraftId() {

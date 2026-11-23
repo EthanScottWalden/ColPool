@@ -129,7 +129,7 @@
     <string name="series_riders_less">Fewer riders</string>
     <string name="series_riders_more">More riders</string>
     <string name="series_vehicle">Vehicle description</string>
-    <string name="series_vehicle_placeholder">Blue 2017 Honda Fit</string>
+    <string name="series_vehicle_placeholder">e.g. Blue 2017 Honda Fit</string>
     <string name="series_vehicle_count">%1$d of %2$d characters</string>
     <string name="series_weekdays">Weekdays you drive</string>
     <string name="series_day_driving">driving</string>
@@ -157,7 +157,7 @@
     <string name="series_checking">Checking routes…</string>
     <string name="series_errors_title">Fix these before continuing</string>
     <string name="series_review_placeholder_title">Review your ride series</string>
-    <string name="series_review_placeholder_body">The review screen is coming soon. Your route preview is saved as draft %1$s.</string>
+    <string name="series_review_placeholder_body">Your route preview is saved. The review screen is coming soon.</string>
     <string name="series_host_button">Host a ride series</string>
     <string name="series_direction_to_campus_phrase">to campus</string>
     <string name="series_direction_from_campus_phrase">back to the pickup spot</string>

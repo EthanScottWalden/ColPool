@@ -16,8 +16,9 @@ class FirebaseSeriesBackend(
         return parseCampusPoints(snap.documents.map { it.id to (it.data ?: emptyMap()) })
     }
 
-    override suspend fun routePreview(series: Map<String, Any>): RoutePreviewResult = try {
-        val res = functions.getHttpsCallable("routePreview").call(mapOf("series" to series)).await()
+    override suspend fun routePreview(series: Map<String, Any>, draftId: String?): RoutePreviewResult = try {
+        val data = if (draftId == null) mapOf("series" to series) else mapOf("series" to series, "draftId" to draftId)
+        val res = functions.getHttpsCallable("routePreview").call(data).await()
         parseSuccess(res.getData())
     } catch (e: CancellationException) {
         throw e
@@ -48,6 +49,8 @@ class FirebaseSeriesBackend(
         fun mapFailure(code: String, details: Any?): RoutePreviewResult = when (code) {
             "INVALID_ARGUMENT" -> parseErrors(details).takeIf { it.isNotEmpty() }?.let { RoutePreviewResult.Invalid(it) } ?: RoutePreviewResult.Failed
             "UNAVAILABLE" -> RoutePreviewResult.Unavailable
+            "NOT_FOUND" -> RoutePreviewResult.DraftRejected
+            "FAILED_PRECONDITION" -> if ((details as? Map<*, *>)?.get("reason") == "draft-posted") RoutePreviewResult.DraftRejected else RoutePreviewResult.Failed
             else -> RoutePreviewResult.Failed
         }
 

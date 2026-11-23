@@ -92,6 +92,8 @@ data class CreateSeriesUiState(
     val activeDay: SeriesWeekday? = null,
     val errors: List<SeriesError> = emptyList(),
     val submitting: Boolean = false,
+    /** The draft the last successful route preview saved; the next Continue overwrites it (ADR 0008). Never shown. */
+    val draftId: String? = null,
     /** Set when route preview succeeded; the screen navigates to Review and calls `consumeReview`. */
     val reviewDraftId: String? = null,
 ) {

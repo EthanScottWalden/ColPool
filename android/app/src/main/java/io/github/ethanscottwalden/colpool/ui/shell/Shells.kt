@@ -71,7 +71,7 @@ fun StudentShell(profileTab: @Composable (Modifier) -> Unit, initialTab: Int = 0
             Centered(Modifier.padding(padding)) {
                 Text(stringResource(tab.label), style = MaterialTheme.typography.headlineMedium)
                 Text(stringResource(R.string.placeholder_coming_soon), style = MaterialTheme.typography.bodyMedium)
-                // TODO(#25): the Hosting list replaces this placeholder; this button is the entry point to Create Series until then.
+                // TODO(#33): the Hosting list replaces this placeholder; this button is the entry point to Create Series until then.
                 if (tab == StudentTab.Hosting) Button(onClick = onHostSeries) { Text(stringResource(R.string.series_host_button)) }
             }
         }

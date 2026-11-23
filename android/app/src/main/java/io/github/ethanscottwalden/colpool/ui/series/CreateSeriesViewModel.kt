@@ -122,18 +122,25 @@ class CreateSeriesViewModel(
         val payload = SeriesPayload.build(s)
         _state.update { it.copy(submitting = true, errors = emptyList()) }
         viewModelScope.launch {
-            val result = try {
-                backend.routePreview(payload)
+            suspend fun call(draftId: String?) = try {
+                backend.routePreview(payload, draftId)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 RoutePreviewResult.Failed
             }
+            val sent = s.draftId
+            var result = call(sent)
+            // The old draft is gone or already posted: forget it and retry once as a new draft.
+            if (result == RoutePreviewResult.DraftRejected && sent != null) {
+                _state.update { it.copy(draftId = null) }
+                result = call(null)
+            }
             when (result) {
-                is RoutePreviewResult.Success -> _state.update { it.copy(submitting = false, reviewDraftId = result.draftId) }
+                is RoutePreviewResult.Success -> _state.update { it.copy(submitting = false, draftId = result.draftId, reviewDraftId = result.draftId) }
                 is RoutePreviewResult.Invalid -> showErrors(result.errors)
                 RoutePreviewResult.Unavailable -> showErrors(listOf(SeriesError("unavailable", "")))
-                RoutePreviewResult.Failed -> showErrors(listOf(SeriesError("internal", "")))
+                RoutePreviewResult.Failed, RoutePreviewResult.DraftRejected -> showErrors(listOf(SeriesError("internal", "")))
             }
         }
     }

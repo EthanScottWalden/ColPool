@@ -142,6 +142,53 @@ class CreateSeriesViewModelTest {
         assertEquals(listOf(SeriesError("internal", "")), vm.state.value.errors)
     }
 
+    @Test fun nextContinueOverwritesTheSameDraft() {
+        val vm = filledVm()
+        vm.submit()
+        vm.consumeReview()
+        vm.submit()
+        assertEquals(listOf(null, "draft1234567890123456"), backend.draftIdsSent)
+    }
+
+    @Test fun rejectedDraftIsForgottenAndRetriedOnceWithoutIt() {
+        val vm = filledVm()
+        vm.submit()
+        backend.draftIdsSent.clear()
+        backend.queue += RoutePreviewResult.DraftRejected
+        backend.queue += RoutePreviewResult.Success("newdraft000000000000", "h")
+        vm.submit()
+        assertEquals(listOf("draft1234567890123456", null), backend.draftIdsSent)
+        assertEquals("newdraft000000000000", vm.state.value.draftId)
+        assertEquals("newdraft000000000000", vm.state.value.reviewDraftId)
+        assertTrue(vm.state.value.errors.isEmpty())
+    }
+
+    @Test fun rejectedWithNoDraftIsAnError() {
+        val vm = filledVm()
+        backend.result = RoutePreviewResult.DraftRejected
+        vm.submit()
+        assertEquals(1, backend.calls.size)
+        assertEquals(listOf(SeriesError("internal", "")), vm.state.value.errors)
+    }
+
+    @Test fun retryHappensOnlyOnce() {
+        val vm = filledVm()
+        vm.submit()
+        backend.draftIdsSent.clear()
+        backend.result = RoutePreviewResult.DraftRejected
+        vm.submit()
+        assertEquals(listOf("draft1234567890123456", null), backend.draftIdsSent)
+        assertEquals(listOf(SeriesError("internal", "")), vm.state.value.errors)
+        assertNull(vm.state.value.draftId)
+    }
+
+    @Test fun resetForgetsTheDraft() {
+        val vm = filledVm()
+        vm.submit()
+        vm.reset()
+        assertNull(vm.state.value.draftId)
+    }
+
     @Test fun resetClearsTheForm() {
         val vm = filledVm()
         vm.reset()

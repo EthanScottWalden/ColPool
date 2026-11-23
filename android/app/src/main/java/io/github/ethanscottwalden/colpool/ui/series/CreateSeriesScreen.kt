@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -49,7 +50,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -218,6 +221,9 @@ fun CreateSeriesContent(state: CreateSeriesUiState, today: LocalDate, actions: C
     val lessCd = stringResource(R.string.series_riders_less)
     val moreCd = stringResource(R.string.series_riders_more)
     val boxErrors = state.errors.filter { it.path.isEmpty() || !SeriesErrorText.hasInlineSpot(it.path) }
+    val scroll = rememberScrollState()
+    // The summary box is at the top: bring it into view when it appears.
+    LaunchedEffect(boxErrors) { if (boxErrors.isNotEmpty()) scroll.animateScrollTo(0) }
 
     Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.imePadding()) {
@@ -226,12 +232,12 @@ fun CreateSeriesContent(state: CreateSeriesUiState, today: LocalDate, actions: C
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                OutlinedButton(onClick = actions.onBack, modifier = Modifier.testTag(SeriesTags.Back), contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
+                OutlinedButton(onClick = actions.onBack, modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).testTag(SeriesTags.Back), contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
                     Text("←", Modifier.semantics { contentDescription = backCd }, style = MaterialTheme.typography.titleLarge)
                 }
                 Text(stringResource(R.string.series_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             }
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.weight(1f).verticalScroll(scroll).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (boxErrors.isNotEmpty()) ErrorBox(boxErrors)
 
                 FormLabel(R.string.series_pickup_label)
@@ -270,9 +276,9 @@ fun CreateSeriesContent(state: CreateSeriesUiState, today: LocalDate, actions: C
                     Column(Modifier.weight(1f)) {
                         FormLabel(R.string.series_riders)
                         Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                            Button(onClick = { actions.onRiders(state.riders - 1) }, enabled = state.riders > SeriesLimits.RIDERS_MIN, modifier = Modifier.testTag(SeriesTags.RidersLess).semantics { contentDescription = lessCd }, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) { Text("−") }
+                            Button(onClick = { actions.onRiders(state.riders - 1) }, enabled = state.riders > SeriesLimits.RIDERS_MIN, modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).testTag(SeriesTags.RidersLess).semantics { contentDescription = lessCd }, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) { Text("−") }
                             Text(state.riders.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                            Button(onClick = { actions.onRiders(state.riders + 1) }, enabled = state.riders < SeriesLimits.RIDERS_MAX, modifier = Modifier.testTag(SeriesTags.RidersMore).semantics { contentDescription = moreCd }, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) { Text("+") }
+                            Button(onClick = { actions.onRiders(state.riders + 1) }, enabled = state.riders < SeriesLimits.RIDERS_MAX, modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).testTag(SeriesTags.RidersMore).semantics { contentDescription = moreCd }, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) { Text("+") }
                         }
                         ErrorsAt(state, "maxRiders")
                     }
@@ -357,7 +363,7 @@ fun CreateSeriesContent(state: CreateSeriesUiState, today: LocalDate, actions: C
 @Composable
 private fun ErrorBox(errors: List<SeriesError>) {
     Surface(
-        Modifier.fillMaxWidth().testTag(SeriesTags.ErrorBox),
+        Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite }.testTag(SeriesTags.ErrorBox),
         color = MaterialTheme.colorScheme.errorContainer,
         shape = RoundedCornerShape(12.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
@@ -484,7 +490,7 @@ fun ReviewPlaceholder(draftId: String, onBack: () -> Unit, modifier: Modifier = 
     Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.padding(24.dp).statusBarsPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(R.string.series_review_placeholder_title), style = MaterialTheme.typography.headlineSmall)
-            Text(stringResource(R.string.series_review_placeholder_body, draftId), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.series_review_placeholder_body), style = MaterialTheme.typography.bodyMedium)
             OutlinedButton(onClick = onBack) { Text(stringResource(R.string.series_back)) }
         }
     }

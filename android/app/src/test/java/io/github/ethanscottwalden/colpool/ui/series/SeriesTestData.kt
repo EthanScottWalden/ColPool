@@ -12,15 +12,19 @@ class FakeSeriesBackend : SeriesBackend {
     var campusError: Exception? = null
     var result: RoutePreviewResult = RoutePreviewResult.Success("draft1234567890123456", "hash")
     val calls = mutableListOf<Map<String, Any>>()
+    val draftIdsSent = mutableListOf<String?>()
+    /** Answers used first, in order; then [result]. */
+    val queue = ArrayDeque<RoutePreviewResult>()
 
     override suspend fun loadCampusPoints(): List<CampusPoint> {
         campusError?.let { throw it }
         return SeriesTestData.CAMPUS_POINTS
     }
 
-    override suspend fun routePreview(series: Map<String, Any>): RoutePreviewResult {
+    override suspend fun routePreview(series: Map<String, Any>, draftId: String?): RoutePreviewResult {
         calls += series
-        return result
+        draftIdsSent += draftId
+        return queue.removeFirstOrNull() ?: result
     }
 }
 

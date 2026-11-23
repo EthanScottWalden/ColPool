@@ -16,6 +16,9 @@ sealed interface RoutePreviewResult {
     /** `series-invalid` or `route-failed`: the errors to show against fields. */
     data class Invalid(val errors: List<SeriesError>) : RoutePreviewResult
 
+    /** The draft id we sent is gone or already posted (`not-found`, or `failed-precondition` with `draft-posted`). */
+    data object DraftRejected : RoutePreviewResult
+
     /** Routes was busy (`unavailable`). */
     data object Unavailable : RoutePreviewResult
 
@@ -28,6 +31,6 @@ interface SeriesBackend {
     /** Reads the active campus points, in `order`. Throws on failure. */
     suspend fun loadCampusPoints(): List<CampusPoint>
 
-    /** Calls `routePreview` with the `SeriesInput` map. Never throws except cancellation. */
-    suspend fun routePreview(series: Map<String, Any>): RoutePreviewResult
+    /** Calls `routePreview` with the `SeriesInput` map and, to overwrite a reviewed draft, its [draftId]. Never throws except cancellation. */
+    suspend fun routePreview(series: Map<String, Any>, draftId: String? = null): RoutePreviewResult
 }
