@@ -27,5 +27,7 @@ describe("conflictingWeekdays (owner decision 2026-11-23: a shared ride date, to
   it("a DST-week shared date conflicts (Sun 2026-03-08 spring forward, Mon 2026-03-09)", () => {
     assert.deepEqual(conflictingWeekdays(span("2026-03-02", "2026-03-09"), span("2026-03-09", "2026-03-20"), "2026-03-06"), ["mon"]);
     assert.deepEqual(conflictingWeekdays(span("2026-03-02", "2026-03-08"), span("2026-03-08", "2026-03-20"), "2026-03-06"), []);
+    // Fall back (Sun 2026-11-01): the shared Mon 2026-11-02 still conflicts.
+    assert.deepEqual(conflictingWeekdays(span("2026-10-19", "2026-11-02"), span("2026-11-02", "2026-11-20"), "2026-10-30"), ["mon"]);
   });
 });

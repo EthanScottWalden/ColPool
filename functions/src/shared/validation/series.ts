@@ -16,9 +16,16 @@ export type SeriesValidationResult =
 
 type Obj = Record<string, unknown>;
 
+/** Plain objects only: callable data is JSON, so a Date, Map or class instance is rejected. */
 function isObj(v: unknown): v is Obj {
-  return typeof v === "object" && v !== null && !Array.isArray(v);
+  if (typeof v !== "object" || v === null || Array.isArray(v)) return false;
+  const proto = Object.getPrototypeOf(v);
+  return proto === Object.prototype || proto === null;
 }
+
+// Technical caps on untrusted strings (not product rules): Places text and ids are far shorter.
+const ADDRESS_TEXT_MAX = 500;
+const PLACE_ID_MAX = 300;
 
 function validDate(v: unknown): v is PacificDate {
   if (typeof v !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
@@ -50,7 +57,9 @@ function address(c: Collector, v: unknown, path: string): PlaceAddress | undefin
   const text = typeof v["text"] === "string" ? v["text"].trim() : "";
   const placeId = typeof v["placeId"] === "string" ? v["placeId"].trim() : "";
   if (text === "") c.add("invalidAddress", `${path}.text`);
+  else if (text.length > ADDRESS_TEXT_MAX) c.add("tooLong", `${path}.text`, { limit: ADDRESS_TEXT_MAX });
   if (placeId === "") c.add("invalidAddress", `${path}.placeId`);
+  else if (placeId.length > PLACE_ID_MAX) c.add("tooLong", `${path}.placeId`, { limit: PLACE_ID_MAX });
   const lat = v["lat"];
   const lng = v["lng"];
   if (typeof lat !== "number" || !Number.isFinite(lat) || lat < -90 || lat > 90) c.add("invalidAddress", `${path}.lat`);
@@ -79,9 +88,9 @@ function leg(c: Collector, v: unknown, path: string, ctx: ValidationContext): Le
   else if (!Array.isArray(rawStops)) c.add("required", `${path}.stops`);
   else {
     if (rawStops.length > SERIES_LIMITS.maxStopsPerDirection) {
+      // Don't parse an oversized array: one error, not one per element.
       c.add("tooManyStops", `${path}.stops`, { limit: SERIES_LIMITS.maxStopsPerDirection });
-    }
-    rawStops.forEach((s: unknown, i) => {
+    } else rawStops.forEach((s: unknown, i) => {
       const sp = `${path}.stops.${i}`;
       if (!isObj(s)) return void c.add("required", sp);
       const a = address(c, s["address"], `${sp}.address`);
@@ -130,6 +139,7 @@ export function validateSeriesInput(raw: unknown, ctx: ValidationContext): Serie
   const rawWeekdays = raw["weekdays"];
   let weekdaysOk = false;
   if (!Array.isArray(rawWeekdays) || rawWeekdays.length === 0) c.add("required", "weekdays");
+  else if (rawWeekdays.length > WEEKDAYS.length) c.add("outOfRange", "weekdays");
   else {
     weekdaysOk = true;
     const seen = new Set<string>();
@@ -156,9 +166,13 @@ export function validateSeriesInput(raw: unknown, ctx: ValidationContext): Serie
     c.add("required", "days");
     daysOk = false;
   } else {
+    let unknownKey = false;
     for (const key of Object.keys(rawDays)) {
-      if (!isWeekday(key) || (weekdaysOk && !weekdays.includes(key))) c.add("outOfRange", `days.${key}`);
+      // Never echo an attacker-supplied key into an error path; only real weekday ids appear.
+      if (!isWeekday(key)) unknownKey = true;
+      else if (weekdaysOk && !weekdays.includes(key)) c.add("outOfRange", `days.${key}`);
     }
+    if (unknownKey) c.add("outOfRange", "days");
     for (const wd of weekdays) {
       const d = rawDays[wd];
       if (!isObj(d)) {

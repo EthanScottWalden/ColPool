@@ -241,5 +241,37 @@ describe("errors", () => {
   it("clock sanity", () => assert.equal(NOW.toISOString(), "2026-11-23T20:00:00.000Z"));
 });
 
+describe("validateSeriesInput: hostile input (#23 review)", () => {
+  it("rejects non-plain objects", () => {
+    assert.deepEqual(errorsOf(new Date(0)), [{ code: "required", path: "" }]);
+    assert.ok(has(mut((i) => (i.pickupSpot = new Map())), "invalidAddress", "pickupSpot"));
+  });
+  it("ignores a __proto__ key and never echoes unknown day keys", () => {
+    const raw = JSON.parse(JSON.stringify(validInput()).replace('"days":{', '"days":{"__proto__":{"x":1},"' + "k".repeat(5000) + '":{},'));
+    const errs = errorsOf(raw);
+    assert.ok(errs.some((e) => e.code === "outOfRange" && e.path === "days"));
+    assert.ok(errs.every((e) => e.path.length < 100));
+    assert.equal(({} as any).x, undefined);
+  });
+  it("one error for an oversized stops array, none per element", () => {
+    const errs = errorsOf(mut((i) => (i.days.mon.toCampus.stops = Array.from({ length: 10000 }, () => ({})))));
+    assert.deepEqual(errs.filter((e) => e.path.startsWith("days.mon.toCampus.stops")), [
+      { code: "tooManyStops", path: "days.mon.toCampus.stops", params: { limit: 25 } },
+    ]);
+  });
+  it("caps address text and place id length", () => {
+    assert.ok(has(mut((i) => (i.pickupSpot.text = "a".repeat(501))), "tooLong", "pickupSpot.text"));
+    assert.ok(has(mut((i) => (i.pickupSpot.placeId = "p".repeat(301))), "tooLong", "pickupSpot.placeId"));
+  });
+  it("rejects more than seven weekdays with one error", () => {
+    const errs = errorsOf(mut((i) => (i.weekdays = Array.from({ length: 1000 }, () => "mon"))));
+    assert.deepEqual(errs.filter((e) => e.path.startsWith("weekdays")), [{ code: "outOfRange", path: "weekdays" }]);
+  });
+  it("rejects NaN and Infinity in numbers", () => {
+    assert.ok(has(mut((i) => (i.priceDollars = Number.NaN)), "notInteger", "priceDollars"));
+    assert.ok(has(mut((i) => (i.maxRiders = Number.POSITIVE_INFINITY)), "notInteger", "maxRiders"));
+  });
+});
+
 // Silence unused import if hosted/ride are only used above.
 void hosted;

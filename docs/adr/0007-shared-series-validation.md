@@ -59,3 +59,4 @@ These are lead defaults.
 - RC-12 "no remaining date" is read as a date on or after today, so a series whose only trip departed earlier today can still be posted.
 - Weekday-conflict reporting is one error per weekday, even when several series conflict.
 - A `days` key that is not a selected weekday is `outOfRange`, so the `days` keys always match `weekdays` exactly.
+- Hostile-input hardening (review): only plain objects are parsed; address `text` is capped at 500 characters and `placeId` at 300 (technical caps, not product rules); an oversized `stops` or `weekdays` array gets one error without per-element parsing; an unknown `days` key is reported once at `days` and never echoed into an error path.
