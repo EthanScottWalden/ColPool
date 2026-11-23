@@ -4,6 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import io.github.ethanscottwalden.colpool.ui.auth.AuthActions
 import io.github.ethanscottwalden.colpool.ui.auth.AuthContent
 import io.github.ethanscottwalden.colpool.ui.auth.AuthMode
@@ -14,6 +17,9 @@ import io.github.ethanscottwalden.colpool.ui.onboarding.OnboardingViewModel
 import io.github.ethanscottwalden.colpool.ui.profile.EditProfileViewModel
 import io.github.ethanscottwalden.colpool.ui.profile.ProfileTab
 import io.github.ethanscottwalden.colpool.ui.profile.ProfileViewModel
+import io.github.ethanscottwalden.colpool.ui.series.CreateSeriesScreen
+import io.github.ethanscottwalden.colpool.ui.series.CreateSeriesViewModel
+import io.github.ethanscottwalden.colpool.ui.series.ReviewPlaceholder
 import io.github.ethanscottwalden.colpool.ui.session.SessionState
 import io.github.ethanscottwalden.colpool.ui.session.SessionViewModel
 import io.github.ethanscottwalden.colpool.ui.shell.LoadingScreen
@@ -30,10 +36,14 @@ fun ColPoolRoot(
     profile: ProfileViewModel,
     editProfile: EditProfileViewModel,
     addressSearch: AddressSearchViewModel,
+    createSeries: CreateSeriesViewModel,
 ) {
     val state by session.state.collectAsState()
     val authState by auth.state.collectAsState()
     val errorDetail by session.errorDetail.collectAsState()
+    // No navigation library yet (ADR 0004): Create Series and the Review placeholder sit above the student shell.
+    var creatingSeries by rememberSaveable { mutableStateOf(false) }
+    var reviewDraftId by rememberSaveable { mutableStateOf<String?>(null) }
 
     LaunchedEffect(state) {
         if (state !is SessionState.SignedOut) auth.reset()
@@ -41,6 +51,7 @@ fun ColPoolRoot(
         if (state == SessionState.Onboarding) onboarding.loadOptions() else onboarding.reset()
         // Same for the own profile (address, email): loaded for the student shell only.
         if (state == SessionState.Search) profile.load() else { profile.reset(); editProfile.reset() }
+        if (state != SessionState.Search) { createSeries.reset(); creatingSeries = false; reviewDraftId = null }
     }
 
     when (val s = state) {
@@ -59,7 +70,18 @@ fun ColPoolRoot(
             ),
         )
         SessionState.Onboarding -> OnboardingScreen(onboarding, addressSearch, onLogOut = session::logOut)
-        SessionState.Search -> StudentShell(profileTab = { ProfileTab(profile, editProfile, addressSearch, onLogOut = session::logOut, modifier = it) })
+        SessionState.Search -> when {
+            reviewDraftId != null -> ReviewPlaceholder(reviewDraftId!!, onBack = { reviewDraftId = null })
+            creatingSeries -> CreateSeriesScreen(
+                createSeries, addressSearch,
+                onReview = { reviewDraftId = it },
+                onBack = { creatingSeries = false; createSeries.reset() },
+            )
+            else -> StudentShell(
+                profileTab = { ProfileTab(profile, editProfile, addressSearch, onLogOut = session::logOut, modifier = it) },
+                onHostSeries = { createSeries.reset(); creatingSeries = true },
+            )
+        }
         SessionState.Staff -> StaffExportPlaceholder(onLogOut = session::logOut)
         SessionState.Error -> SessionErrorScreen(onRetry = session::retry, onLogOut = session::logOut, detail = errorDetail)
     }
