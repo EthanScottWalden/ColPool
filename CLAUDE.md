@@ -72,7 +72,7 @@ Branch model: `feature/*` → `dev` → `staging` → `main`.
 - **Recording a decision an Issue settles:** put the detail in the ADR or doc the Issue names (e.g. `docs/adr/0001-android-setup.md`, `docs/data-model.md`). Then add a one-line value plus a link in `docs/ARCHITECTURE.md` §2, and remove the item from §9.
 - Don't change product rules in `docs/POLICY.md` without a recorded human decision.
 - `SPEC.md` and `INTENT.md` change only with approval from both the lead and the human.
-- **Weekly agentic retrospective:** docs-keeper updates the current week's `docs/agentic-retrospectives/YYYY-MM-DD.md` (weeks run Sunday to Saturday, named by the Sunday) on every docs pass and starts a new file each Sunday (format in that folder's `README.md`; owner decision 2026-11-16).
+- **Weekly agentic retrospective:** docs-keeper updates the current week's `docs/agentic-retrospectives/YYYY-MM-DD.md` (weeks run Sunday to Saturday, named by the Sunday) on every docs pass and starts a new file each Sunday (format in that folder's `README.md`; owner decision 2026-11-16). Each file ends with **Presentation notes** for the owner's weekly course update, kept current as Issues merge (owner decision 2026-11-22).
 - Keep this file short. Detailed procedures go in `DEVELOPMENT.md` or the docs above.
 
 ## 7. Escalation levels
