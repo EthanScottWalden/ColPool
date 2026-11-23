@@ -67,6 +67,7 @@ Not in the approved stack (don't add without a documented human decision): Cloud
 | Role routing signal, splash and Firestore cache | #19 (TMP-06) | Staff = `institution` token claim; students = server read of own `privateDetails` (denied = no consent, missing = Onboarding, address = Search; errors = retry, never a route). Android system splash (core-splashscreen). Firestore memory-only cache. Log out lives on the Profile screen (#27) and Onboarding. See [ADR 0004](adr/0004-sign-in-routing.md). |
 | How profile permissions and weekday rosters are stored | #13 (TMP-04), #44 (TMP-37) | Permissions: one backend-only `profileAccess/{ownerId}` doc with reason sets (idempotent). See [ADR 0002](adr/0002-firestore-layout.md) §3, [data model](data-model.md) §2.5. Weekday rosters: _TBD_ (#44). |
 | How the backend finds a student's accepted and hosted weekdays across series for RC-32 conflict checks (e.g. a per-student schedule record kept in the same transactions) | #13 (TMP-04), #20 (TMP-14) | One `schedules/{uid}` doc per student, kept in the same transactions as every lifecycle change; concurrent accepts serialize on it. See [ADR 0002](adr/0002-firestore-layout.md) §4. Edge semantics: [ADR 0007](adr/0007-shared-series-validation.md). |
+| Route preview | #28 (TMP-16) | Callable `routePreview`, latLng waypoints, per-leg rounding; [ADR 0008](adr/0008-route-preview.md). |
 | Phase 6 performance dataset size | #50 (TMP-48) | _TBD_ |
 
 ---

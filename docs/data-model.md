@@ -220,6 +220,17 @@ Written by the route-preview and post functions. The host may `get` their own dr
 | `status` | `"reviewed"` \| `"posted"` | |
 | `postedAt` | timestamp, optional | |
 
+Route preview (#28, [ADR 0008](adr/0008-route-preview.md)) writes it in one Firestore transaction with no external calls inside it:
+- **Create** (no draft id sent): auto id, `status: "reviewed"`, all three timestamps set to server time.
+- **Overwrite** (draft id sent, still `reviewed` and owned by the caller): replaces `input`, `inputHash`, `route`, `reviewedAt` and `updatedAt`; `createdAt` and `hostId` are kept. A posted draft or another host's draft is never touched (the caller gets `failed-precondition` or `not-found`).
+- A failed preview (invalid input, no route, campus-time check, Routes down) writes nothing. Nothing is deleted.
+
+**Expected times (`RouteResult.times`)**, computed once at review and stored; the Android app uses the same rule if it ever needs to show a time:
+- Each hop is rounded on its own: `legMin = Math.round(durationSec / 60)` (a half minute rounds up). Rounding the total instead would give different times.
+- The first point has `departMin` = the leg's `departTime` in minutes after local midnight. Each later point has `arriveMin` = previous `departMin` + previous `legMin`. At a stop, `departMin` = `arriveMin` + that stop's `minutes`. The last point has only `arriveMin`.
+- Values above 1439 are kept (a trip can cross midnight); the campus-departure check rejects an arrival past midnight.
+- `legs[].durationSec` is the Routes value as returned (may be fractional); totals are plain sums.
+
 ## 3. Indexes
 `firestore.indexes.json` carries single-field index exemptions for `profileAccess.viewers`, `profileAccess.activeHostedSeries`, `schedules.entries`, `series.days`, `series.openSeats`, `series.lastDepartureAt`, `seriesDrafts.input` and `seriesDrafts.route`. These maps have per-uid, per-series or per-weekday keys, so automatic indexing would create index entries that no query uses.
 
