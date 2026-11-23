@@ -3,7 +3,7 @@
 > **Contract #13 (TMP-04).** Changes only through a separate, reviewed contract-change Issue.
 > Decisions and rejected alternatives: [ADR 0002](adr/0002-firestore-layout.md).
 > Code: `functions/src/shared/schema/` (names, types, limits, key builders, option seeds). The Android Kotlin models must mirror these names exactly.
-> Series, draft, request and roster collections are not here: #20 and #44 own them. Notifications are #21.
+> Series, draft, request and roster collections are not here: #20 and #44 own them. Notifications are in §2.9 (#21).
 
 Conventions:
 - Document ids for per-student docs are the Auth uid.
@@ -27,6 +27,7 @@ Conventions:
 | `options/profile` | seed script | consented students | One doc, five lists. |
 | `series/{seriesId}` | backend | any consented student | Posted series with stored routes and seats (§2.10). |
 | `seriesDrafts/{draftId}` | backend | its host (get only) | Reviewed draft with calculated routes (§2.11). |
+| `users/{uid}/notifications/{id}` | backend | owner (may flip `read` to true) | Server-rendered notification (§2.9). |
 
 "Consented student" means `exists(/databases/$(database)/documents/consents/$(request.auth.uid))` and not an institution account.
 
@@ -166,6 +167,22 @@ One doc holds all five predefined lists (RC-22). Each entry is `{ id, label, ord
 
 Values come from the prototype (24-edit-profile) with stable kebab-case ids; see `options.ts`. Rules read the doc with one `get()` and only when a write changes a list-backed field. `buildProfileOptionsDoc()` derives the id arrays from the entries so they cannot drift.
 
+### 2.9 `users/{uid}/notifications/{notificationId}` (contract #21, [ADR 0005](adr/0005-notifications.md))
+One doc per notification, in the recipient's own subcollection. Created only through `writeNotification` (`functions/src/shared/notifications/`), inside the transaction or batch that caused the event. Layout is **provisional** until the owner confirms (ADR 0005).
+
+| Field | Type | Notes |
+|---|---|---|
+| `type` | string | `request_new`, `day_accepted`, `day_declined`, `day_auto_declined_full`, `day_auto_declined_conflict`, `rider_removed`, `rider_left`, `request_withdrawn`, `series_cancelled`, `series_ended` |
+| `seriesId` | string | Related series. |
+| `weekdays` | string[] | Optional. Weekday ids, Monday first. One id for per-weekday events, one or more for `request_new`. Absent on series events. |
+| `title`, `body`, `seriesLine` | string | Server-rendered, frozen at event time. `seriesLine` is "[Host first name]'s series from [pickup spot]". |
+| `createdAt` | timestamp | Server timestamp. |
+| `read` | bool | `false` at create. |
+
+Ids are deterministic so a repeated event fails with ALREADY_EXISTS instead of duplicating: `${type}_${seriesId}` for `series_cancelled` and `series_ended`; `request_new_${seriesId}_${riderUid}`; `${type}_${seriesId}_${weekday}` for the four day decisions and `rider_removed`; `${type}_${seriesId}_${riderUid}_${weekday}` for `rider_left` and `request_withdrawn`. Leaving or withdrawing several days writes one notification per weekday. No actor uid is stored. Text never contains addresses, emails or free text.
+
+Rules: the recipient (a consented student) may get and list; update may change only `read`, only to `true`; create and delete are denied; no collection-group rule.
+
 ### 2.10 `series/{seriesId}` (contract #20, [ADR 0006](adr/0006-series-draft-seat-layout.md))
 `seriesId` equals the draft id, so posting twice cannot create two series. Written by functions only; any consented student may get or list. Layout is **provisional** until the owner confirms (ADR 0006).
 
@@ -237,6 +254,8 @@ Route preview (#28, [ADR 0008](adr/0008-route-preview.md)) writes it in one Fire
 
 ## 3. Indexes
 `firestore.indexes.json` carries single-field index exemptions for `profileAccess.viewers`, `profileAccess.activeHostedSeries`, `schedules.entries`, `series.days`, `series.openSeats`, `series.lastDepartureAt`, `seriesDrafts.input` and `seriesDrafts.route`. These maps have per-uid, per-series or per-weekday keys, so automatic indexing would create index entries that no query uses.
+
+No index is needed for notifications: the unread count uses `where read == false` and history uses `orderBy createdAt`. "Unread newest first" in one query would need a composite index on `read` and `createdAt` (#25).
 
 Composite indexes (collection scope):
 - `series`: `status` ascending, `openWeekdays` array-contains. The search query: `status == "active"` and `openWeekdays array-contains-any [...]`.

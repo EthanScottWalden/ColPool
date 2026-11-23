@@ -69,6 +69,7 @@ Not in the approved stack (don't add without a documented human decision): Cloud
 | How the backend finds a student's accepted and hosted weekdays across series for RC-32 conflict checks (e.g. a per-student schedule record kept in the same transactions) | #13 (TMP-04), #20 (TMP-14) | One `schedules/{uid}` doc per student, kept in the same transactions as every lifecycle change; concurrent accepts serialize on it. See [ADR 0002](adr/0002-firestore-layout.md) §4. Edge semantics: [ADR 0007](adr/0007-shared-series-validation.md). |
 | Route preview | #28 (TMP-16) | Callable `routePreview`, latLng waypoints, per-leg rounding; [ADR 0008](adr/0008-route-preview.md). |
 | Post series | #30 (TMP-17) | `postSeries` callable, one transaction, idempotent on draft id; [ADR 0009](adr/0009-post-series.md). |
+| Notification records and writer | #21 | `users/{uid}/notifications`, server-rendered text, deterministic ids, read-only flip; [ADR 0005](adr/0005-notifications.md). |
 | Phase 6 performance dataset size | #50 (TMP-48) | _TBD_ |
 
 ---

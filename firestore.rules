@@ -161,6 +161,18 @@ service cloud.firestore {
       allow get: if isStudent() && resource.data.hostId == request.auth.uid;
     }
 
+    // ---- notifications (#21, ADR 0005, data-model §2.9) ------------------
+    // Backend creates. The recipient reads them and may only flip `read` to true.
+    // No collection-group rule: a query on `notifications` across users stays denied.
+    match /users/{uid}/notifications/{notificationId} {
+      allow get, list: if isStudentOwner(uid);
+      allow update: if isStudentOwner(uid) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']) &&
+        request.resource.data.read is bool &&
+        request.resource.data.read == true;
+      // create and delete: default deny (backend only, nothing is deleted).
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
