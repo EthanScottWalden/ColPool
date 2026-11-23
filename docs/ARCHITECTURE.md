@@ -66,7 +66,7 @@ Not in the approved stack (don't add without a documented human decision): Cloud
 | Institution custom claim key | #18 (TMP-13), #15 | `institution: true` (boolean). Rules treat any `institution` claim as institution; the script sets `true`. Rules check it alongside the consent record (`isInstitution()` in `firestore.rules`); #15's script sets it. Owner decision 2026-11-16. |
 | Role routing signal, splash and Firestore cache | #19 (TMP-06) | Staff = `institution` token claim; students = server read of own `privateDetails` (denied = no consent, missing = Onboarding, address = Search; errors = retry, never a route). Android system splash (core-splashscreen). Firestore memory-only cache. Log out lives on the Profile screen (#27) and Onboarding. See [ADR 0004](adr/0004-sign-in-routing.md). |
 | How profile permissions and weekday rosters are stored | #13 (TMP-04), #44 (TMP-37) | Permissions: one backend-only `profileAccess/{ownerId}` doc with reason sets (idempotent). See [ADR 0002](adr/0002-firestore-layout.md) §3, [data model](data-model.md) §2.5. Weekday rosters: _TBD_ (#44). |
-| How the backend finds a student's accepted and hosted weekdays across series for RC-32 conflict checks (e.g. a per-student schedule record kept in the same transactions) | #13 (TMP-04), #20 (TMP-14) | One `schedules/{uid}` doc per student, kept in the same transactions as every lifecycle change; concurrent accepts serialize on it. See [ADR 0002](adr/0002-firestore-layout.md) §4. RC-32 edge semantics still open there. |
+| How the backend finds a student's accepted and hosted weekdays across series for RC-32 conflict checks (e.g. a per-student schedule record kept in the same transactions) | #13 (TMP-04), #20 (TMP-14) | One `schedules/{uid}` doc per student, kept in the same transactions as every lifecycle change; concurrent accepts serialize on it. See [ADR 0002](adr/0002-firestore-layout.md) §4. Edge semantics: [ADR 0007](adr/0007-shared-series-validation.md). |
 | Phase 6 performance dataset size | #50 (TMP-48) | _TBD_ |
 
 ---
@@ -107,7 +107,7 @@ Each exists **exactly once**. Changing one is its own reviewed contract-change i
 |---|---|---|
 | Core schema + profile-permission model | everything | #13 (TMP-04) |
 | Series / draft / seat data model (incl. copied search fields: open weekdays, pickup coordinates, status) | hosting, search, lifecycle | #20 (TMP-14) |
-| Shared series validation | route preview **and** post | #23 (TMP-15) |
+| Shared series validation and weekday-conflict test (`functions/src/shared/validation/`; [ADR 0007](adr/0007-shared-series-validation.md)) | route preview **and** post; conflict test also #35, #40 | #23 (TMP-15) |
 | Notification writer | every function that notifies, daily job | #21 (TMP-28) |
 | Per-weekday timestamp contract (accepted / left / removed / cancelled, server timestamps) | lifecycle functions, trip counting | #26 (TMP-31) |
 | Seat-update path (Firestore transaction) | accept, remove, leave, cancel | inside #40 (TMP-32) |
@@ -227,7 +227,6 @@ Product privacy and safety rules (who sees what, test data, verification wording
 | Item | Status | Owner / where |
 |---|---|---|
 | Request layout; weekday roster storage (series and draft layout decided in #20, provisional) | Decide in issue, record in §2 | #35, #26, #44 |
-| RC-32 edge semantics (pending vs posting; overlap on shared weekdays; no-trips-left) | Decide before the first RC-32 check ships ([ADR 0002](adr/0002-firestore-layout.md) §4) | #23 (shared validation); also applies to #35, #40 |
 | Performance dataset size | Decide in issue | #50 |
 
 **Accepted architectural risks** (don't "fix" by adding scope): stale permissions if a function fails mid-update (mitigated by same-transaction updates); late series ending of up to a day; partial sign-up leaving a consent-less Auth account (unusable by RC-06, logged); search won't scale past MVP without geo-filtering; unverified emails (RISK-04); estimated, not live, route times (RISK-09); sign-up account enumeration (below); the address sheet not opening on one Medium Phone API 36 emulator ([ADR 0001](adr/0001-android-setup.md#places-autocomplete-16), owner decision 2026-11-19). See SDD §7.2 and INTENT §6.1.
