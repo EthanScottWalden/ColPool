@@ -1,6 +1,6 @@
 # Agentic workflow retrospectives
 
-One file per week, **Sunday through Saturday** (Pacific), named by its Sunday: `YYYY-MM-DD.md`, for example `2026-11-15.md` for Sun 15 – Sat 21 November (owner decision 2026-11-16). Each covers how the agent workflow went that week. Product progress belongs in the Issues and PRs; these files record **process**: what worked, what went wrong, the owner's interventions, and the changes made because of them. The one exception is the **Presentation notes** section below, which also summarizes the week's product progress.
+One file per week, **Sunday through Saturday** (Pacific), named by its Sunday: `YYYY-MM-DD.md`, for example `2026-11-15.md` for Sun 15 – Sat 21 November (owner decision 2026-11-16). When a progress update is two weeks away, one file covers both weeks (owner decision 2026-11-23). Each covers how the agent workflow went that week. Product progress belongs in the Issues and PRs; these files record **process**: what worked, what went wrong, the owner's interventions, and the changes made because of them. The one exception is the **Presentation notes** section below, which also summarizes the week's product progress.
 
 ## Presentation notes (owner decision 2026-11-22)
 The owner presents a weekly progress update for CSCI 5520 (Sunday deadline). Each weekly file ends with a **Presentation notes** section, kept current on every docs pass, so the slides become copy-over instead of reconstruction. The headings follow the course slide template.
@@ -85,4 +85,4 @@ The owner presents a weekly progress update for CSCI 5520 (Sunday deadline). Eac
 ## Index
 - [Issue #11](issue-11.md): one-off, #11 Android setup (first run) and the configuration audit.
 - [2026-11-15](2026-11-15.md): #12 and #13 background; #13 to staging, #18, #15, #54 (CI), #14, #17, #16, #19, #27; address-sheet bug (Thu 19 Nov); worktree, git lock and Gradle lock friction.
-- [2026-11-22](2026-11-22.md): Phases 2 and 3 in one week; per-Issue time log starts; #20 and #21 in parallel.
+- [2026-11-22](2026-11-22.md): two weeks (22 Nov – 5 Dec, Update #2); Phases 2 and 3 concurrently (experiment); per-Issue time log starts; #20 and #21 in parallel.
