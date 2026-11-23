@@ -161,6 +161,15 @@ service cloud.firestore {
       allow get: if isStudent() && resource.data.hostId == request.auth.uid;
     }
 
+    // ---- requests (#35, ADR 0010, data-model §2.12) ----------------------
+    // Backend written only: no client create, update or delete, rider and host included.
+    // Readable by the rider and by the series' host (hostId is copied onto the request).
+    // Queries must filter on riderId or hostId so the rule can be proven from the query.
+    match /requests/{requestId} {
+      allow get, list: if isStudent() &&
+        (resource.data.riderId == request.auth.uid || resource.data.hostId == request.auth.uid);
+    }
+
     // ---- notifications (#21, ADR 0005, data-model §2.9) ------------------
     // Backend creates. The recipient reads them and may only flip `read` to true.
     // No collection-group rule: a query on `notifications` across users stays denied.

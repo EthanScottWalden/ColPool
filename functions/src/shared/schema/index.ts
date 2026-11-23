@@ -7,3 +7,4 @@ export * from "./options.ts";
 export * from "./campusPoints.ts";
 export * from "./series.ts";
 export * from "./seriesHash.ts";
+export * from "./request.ts";
