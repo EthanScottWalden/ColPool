@@ -38,3 +38,6 @@
 - `functions/test/fixtures/routes/riverside-1stop.json` is **hand-written** in the documented shape, not a real capture (see the README beside it). The Issue's layer 3 live check could not be run by the agent (no key, no network).
 - **Merge-before-live-check plan (lead decision):** the PR merges to `dev` with layers 1 and 2 green. The owner then runs the live check ([DEVELOPMENT.md](../../DEVELOPMENT.md) §2), pastes the output into the PR, and replaces the fixture with the real capture in a follow-up commit. Android must not depend on exact Routes numbers before that.
 - Unknown until the live check: whether Routes answers an unroutable pair (Honolulu) with 200 and no routes, as assumed, or with a 4xx (which this code would turn into `internal` and the live check would show as FAIL). If it is a 4xx, a follow-up maps that status to "no route".
+
+## Review hardening
+- Failure attribution (which address has no route) is capped at `MAX_ATTRIBUTION_CALLS` = 10 Routes calls per review; past that the error names the leg. A hostile all-unroutable input with 7 weekdays and 25 stops per direction costs at most 14 + 10 calls instead of about 370 (RC-28).

@@ -141,6 +141,8 @@ export function createRoutePreviewHandler(deps: RoutePreviewDeps = {}) {
 
     const route: SeriesDraftDoc["route"] = {};
     const failedPaths: string[] = [];
+    // RC-28: attribution calls happen only on failure, and at most MAX_ATTRIBUTION_CALLS per review.
+    const attributionBudget = { left: MAX_ATTRIBUTION_CALLS };
 
     for (const wd of input.weekdays) {
       const day = input.days[wd]!;
@@ -163,12 +165,11 @@ export function createRoutePreviewHandler(deps: RoutePreviewDeps = {}) {
           if (e instanceof RoutesUnavailableError) {
             throw new HttpsError("unavailable", "Route calculation is busy. Try again.", { reason: "routes-unavailable" });
           }
-          if (e instanceof RoutesRejectedError) throw new HttpsError("internal", "Something went wrong. Try again.");
           throw new HttpsError("internal", "Something went wrong. Try again.");
         }
 
         if (!outcome.ok) {
-          failedPaths.push(await attribute(client, points, dir, legPath, uid, wd, logger));
+          failedPaths.push(await attribute(client, points, dir, legPath, uid, wd, logger, attributionBudget));
           continue;
         }
         const departMin = toMinutes(legInput.departTime);
@@ -226,8 +227,11 @@ function toMinutes(hhmm: string): number {
 /**
  * Only on failure: test each host-entered address on the failed leg as a single hop to or from the
  * leg's campus point (the client dedupes, so results are shared across weekdays). Returns the path of
- * the first address with no route, or the leg path when none is at fault alone.
+ * the first address with no route, or the leg path when none is at fault alone or the review's
+ * attribution budget is spent (a hostile input can't multiply Routes calls; RC-28).
  */
+export const MAX_ATTRIBUTION_CALLS = 10;
+
 async function attribute(
   client: RoutesClient,
   points: Point[],
@@ -236,10 +240,13 @@ async function attribute(
   uid: string,
   wd: Weekday,
   logger: RoutePreviewLogger,
+  budget: { left: number },
 ): Promise<string> {
   const cp = (dir === "toCampus" ? points[points.length - 1] : points[0]) as Point;
   for (const p of points) {
     if (p.path === undefined) continue;
+    if (budget.left <= 0) return legPath;
+    budget.left--;
     try {
       const hop = await client.computeRoute(dir === "toCampus" ? [p.ll, cp.ll] : [cp.ll, p.ll]);
       if (!hop.ok) return p.path;

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import type { CallableRequest } from "firebase-functions/v2/https";
 import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import { adminApp } from "../../src/admin.ts";
-import { createRoutePreviewHandler, type RoutePreviewLogger } from "../../src/routePreview.ts";
+import { createRoutePreviewHandler, MAX_ATTRIBUTION_CALLS, type RoutePreviewLogger } from "../../src/routePreview.ts";
 import { FakeRoutesClient, RoutesRejectedError, RoutesUnavailableError, type LatLng } from "../../src/routePreview/routesClient.ts";
 import { buildRouteResult } from "../../src/routePreview/times.ts";
 import { CAMPUS_POINT_SEED } from "../../src/shared/schema/campusPoints.ts";
@@ -176,6 +176,23 @@ describe("routePreview (layer 1: fake Routes client)", () => {
     await rejects(handler(req(await student(), { series: series() })), "invalid-argument", (d) => {
       assert.deepEqual(d.errors, [{ code: "routeNotFound", path: "days.mon.toCampus" }, { code: "routeNotFound", path: "days.mon.fromCampus" }]);
     });
+  });
+
+  it("caps attribution calls: a hostile all-unroutable input costs at most 14 legs + MAX_ATTRIBUTION_CALLS", async () => {
+    const wds = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
+    const base = series().days.mon!;
+    let k = 0;
+    const stops = () =>
+      Array.from({ length: 25 }, () => ({ address: { ...STOP1, placeId: `hostile-${k}`, lat: 30 + (k++) / 1000 }, minutes: 0 }));
+    const days = Object.fromEntries(
+      wds.map((wd) => [wd, { toCampus: { ...base.toCampus, stops: stops() }, fromCampus: { ...base.fromCampus, stops: stops() } }]),
+    );
+    const fake = new FakeRoutesClient({ leg, noRouteIf: () => true });
+    const { handler } = setup(fake);
+    await rejects(handler(req(await student(), { series: series({ weekdays: [...wds], days } as never) })), "invalid-argument", (d) => {
+      assert.ok(d.errors.length > 0 && d.errors.every((e: { code: string }) => e.code === "routeNotFound"));
+    });
+    assert.ok(fake.calls.length <= 14 + MAX_ATTRIBUTION_CALLS, `made ${fake.calls.length} Routes calls`);
   });
 
   it("calls Routes once per distinct leg: Monday to Friday identical gives 2 calls", async () => {
