@@ -245,7 +245,7 @@ Figure 1: Cloud Functions and the Routes API. Figure 2: Hosting tab.
   - no date falls on its weekdays
   - it leaves campus before arriving
   - it breaks RC-31
-  - it runs on a weekday the host is accepted on as a rider during overlapping dates (RC-32)
+  - it shares a ride date on a weekday with a series the host is accepted on as a rider (RC-32)
 
   RC-31 tests show that cancelled and ended series don't count, using seeded data.
 - **Route calculation.**

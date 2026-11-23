@@ -197,7 +197,7 @@ Product privacy and safety rules (who sees what, test data, verification wording
 - **Nothing is deleted.** Cancel and end change status; series, requests, consent and notifications are kept. (RC-24)
 - A posted series is **immutable**. Stored routes are **never recalculated**. (RC-12, DD-06)
 - Exactly **one request per rider × series**, ever; no rejoining a weekday. Enforced by record structure, not just a check. (RC-16)
-- A student is never accepted on two conflicting weekdays (same weekday, overlapping dates), whether as rider or host; conflict checks run in the backend on request, accept, review and post. (RC-32)
+- A student is never accepted on two conflicting weekdays (same weekday, a shared ride date today or later), whether as rider or host; conflict checks run in the backend on request, accept, review and post. (RC-32)
 - A weekday with no trips left can't be requested or accepted, decided by the server clock. (RC-33)
 - Seats are per weekday; the backend is the single source of truth; changes are **atomic** — two riders can never take the last seat. (RC-15)
 - Every address has coordinates from Places. (RC-13)
