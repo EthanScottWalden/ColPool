@@ -186,7 +186,7 @@ Values come from the prototype (24-edit-profile) with stable kebab-case ids; see
 | `inputHash` | string | SHA-256 of the reviewed input (matches the draft). |
 | `postedAt` | timestamp | Server time. |
 
-`Leg` = `{departTime: "HH:mm", campusPointId, stops: [{address: {text, placeId, lat, lng}, minutes}], route: RouteResult}`. Stop `minutes` is 0 to 120 (RC-30), at most 25 stops per direction (provisional).
+`Leg` = `{departTime: "HH:mm", campusPointId, stops: [{address: {text, placeId, lat, lng}, minutes}], route: RouteResult}`. Stop `minutes` is 0 to 120 (RC-30), at most 25 stops per direction (provisional; to become 10, #143).
 `RouteResult` = `{legs: [{meters, durationSec}], totalMeters, totalDurationSec, times: [{arriveMin?, departMin?}]}`; times are minutes after local midnight and may exceed 1439.
 
 Created by the post-series function in one transaction with the draft update, the host's `schedules` entries and `profileAccess.activeHostedSeries` ([ADR 0009](adr/0009-post-series.md)).
@@ -205,7 +205,7 @@ Constants (code: `SERIES_LIMITS`; a test checks this table against the code):
 | `stopMinutesMin` | 0 | `stops[].minutes` |
 | `stopMinutesMax` | 120 | `stops[].minutes` |
 | `maxActiveHosted` | 5 | Active hosted series per student (RC-31) |
-| `maxStopsPerDirection` | 25 | Provisional; Routes API waypoint limit |
+| `maxStopsPerDirection` | 25 | Provisional; Routes API waypoint limit. Owner decision 2026-11-23: becomes 10 in contract-change Issue #143 (not yet applied) |
 
 Time helper (`functions/src/shared/time`): "trips left" for a weekday is true when `now` is strictly before `lastDepartureAt[weekday]`. A selected weekday with no date in range has no key and never has trips left.
 

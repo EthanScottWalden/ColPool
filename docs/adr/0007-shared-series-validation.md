@@ -52,7 +52,7 @@
 ## Provisional, owner to confirm
 These are lead defaults.
 1. **Error wording** lives in the Android Issue; the backend sends codes only.
-2. **`maxStopsPerDirection` = 25** is a technical cap carried over from ADR 0006.
+2. **`maxStopsPerDirection` = 25** is a technical cap carried over from ADR 0006. Owner decision 2026-11-23: it becomes 10; the code stays at 25 until contract-change Issue #143.
 3. **Stops array required.** `stops` must be present (may be empty); an absent array is `required`.
 
 ## L1 notes
