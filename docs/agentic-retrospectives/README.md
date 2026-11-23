@@ -6,7 +6,7 @@ One file per week, **Sunday through Saturday** (Pacific), named by its Sunday: `
 The owner presents a weekly progress update for CSCI 5520 (Sunday deadline). Each weekly file ends with a **Presentation notes** section, kept current on every docs pass, so the slides become copy-over instead of reconstruction. The headings follow the course slide template.
 - **Write it as you go**, not at the end of the week. Add a feature row when an Issue's PR merges into `dev`, and a decision or problem when it happens.
 - **Plain language**, short enough to paste into a slide cell: about 80 characters for table cells and 1–3 sentences for boxes.
-- **Hours are the owner's.** Agents can't measure the owner's time, so leave the hours column as `?` unless the owner gave a number. Mark any agent guess `(est.)`.
+- **Time per Issue (owner decision 2026-11-23).** The lead logs agent time for each Issue it works on. It records Pacific clock times (`date`) when it claims the Issue, at each session start and end, at the dev PR, and at the merge. Time spent waiting on the owner is left out. The owner reports any human action that takes significant time, and the lead logs that number as given. The "Who + hours" cell reads `Agent ~Xh, Ethan Yh`. An Issue worked on before 2026-11-23 has no log, so its time is rebuilt from GitHub and git timestamps and marked `(est.)`, or left as `?`.
 - **Walkthrough paths** must be real files, checked in the repo. Only add a line number after reading the file.
 - **Evidence only**, as for the rest of the file: cite PRs, commits and decisions; mark anything unverified.
 
@@ -28,29 +28,58 @@ The owner presents a weekly progress update for CSCI 5520 (Sunday deadline). Eac
 ## Changes made
 ## Open follow-ups
 
+## Time log
+| Issue | Date | Start–end (PT) | Who | What | Minutes |
+|---|---|---|---|---|---|
+
 ## Presentation notes
-### Feature progress (one row per Issue merged this week, in demo order)
-| Issue | Feature + result | Tech / concepts | Est. hours |
+(Order and headings match the CSCI 5520 deck; slide numbers in brackets. Only work since the last update counts.)
+### What changed this week [2]
+- Headline progress: <one sentence: what is possible now that wasn't last week>
+- Most meaningful outcome: <concrete result: feature works, test passed>
+- Biggest remaining challenge: <specific blocker, instability or unfinished capability>
+- Evidence to show: <live screens, test results, Issue refs>
+### Feature progress [3+] (one row per Issue worked on this week, in demo order)
+| GH Issue | Feature + result | Tech / concepts | Who + hours | AI / agent tooling |
+|---|---|---|---|---|
+| #N | <title>. Result: <what now works> | <stack, patterns> | Agent ~Xh, Ethan Yh | Claude Code: <agents used> |
+### Demo roadmap [8] (same order as the feature table)
+| Order | Feature / Issue | What viewers will see | Who narrates | Proof it works |
+|---|---|---|---|---|
+### Agentic flow: one feature end to end [11]
+- Feature: #N
+- Frame: <Issue, goal, constraints, acceptance criteria>
+- Delegate: <agent + task or prompt>
+- Inspect: <what the owner reviewed or tested>
+- Intervene: <owner decision, correction or redirection>
+- Verify: <tests, PR/merge, docs, review proof>
+- Documentation trail: <what the agent generated or updated; what the owner validated, corrected or added>
+### Where the agent exceeded expectations [12]
+- What worked surprisingly well: <…>
+- What made it possible: <context, clear Issue, tests, architecture, constraints>
+- Evidence: <before/after, prompt, commit, tests, time comparison>
+### Where it fell short [13]
+- What didn't work: <wrong assumption, missed edge case, misleading confidence>
+- How it was found: <review, test, integration step>
+- Recovery and what is still open: <fix, added tests, known risk>
+### Owner interventions [14]
+| Decision point | What the agent proposed | What the owner changed + why | Observed impact |
 |---|---|---|---|
-| #N | <title>. Result: <what now works> | <stack, patterns> | ? |
-### What changed this week
-- Headline progress: <what is possible now that wasn't last week>
-- Most meaningful outcome: <concrete result>
-- Biggest remaining challenge: <real blocker or next hard part>
-- Evidence to show: <live screens, PR checks, Issues>
-### Demo roadmap (follows the feature table)
-| Order | Feature / Issue | What viewers will see | Proof it works |
-|---|---|---|---|
-### Agentic flow: one feature end to end
-- Feature: #N. Frame / Delegate / Inspect / Intervene / Verify: <one line each>
-- Documentation trail: <ADR or doc + line, PR>
-### Where the agent exceeded expectations
-### Where it fell short (what, how found, recovery, still open)
-### Owner interventions (decision point, what the agent proposed, what the owner changed and why, impact)
-### When missing input caused damage (and the guardrail)
-### Experiment: last week's process change (change, where tested, result, keep/adjust/abandon)
-### Next week (keep, stop, try + measure, planned evidence)
-### Code walkthrough (code path with file paths, key decision, quality checks and gaps)
+### When missing input caused damage [15]
+- Where the owner stepped back too far: <…>
+- Result: <rework, scope creep, broken integration, wasted effort>
+- Guardrail: <checkpoint, test, smaller Issues, clearer DoD>
+### Experiment: last week's process change [16] (Update #1: "first-week baseline")
+- Change: <weakness seen + change made>
+- Tested on: <Issues>
+- What happened: <evidence>
+- Keep, adjust or abandon: <decision + reason>
+### Next week [17]
+- Keep doing / Stop doing / Try next week (+ how to measure) / Planned evidence
+### Code walkthrough [19]
+- Architecture / code path: <components, files, data flow>
+- Key technical decision: <choice, alternative, tradeoff>
+- Quality and understanding: <tests + what was verified, CI, reviewed code/docs, gaps>
 ```
 
 ## Index
