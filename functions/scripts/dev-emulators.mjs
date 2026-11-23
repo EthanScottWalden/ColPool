@@ -3,6 +3,7 @@
 // the emulators in the foreground. Ctrl+C (or Stop in the IDE) shuts them down. Data is not persisted.
 // No shell is used. Emulator-only: the seed scripts refuse anything else.
 import { spawn, spawnSync } from "node:child_process";
+import { existsSync, writeFileSync } from "node:fs";
 import { connect } from "node:net";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,6 +13,11 @@ const PROJECT = "demo-colpool";
 const PORTS = [9099, 8080, 5001];
 const WAIT_MS = 180_000;
 const bin = (name) => join(functionsDir, "node_modules", ".bin", name);
+
+// The routePreview function declares the ROUTES_API_KEY secret. The emulator reads it from this git-ignored file.
+// The value is a fake: the function uses a straight-line stand-in on a demo- project and never calls Routes.
+const secretFile = join(functionsDir, ".secret.local");
+if (!existsSync(secretFile)) writeFileSync(secretFile, "ROUTES_API_KEY=emulator-fake\n");
 
 // Same build as the `preemulators` hook.
 const build = spawnSync(bin("tsc"), ["-p", "tsconfig.json"], { cwd: functionsDir, stdio: "inherit", shell: false });
