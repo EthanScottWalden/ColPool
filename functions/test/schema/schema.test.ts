@@ -8,6 +8,10 @@ import {
   INTEREST_OPTIONS,
   MAJOR_OPTIONS,
   PROFILE_LIMITS,
+  SERIES_LIMITS,
+  SERIES_MUTABLE_FIELDS,
+  canonicalJson,
+  hashSeriesInput,
   TRAIT_OPTIONS,
   WEEKDAYS,
   YEAR_OPTIONS,
@@ -91,12 +95,48 @@ describe("collections and docs", () => {
     assert.equal(new Set(names).size, names.length);
   });
 
-  it("RC-30 constants match docs/data-model.md", () => {
+  it("RC-30 and series constants match docs/data-model.md", () => {
     const md = readFileSync(join(import.meta.dirname, "../../../docs/data-model.md"), "utf8");
     const documented = new Map<string, number>();
-    for (const m of md.matchAll(/^\|\s*`(\w+Max|\w+Min)`\s*\|\s*(\d+)\s*\|/gm)) {
+    for (const m of md.matchAll(/^\|\s*`([A-Za-z]+)`\s*\|\s*(\d+)\s*\|/gm)) {
       documented.set(m[1] as string, Number(m[2]));
     }
-    assert.deepEqual(Object.fromEntries(documented), { ...PROFILE_LIMITS });
+    assert.deepEqual(Object.fromEntries(documented), { ...PROFILE_LIMITS, ...SERIES_LIMITS });
+  });
+});
+
+describe("series contract (#20)", () => {
+  it("series and seriesDrafts are collections", () => {
+    assert.equal(COLLECTIONS.series, "series");
+    assert.equal(COLLECTIONS.seriesDrafts, "seriesDrafts");
+  });
+
+  it("only seats and status are mutable after posting", () => {
+    assert.deepEqual([...SERIES_MUTABLE_FIELDS], ["openSeats", "openWeekdays", "status"]);
+  });
+
+  it("the canonical hash is stable under key reordering", () => {
+    const a = { b: 1, a: { y: [1, { q: 1, p: 2 }], x: "s" }, c: null };
+    const b = { c: null, a: { x: "s", y: [1, { p: 2, q: 1 }] }, b: 1 };
+    assert.equal(canonicalJson(a), canonicalJson(b));
+    assert.equal(hashSeriesInput(a), hashSeriesInput(b));
+    assert.match(hashSeriesInput(a), /^[0-9a-f]{64}$/);
+  });
+
+  it("the hash changes when a value, array order or key changes", () => {
+    const base = hashSeriesInput({ a: [1, 2], b: "x" });
+    assert.notEqual(base, hashSeriesInput({ a: [2, 1], b: "x" }));
+    assert.notEqual(base, hashSeriesInput({ a: [1, 2], b: "y" }));
+    assert.notEqual(base, hashSeriesInput({ a: [1, 2], c: "x" }));
+  });
+
+  it("undefined properties are ignored; non-finite numbers are rejected", () => {
+    assert.equal(hashSeriesInput({ a: 1, b: undefined }), hashSeriesInput({ a: 1 }));
+    assert.throws(() => hashSeriesInput({ a: Number.NaN }));
+  });
+
+  it("non-plain objects are rejected instead of hashing as {}", () => {
+    assert.throws(() => hashSeriesInput({ a: new Date(0) }));
+    assert.throws(() => hashSeriesInput({ a: new Map() }));
   });
 });

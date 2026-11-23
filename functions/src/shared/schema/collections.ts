@@ -10,6 +10,8 @@ export const COLLECTIONS = {
   schedules: "schedules",
   campusPoints: "campusPoints",
   options: "options",
+  series: "series",
+  seriesDrafts: "seriesDrafts",
 } as const;
 
 export type CollectionName = (typeof COLLECTIONS)[keyof typeof COLLECTIONS];

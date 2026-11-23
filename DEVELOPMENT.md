@@ -158,6 +158,18 @@ Institution accounts are created only by `functions/scripts/create-institution-a
 - **Emulator:** with the Firestore emulator running (`cd functions && npm run emulators`), in another shell with `FIRESTORE_EMULATOR_HOST=127.0.0.1:8080` set: `npm run seed-reference-data`. It targets project `demo-colpool`.
 - **Production (documented only; run by the owner, never by an agent):** set `GOOGLE_APPLICATION_CREDENTIALS` to the path of a service-account key kept outside the repo, leave `FIRESTORE_EMULATOR_HOST` unset, and run `npm run seed-reference-data -- --project <real-project-id>`. A `demo-` project id is refused in this mode. Never commit or paste the key.
 
+### Routes live check
+
+`functions/scripts/routes-live-check.ts` (#28) calls the real Routes API a few times (3 calls) to confirm that a Riverside route via one stop to the Yeager Center gives plausible numbers (1 to 30 miles, 2 to 60 minutes) and that a Honolulu pickup gets "no route". It is never run in CI, and agents can't run it (no key, no network). **The owner runs it in their own terminal**, from a machine signed in to `gcloud` with access to Secret Manager:
+
+```
+cd functions && ROUTES_API_KEY="$(gcloud secrets versions access latest --secret=ROUTES_API_KEY --project colpool)" npm run routes:live-check -- --capture test/fixtures/routes/riverside-1stop.json
+```
+
+Without gcloud, type the key without echo: `read -s ROUTES_API_KEY && export ROUTES_API_KEY`, then `npm run routes:live-check -- --capture test/fixtures/routes/riverside-1stop.json`, then `unset ROUTES_API_KEY`.
+
+It prints the UTC time, the call count, meters, seconds, miles, minutes and `PASS` or `FAIL` per check, never the key or headers. `--capture` writes only the first response body, replacing the provisional fixture; commit it after a look. Paste the output into the PR. See [ADR 0008](docs/adr/0008-route-preview.md) for why this runs after the merge.
+
 ### CI
 
 `.github/workflows/ci.yml` (#54) runs on every pull request and on pushes to `dev`, `staging` and `main`, on GitHub-hosted runners (free, the repo is public). It uses no secrets, has `contents: read` only, never deploys, and every action is pinned to a commit SHA.
