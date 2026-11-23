@@ -12,6 +12,7 @@ export const COLLECTIONS = {
   options: "options",
   series: "series",
   seriesDrafts: "seriesDrafts",
+  requests: "requests",
 } as const;
 
 export type CollectionName = (typeof COLLECTIONS)[keyof typeof COLLECTIONS];

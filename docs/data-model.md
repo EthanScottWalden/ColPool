@@ -27,6 +27,7 @@ Conventions:
 | `options/profile` | seed script | consented students | One doc, five lists. |
 | `series/{seriesId}` | backend | any consented student | Posted series with stored routes and seats (§2.10). |
 | `seriesDrafts/{draftId}` | backend | its host (get only) | Reviewed draft with calculated routes (§2.11). |
+| `requests/{seriesId}_{riderUid}` | backend | its rider and the series' host | One request per rider and series (§2.12). |
 | `users/{uid}/notifications/{id}` | backend | owner (may flip `read` to true) | Server-rendered notification (§2.9). |
 
 "Consented student" means `exists(/databases/$(database)/documents/consents/$(request.auth.uid))` and not an institution account.
@@ -252,11 +253,27 @@ Route preview (#28, [ADR 0008](adr/0008-route-preview.md)) writes it in one Fire
 - Values above 1439 are kept (a trip can cross midnight); the campus-departure check rejects an arrival past midnight.
 - `legs[].durationSec` is the Routes value as returned (may be fractional); totals are plain sums.
 
+### 2.12 `requests/{seriesId}_{riderUid}` (#35, [ADR 0010](adr/0010-requests.md))
+Backend written by `sendRequest`; the rider and the series' host may `get` and `list` (queries must filter on `riderId` or `hostId`). No client write. Never deleted. The id is the one-request-per-rider-and-series guarantee (RC-15). **Provisional:** the per-weekday status values and the timestamp fields are settled by #26.
+
+| Field | Type | Notes |
+|---|---|---|
+| `seriesId` | string | |
+| `riderId` | string | |
+| `hostId` | string | Copied from the series so rules need no second read. |
+| `weekdays` | `Weekday[]` | Monday-first, the weekdays asked for. |
+| `days` | map weekday to `{status}` | `status` is `"pending"` at creation. Not indexed. |
+| `createdAt` | timestamp | Server time. |
+
+No names or other personal data are stored. Sending also writes `schedules/{rider}.entries` (role `rider`, state `pending`, one per weekday), `profileAccess` for RC-01 cases 2 and 3 (`req:<seriesId>`), and one `request_new` notification for the host, in one transaction. Seats are not changed until the host accepts (#40).
+
 ## 3. Indexes
-`firestore.indexes.json` carries single-field index exemptions for `profileAccess.viewers`, `profileAccess.activeHostedSeries`, `schedules.entries`, `series.days`, `series.openSeats`, `series.lastDepartureAt`, `seriesDrafts.input` and `seriesDrafts.route`. These maps have per-uid, per-series or per-weekday keys, so automatic indexing would create index entries that no query uses.
+`firestore.indexes.json` carries single-field index exemptions for `profileAccess.viewers`, `profileAccess.activeHostedSeries`, `schedules.entries`, `series.days`, `series.openSeats`, `series.lastDepartureAt`, `requests.days`, `seriesDrafts.input` and `seriesDrafts.route`. These maps have per-uid, per-series or per-weekday keys, so automatic indexing would create index entries that no query uses.
 
 No index is needed for notifications: the unread count uses `where read == false` and history uses `orderBy createdAt`. "Unread newest first" in one query would need a composite index on `read` and `createdAt` (#25).
 
 Composite indexes (collection scope):
 - `series`: `status` ascending, `openWeekdays` array-contains. The search query: `status == "active"` and `openWeekdays array-contains-any [...]`.
 - `series`: `hostId` ascending, `status` ascending. A host's active series (RC-31 count, hosted list).
+- `requests`: `riderId` ascending, `createdAt` descending. A rider's requests, newest first.
+- `requests`: `hostId` ascending, `seriesId` ascending, `createdAt` ascending. A host's requests for one series.
