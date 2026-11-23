@@ -117,6 +117,7 @@ export function rangesOverlap(
 /** The latest date in [startDate, endDate] on `weekday`, or null when there is none. */
 export function lastDateOnWeekday(startDate: PacificDate, endDate: PacificDate, weekday: Weekday): PacificDate | null {
   parseDate(startDate);
+  parseDate(endDate);
   let d = endDate;
   for (let i = 0; i < 7 && d >= startDate; i++, d = addDays(d, -1)) {
     if (weekdayOf(d) === weekday) return d;

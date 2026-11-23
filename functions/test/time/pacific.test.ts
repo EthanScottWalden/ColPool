@@ -104,6 +104,12 @@ describe("lastDateOnWeekday", () => {
   it("handles a one-day range on that weekday and start == end", () => {
     assert.equal(lastDateOnWeekday("2026-03-09", "2026-03-09", "mon"), "2026-03-09");
   });
+  it("is null when the start date is after the end date", () => {
+    assert.equal(lastDateOnWeekday("2026-03-10", "2026-03-09", "mon"), null);
+  });
+  it("rejects a malformed end date instead of returning null", () => {
+    assert.throws(() => lastDateOnWeekday("2026-03-02", "2026-3-1", "mon"));
+  });
 });
 
 describe("computeLastDepartureAt and hasTripsLeft", () => {

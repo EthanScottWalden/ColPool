@@ -13,6 +13,10 @@ export function canonicalJson(value: unknown): string {
   }
   if (Array.isArray(value)) return `[${value.map((v) => (v === undefined ? "null" : canonicalJson(v))).join(",")}]`;
   if (typeof value === "object") {
+    const proto = Object.getPrototypeOf(value);
+    if (proto !== Object.prototype && proto !== null) {
+      throw new Error("canonicalJson: only plain objects are supported");
+    }
     const o = value as Record<string, unknown>;
     const parts = Object.keys(o)
       .filter((k) => o[k] !== undefined)

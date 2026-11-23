@@ -134,4 +134,9 @@ describe("series contract (#20)", () => {
     assert.equal(hashSeriesInput({ a: 1, b: undefined }), hashSeriesInput({ a: 1 }));
     assert.throws(() => hashSeriesInput({ a: Number.NaN }));
   });
+
+  it("non-plain objects are rejected instead of hashing as {}", () => {
+    assert.throws(() => hashSeriesInput({ a: new Date(0) }));
+    assert.throws(() => hashSeriesInput({ a: new Map() }));
+  });
 });
