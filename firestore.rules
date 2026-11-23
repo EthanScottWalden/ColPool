@@ -147,6 +147,20 @@ service cloud.firestore {
       allow read: if isStudent();
     }
 
+    // ---- series and drafts (#20, ADR 0006) -------------------------------
+
+    // Backend written only, host included (RC-12: stored routes and seats never change from
+    // the client). Any student may get or list: the search query filters on status and
+    // openWeekdays (data-model §2.10). Its subcollections are default deny.
+    match /series/{seriesId} {
+      allow get, list: if isStudent();
+    }
+
+    // The host may get their own draft (to resume). No list, no client write (data-model §2.11).
+    match /seriesDrafts/{draftId} {
+      allow get: if isStudent() && resource.data.hostId == request.auth.uid;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

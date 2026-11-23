@@ -47,7 +47,7 @@ describe("owner reads and no client writes", () => {
     });
   }
 
-  for (const col of ["consents", "profileAccess", "schedules", "users"]) {
+  for (const col of ["consents", "profileAccess", "schedules", "users", "series", "seriesDrafts"]) {
     it(`owner cannot write or delete ${col}/{uid}`, async () => {
       const ref = doc(db(), col, UID);
       await assertFails(setDoc(ref, { x: 1 }));
