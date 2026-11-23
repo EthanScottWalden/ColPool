@@ -92,3 +92,9 @@ Anything else is L2 (`DEVELOPMENT.md` §2).
 - Later screen Issues add `ui/<screen>` packages, a ViewModel and a `(state, onEvent)` composable each, plus a Roborazzi screenshot.
 - #12 must use the emulator ports above and settle the emulator project ID.
 - The owner registers the app in Firebase and adds `google-services.json` before any real-Firebase or release build.
+
+## Create Series (#24) notes
+- Stateless `CreateSeriesContent` plus a stateful `CreateSeriesScreen` that owns the address sheets. The Add a stop sheet reuses `AddressSearchSheet`, passing the minutes field and the "stops are for you only" note through its `notice` slot.
+- Backend errors (ADR 0007, 0008) are kept as `{code, path, params}` and mapped to text by `SeriesErrorText`; errors with a field show there, the rest go in the "Fix these before continuing" box.
+- Mon to Fri only and 10 stops per direction are Android constants (`SeriesWeekday`, `SeriesLimits.MAX_STOPS_PER_DIRECTION`); keep the stop cap in sync with `SERIES_LIMITS.maxStopsPerDirection` once #143 lands.
+- Until #25 and #31, the Hosting tab placeholder has a "Host a ride series" button, and a successful route preview opens `ReviewPlaceholder(draftId)`.

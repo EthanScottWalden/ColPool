@@ -55,6 +55,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.ethanscottwalden.colpool.R
 import io.github.ethanscottwalden.colpool.data.series.CampusPoint
@@ -290,15 +291,10 @@ fun CreateSeriesContent(state: CreateSeriesUiState, today: LocalDate, actions: C
                 FormLabel(R.string.series_weekdays)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     SeriesWeekday.entries.forEach { w ->
-                        FilterChip(
-                            selected = w in state.weekdays,
-                            onClick = { actions.onToggleWeekday(w) },
-                            label = {
-                                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(stringResource(w.shortName), maxLines = 1)
-                                    if (w in state.weekdays) Text(stringResource(R.string.series_day_driving), style = MaterialTheme.typography.labelSmall, maxLines = 1)
-                                }
-                            },
+                        DayChip(
+                            selected = w in state.weekdays, enabled = true, onClick = { actions.onToggleWeekday(w) },
+                            title = stringResource(w.shortName),
+                            sub = if (w in state.weekdays) stringResource(R.string.series_day_driving) else null,
                             modifier = Modifier.weight(1f).testTag(SeriesTags.weekday(w)),
                         )
                     }
@@ -408,14 +404,10 @@ private fun ScheduleCard(state: CreateSeriesUiState, active: SeriesWeekday, acti
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 SeriesWeekday.entries.forEach { w ->
                     val on = w in state.weekdays
-                    FilterChip(
+                    DayChip(
                         selected = w == active, enabled = on, onClick = { actions.onSelectDay(w) },
-                        label = {
-                            Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text(stringResource(w.shortName), maxLines = 1)
-                                if (on) Text(stringResource(if (state.day(w).complete) R.string.series_day_done else R.string.series_day_todo), style = MaterialTheme.typography.labelSmall, maxLines = 1)
-                            }
-                        },
+                        title = stringResource(w.shortName),
+                        sub = if (on) stringResource(if (state.day(w).complete) R.string.series_day_done else R.string.series_day_todo) else null,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -494,6 +486,25 @@ fun ReviewPlaceholder(draftId: String, onBack: () -> Unit, modifier: Modifier = 
             Text(stringResource(R.string.series_review_placeholder_title), style = MaterialTheme.typography.headlineSmall)
             Text(stringResource(R.string.series_review_placeholder_body, draftId), style = MaterialTheme.typography.bodyMedium)
             OutlinedButton(onClick = onBack) { Text(stringResource(R.string.series_back)) }
+        }
+    }
+}
+
+/** A weekday chip with an optional second line ("driving", "done"). Own padding so the labels fit five across a phone. */
+@Composable
+private fun DayChip(selected: Boolean, enabled: Boolean, onClick: () -> Unit, title: String, sub: String?, modifier: Modifier = Modifier) {
+    Surface(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+        contentColor = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+        border = BorderStroke(1.dp, if (selected) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(title, maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelLarge)
+            if (sub != null) Text(sub, maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, letterSpacing = 0.sp))
         }
     }
 }
