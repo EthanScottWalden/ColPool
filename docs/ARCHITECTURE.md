@@ -61,7 +61,7 @@ Not in the approved stack (don't add without a documented human decision): Cloud
 | Android UI toolkit, minimum Android version and app structure (pattern, modules) | #11 (TMP-02) | Jetpack Compose + Material 3, single Activity; minSdk 26 (compile 37, target 36); MVVM with one-way data flow, manual DI (`AppContainer`), single `:app` module packaged by feature. See [ADR 0001](adr/0001-android-setup.md). |
 | Gradle root and emulator auto-start for debug builds | Developer tooling (#116, #117, #118), owner decision 2026-11-17 | Gradle root is the repo root, `:app` stays at `android/app`; Windows `assembleDebug`/`installDebug` start the seeded emulators in WSL (`npm run emulators:dev`). See [ADR 0001](adr/0001-android-setup.md). |
 | Functions toolchain and emulator harness | #12 (TMP-03) | TypeScript on a Node 22 runtime (Node >=24.12 for dev and CI), `node:test`, emulator project `demo-colpool`, default-deny `firestore.rules`, project-local `.cache/`. See [ADR 0003](adr/0003-functions-emulator-setup.md). |
-| Exact Firestore collection layout | #13 (TMP-04), #20 (TMP-14) | Core: `users`, `privateDetails`, `profiles`, `consents`, `profileAccess`, `schedules`, `campusPoints`, `options/profile`, one doc per student where per-student. See [data model](data-model.md) and [ADR 0002](adr/0002-firestore-layout.md). Series, draft and request layout: #20 (_TBD_). |
+| Exact Firestore collection layout | #13 (TMP-04), #20 (TMP-14) | Core: `users`, `privateDetails`, `profiles`, `consents`, `profileAccess`, `schedules`, `campusPoints`, `options/profile`, one doc per student where per-student. See [data model](data-model.md) and [ADR 0002](adr/0002-firestore-layout.md). Series and drafts: `series/{seriesId}` (seats per weekday in `openSeats`, search fields `status` and `openWeekdays`) and `seriesDrafts/{draftId}` (reviewed input hash and routes); provisional, see [ADR 0006](adr/0006-series-draft-seat-layout.md) and [data model](data-model.md) §2.10-2.11. Request layout: #35/#26. |
 | How rules recognize a consented student (custom claim vs reading the consent record) | #13 (TMP-04) | Rules read the record: `exists(consents/{uid})`; no consent claim. See [ADR 0002](adr/0002-firestore-layout.md) §1. |
 | Institution custom claim key | #18 (TMP-13), #15 | `institution: true` (boolean). Rules treat any `institution` claim as institution; the script sets `true`. Rules check it alongside the consent record (`isInstitution()` in `firestore.rules`); #15's script sets it. Owner decision 2026-11-16. |
 | Role routing signal, splash and Firestore cache | #19 (TMP-06) | Staff = `institution` token claim; students = server read of own `privateDetails` (denied = no consent, missing = Onboarding, address = Search; errors = retry, never a route). Android system splash (core-splashscreen). Firestore memory-only cache. Log out lives on the Profile screen (#27) and Onboarding. See [ADR 0004](adr/0004-sign-in-routing.md). |
@@ -116,7 +116,7 @@ Each exists **exactly once**. Changing one is its own reviewed contract-change i
 
 ### 3.4 Firestore (logical entities)
 
-Core collection names are decided ([data model](data-model.md)); series, draft, request and roster names are TBD (#20, #44). Logical entities and who may touch them:
+Core, series and draft collection names are decided ([data model](data-model.md)); request and roster names are TBD (#35, #26, #44). Logical entities and who may touch them:
 
 | Entity | Client read | Client write |
 |---|---|---|
@@ -127,8 +127,8 @@ Core collection names are decided ([data model](data-model.md)); series, draft, 
 | Profile permissions (`profileAccess`) | as needed by rules | **never** |
 | Student schedule (`schedules`, RC-32 lookup) | owner | **never** |
 | Campus points (`campusPoints`), option lists (`options/profile`) (seeded) | students | **never** |
-| Series draft | its host | **never** |
-| Series (incl. stored routes, per-weekday seats, status) | students | **never** |
+| Series draft (`seriesDrafts`) | its host (get only) | **never** |
+| Series (`series`: stored routes, per-weekday `openSeats`, status) | students | **never** |
 | Request (one per rider × series) | its rider and the series host | **never** |
 | Weekday roster | host; riders accepted on that weekday | **never** |
 | Notification | its recipient | read flag only |
@@ -226,7 +226,7 @@ Product privacy and safety rules (who sees what, test data, verification wording
 
 | Item | Status | Owner / where |
 |---|---|---|
-| Series, draft and request layout; weekday roster storage | Decide in issue, record in §2 | #20, #44 |
+| Request layout; weekday roster storage (series and draft layout decided in #20, provisional) | Decide in issue, record in §2 | #35, #26, #44 |
 | RC-32 edge semantics (pending vs posting; overlap on shared weekdays; no-trips-left) | Decide before the first RC-32 check ships ([ADR 0002](adr/0002-firestore-layout.md) §4) | #23 (shared validation); also applies to #35, #40 |
 | Performance dataset size | Decide in issue | #50 |
 

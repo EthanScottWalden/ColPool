@@ -25,6 +25,8 @@ Conventions:
 | `schedules/{uid}` | backend | owner | RC-32 lookup. |
 | `campusPoints/{pointId}` | seed script | consented students | Never deleted. |
 | `options/profile` | seed script | consented students | One doc, five lists. |
+| `series/{seriesId}` | backend | any consented student | Posted series with stored routes and seats (§2.10). |
+| `seriesDrafts/{draftId}` | backend | its host (get only) | Reviewed draft with calculated routes (§2.11). |
 
 "Consented student" means `exists(/databases/$(database)/documents/consents/$(request.auth.uid))` and not an institution account.
 
@@ -71,7 +73,7 @@ RC-30 constants (code: `PROFILE_LIMITS`; a test checks this table against the co
 | `aboutMeMax` | 300 | `aboutMe` |
 | `ageMin` | 18 | `age` |
 
-Other RC-30 limits (riders, price, stop minutes, vehicle) belong to the series contract (#20). The password limit belongs to the sign-up function (#14).
+Other RC-30 limits (riders, price, stop minutes, vehicle) are in §2.10. The password limit belongs to the sign-up function (#14).
 
 ### 2.4 `consents/{uid}`
 | Field | Type | Notes |
@@ -164,5 +166,63 @@ One doc holds all five predefined lists (RC-22). Each entry is `{ id, label, ord
 
 Values come from the prototype (24-edit-profile) with stable kebab-case ids; see `options.ts`. Rules read the doc with one `get()` and only when a write changes a list-backed field. `buildProfileOptionsDoc()` derives the id arrays from the entries so they cannot drift.
 
+### 2.10 `series/{seriesId}` (contract #20, [ADR 0006](adr/0006-series-draft-seat-layout.md))
+`seriesId` equals the draft id, so posting twice cannot create two series. Written by functions only; any consented student may get or list. Layout is **provisional** until the owner confirms (ADR 0006).
+
+| Field | Type | Notes |
+|---|---|---|
+| `hostId` | string | Host uid. No host name copy; readers use `profiles` through RC-01. |
+| `status` | `"active"` \| `"cancelled"` \| `"ended"` | active to cancelled and active to ended only; both terminal. Never deleted (RC-24). |
+| `pickupSpot` | `{text, placeId, lat, lng}` | Chosen Places suggestion (RC-13). |
+| `startDate`, `endDate` | `PacificDate` (`YYYY-MM-DD`) | America/Los_Angeles dates. |
+| `priceDollars` | integer | 1 to 99 (RC-30). |
+| `vehicle` | string | At most 60 chars (RC-30). |
+| `maxRiders` | integer | 1 to 6 (RC-30). |
+| `weekdays` | `Weekday[]` | Monday first. |
+| `days` | map weekday to `{toCampus: Leg, fromCampus: Leg}` | Only selected weekdays. |
+| `openSeats` | map weekday to integer | Seat source of truth; starts at `maxRiders`. |
+| `openWeekdays` | `Weekday[]` | Weekdays with `openSeats` above 0 (search field); changes with `openSeats`. |
+| `lastDepartureAt` | map weekday to timestamp | Last departure from the pickup spot on or before `endDate`, computed at posting. Key absent if no date in range. |
+| `inputHash` | string | SHA-256 of the reviewed input (matches the draft). |
+| `postedAt` | timestamp | Server time. |
+
+`Leg` = `{departTime: "HH:mm", campusPointId, stops: [{address: {text, placeId, lat, lng}, minutes}], route: RouteResult}`. Stop `minutes` is 0 to 120 (RC-30), at most 25 stops per direction (provisional).
+`RouteResult` = `{legs: [{meters, durationSec}], totalMeters, totalDurationSec, times: [{arriveMin?, departMin?}]}`; times are minutes after local midnight and may exceed 1439.
+
+After posting only `SERIES_MUTABLE_FIELDS` (`openSeats`, `openWeekdays`, `status`) change, and only from functions. #26 adds `cancelledAt` and `endedAt`. Routes never change (RC-12).
+
+Constants (code: `SERIES_LIMITS`; a test checks this table against the code):
+
+| Constant | Value | Applies to |
+|---|---|---|
+| `ridersMin` | 1 | `maxRiders` |
+| `ridersMax` | 6 | `maxRiders` |
+| `priceDollarsMin` | 1 | `priceDollars` |
+| `priceDollarsMax` | 99 | `priceDollars` |
+| `vehicleMax` | 60 | `vehicle` |
+| `stopMinutesMin` | 0 | `stops[].minutes` |
+| `stopMinutesMax` | 120 | `stops[].minutes` |
+| `maxActiveHosted` | 5 | Active hosted series per student (RC-31) |
+| `maxStopsPerDirection` | 25 | Provisional; Routes API waypoint limit |
+
+Time helper (`functions/src/shared/time`): "trips left" for a weekday is true when `now` is strictly before `lastDepartureAt[weekday]`. A selected weekday with no date in range has no key and never has trips left.
+
+### 2.11 `seriesDrafts/{draftId}`
+Written by the route-preview and post functions. The host may `get` their own draft; no list. Never deleted.
+
+| Field | Type | Notes |
+|---|---|---|
+| `hostId` | string | |
+| `input` | `SeriesInput` | Everything the host entered; no route values. |
+| `inputHash` | string | SHA-256 of canonical JSON (sorted keys) of `input`: the "reviewed" marker. Post checks it still matches. |
+| `route` | map weekday to `{toCampus, fromCampus}` `RouteResult` | Calculated once per weekday and direction. |
+| `reviewedAt`, `createdAt`, `updatedAt` | timestamp | Server time. |
+| `status` | `"reviewed"` \| `"posted"` | |
+| `postedAt` | timestamp, optional | |
+
 ## 3. Indexes
-`firestore.indexes.json` carries single-field index exemptions for `profileAccess.viewers`, `profileAccess.activeHostedSeries` and `schedules.entries`. These maps have per-uid and per-series keys, so automatic indexing would create an index entry per key that no query uses. Search indexes belong to #20.
+`firestore.indexes.json` carries single-field index exemptions for `profileAccess.viewers`, `profileAccess.activeHostedSeries`, `schedules.entries`, `series.days`, `series.openSeats`, `series.lastDepartureAt`, `seriesDrafts.input` and `seriesDrafts.route`. These maps have per-uid, per-series or per-weekday keys, so automatic indexing would create index entries that no query uses.
+
+Composite indexes (collection scope):
+- `series`: `status` ascending, `openWeekdays` array-contains. The search query: `status == "active"` and `openWeekdays array-contains-any [...]`.
+- `series`: `hostId` ascending, `status` ascending. A host's active series (RC-31 count, hosted list).
