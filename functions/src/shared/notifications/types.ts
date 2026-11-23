@@ -1,6 +1,6 @@
 // Notification records and events (contract #21, docs/data-model.md §2.9, ADR 0005).
 // Events carry only what the text and the id need: names, weekday ids, display strings,
-// an end date string and (where an id needs it) a rider uid. No addresses, no emails,
+// an end date string and (where an id needs it) a rider uid. Nothing private,
 // no free text. Callers never build text; `buildNotificationText` does.
 
 import type { Weekday } from "../schema/weekday.ts";
