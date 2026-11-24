@@ -316,7 +316,7 @@
     <string name="details_err_gone">This series is no longer available.</string>
     <string name="details_err_own">You can’t request your own series.</string>
     <string name="details_err_already">You’ve already requested this series.</string>
-    <string name="details_err_days">Some days can’t be requested. They are marked below. The other days you picked are still picked.</string>
+    <string name="details_err_days">Some days can’t be requested. They are marked above. The other days you picked are still picked.</string>
     <string name="details_err_retry">Couldn’t send your request. Check your connection and try again.</string>
     <string name="search_request_sent">Request sent</string>
     <string name="search_request_sent_dismiss">Dismiss</string>
