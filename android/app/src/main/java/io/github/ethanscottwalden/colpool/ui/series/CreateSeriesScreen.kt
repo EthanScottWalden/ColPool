@@ -376,7 +376,7 @@ private fun ErrorBox(errors: List<SeriesError>) {
 }
 
 @Composable
-private fun resolve(t: UiText): String {
+internal fun resolve(t: UiText): String {
     val args = t.args.map { if (it is StringRef) stringResource(it.id) else it }
     return stringResource(t.res, *args.toTypedArray())
 }
@@ -483,22 +483,9 @@ private fun LegSection(state: CreateSeriesUiState, w: SeriesWeekday, dir: Direct
     }
 }
 
-/** Placeholder Review destination until #31 builds the real screen. It only receives the draft id. */
-@Composable
-fun ReviewPlaceholder(draftId: String, onBack: () -> Unit, modifier: Modifier = Modifier) {
-    BackHandler(onBack = onBack)
-    Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(Modifier.padding(24.dp).statusBarsPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.series_review_placeholder_title), style = MaterialTheme.typography.headlineSmall)
-            Text(stringResource(R.string.series_review_placeholder_body), style = MaterialTheme.typography.bodyMedium)
-            OutlinedButton(onClick = onBack) { Text(stringResource(R.string.series_back)) }
-        }
-    }
-}
-
 /** A weekday chip with an optional second line ("driving", "done"). Own padding so the labels fit five across a phone. */
 @Composable
-private fun DayChip(selected: Boolean, enabled: Boolean, onClick: () -> Unit, title: String, sub: String?, modifier: Modifier = Modifier) {
+internal fun DayChip(selected: Boolean, enabled: Boolean, onClick: () -> Unit, title: String, sub: String?, modifier: Modifier = Modifier) {
     Surface(
         onClick = onClick,
         enabled = enabled,

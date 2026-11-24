@@ -98,3 +98,8 @@ Anything else is L2 (`DEVELOPMENT.md` §2).
 - Backend errors (ADR 0007, 0008) are kept as `{code, path, params}` and mapped to text by `SeriesErrorText`; errors with a field show there, the rest go in the "Fix these before continuing" box.
 - Mon to Fri only and 10 stops per direction are Android constants (`SeriesWeekday`, `SeriesLimits.MAX_STOPS_PER_DIRECTION`); keep the stop cap in sync with `SERIES_LIMITS.maxStopsPerDirection` once #143 lands.
 - Until #33 (Hosting list) and #31, the Hosting tab placeholder has a "Host a ride series" button, and a successful route preview opens `ReviewPlaceholder(draftId)`.
+
+## Review (#31) notes
+- `ReviewViewModel` reads the stored draft (`seriesDrafts/{id}` get) so the host sees exactly what was saved (RC-12), then calls `postSeries` with the draft's stored `input` unchanged (so it hashes to the reviewed `inputHash`). The app never sends routes or times. Times are the stored `arriveMin`/`departMin`; per-hop minutes use `round(durationSec / 60)` and card totals are the sum of displayed hop minutes plus stop minutes (`ReviewCards`, `ReviewFormat`). Values of 1440 or more show as clock time plus "(next day)" (provisional).
+- Exits: `ReviewExit.Posted` (also for `alreadyPosted`) goes to the Hosting tab; `ReviewExit.Edit` returns to Create Series with the form and draft kept. `draft-changed` becomes the client-side form error `draftChanged`; `series-invalid` errors are shown on Review and carried to the form on Go back and edit.
+- The confirmation sheet is an in-layout scrim plus panel (not `ModalBottomSheet`) so screenshot tests can capture it.

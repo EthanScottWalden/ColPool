@@ -52,6 +52,8 @@ object SeriesErrorText {
             }
         }
         "unavailable" -> UiText(R.string.series_err_unavailable)
+        // Client-side: Review found the series changed after it was reviewed (postSeries `draft-changed`).
+        "draftChanged" -> UiText(R.string.series_err_draft_changed)
         else -> UiText(R.string.series_err_unknown)
     }
 

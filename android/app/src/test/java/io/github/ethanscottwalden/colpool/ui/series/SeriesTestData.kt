@@ -2,6 +2,8 @@ package io.github.ethanscottwalden.colpool.ui.series
 
 import io.github.ethanscottwalden.colpool.data.places.SelectedAddress
 import io.github.ethanscottwalden.colpool.data.series.CampusPoint
+import io.github.ethanscottwalden.colpool.data.series.DraftLoadResult
+import io.github.ethanscottwalden.colpool.data.series.PostSeriesResult
 import io.github.ethanscottwalden.colpool.data.series.RoutePreviewResult
 import io.github.ethanscottwalden.colpool.data.series.SeriesBackend
 import io.github.ethanscottwalden.colpool.ui.profile.OptionsStatus
@@ -19,6 +21,24 @@ class FakeSeriesBackend : SeriesBackend {
     override suspend fun loadCampusPoints(): List<CampusPoint> {
         campusError?.let { throw it }
         return SeriesTestData.CAMPUS_POINTS
+    }
+
+    var draftResult: DraftLoadResult = DraftLoadResult.Loaded(ReviewTestData.draft())
+    var postResult: PostSeriesResult = PostSeriesResult.Posted("draft1234567890123456", false)
+    val draftLoads = mutableListOf<String>()
+    val posts = mutableListOf<Pair<String, Map<String, Any>>>()
+    /** When set, [postSeries] suspends until completed (to test repeat taps). */
+    var postGate: kotlinx.coroutines.CompletableDeferred<Unit>? = null
+
+    override suspend fun loadDraft(draftId: String): DraftLoadResult {
+        draftLoads += draftId
+        return draftResult
+    }
+
+    override suspend fun postSeries(draftId: String, series: Map<String, Any>): PostSeriesResult {
+        posts += draftId to series
+        postGate?.await()
+        return postResult
     }
 
     override suspend fun routePreview(series: Map<String, Any>, draftId: String?): RoutePreviewResult {

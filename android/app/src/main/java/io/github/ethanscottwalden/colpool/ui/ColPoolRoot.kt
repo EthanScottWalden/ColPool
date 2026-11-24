@@ -19,7 +19,8 @@ import io.github.ethanscottwalden.colpool.ui.profile.ProfileTab
 import io.github.ethanscottwalden.colpool.ui.profile.ProfileViewModel
 import io.github.ethanscottwalden.colpool.ui.series.CreateSeriesScreen
 import io.github.ethanscottwalden.colpool.ui.series.CreateSeriesViewModel
-import io.github.ethanscottwalden.colpool.ui.series.ReviewPlaceholder
+import io.github.ethanscottwalden.colpool.ui.series.ReviewScreen
+import io.github.ethanscottwalden.colpool.ui.series.ReviewViewModel
 import io.github.ethanscottwalden.colpool.ui.session.SessionState
 import io.github.ethanscottwalden.colpool.ui.session.SessionViewModel
 import io.github.ethanscottwalden.colpool.ui.shell.LoadingScreen
@@ -37,6 +38,7 @@ fun ColPoolRoot(
     editProfile: EditProfileViewModel,
     addressSearch: AddressSearchViewModel,
     createSeries: CreateSeriesViewModel,
+    review: ReviewViewModel,
 ) {
     val state by session.state.collectAsState()
     val authState by auth.state.collectAsState()
@@ -44,6 +46,8 @@ fun ColPoolRoot(
     // No navigation library yet (ADR 0004): Create Series and the Review placeholder sit above the student shell.
     var creatingSeries by rememberSaveable { mutableStateOf(false) }
     var reviewDraftId by rememberSaveable { mutableStateOf<String?>(null) }
+    // The Hosting tab starts the flow, so every way out of it lands back on Hosting (#33 replaces its placeholder).
+    var shellTab by rememberSaveable { mutableStateOf(0) }
 
     LaunchedEffect(state) {
         if (state !is SessionState.SignedOut) auth.reset()
@@ -51,7 +55,7 @@ fun ColPoolRoot(
         if (state == SessionState.Onboarding) onboarding.loadOptions() else onboarding.reset()
         // Same for the own profile (address, email): loaded for the student shell only.
         if (state == SessionState.Search) profile.load() else { profile.reset(); editProfile.reset() }
-        if (state != SessionState.Search) { createSeries.reset(); creatingSeries = false; reviewDraftId = null }
+        if (state != SessionState.Search) { createSeries.reset(); review.reset(); creatingSeries = false; reviewDraftId = null; shellTab = 0 }
     }
 
     when (val s = state) {
@@ -71,18 +75,27 @@ fun ColPoolRoot(
         )
         SessionState.Onboarding -> OnboardingScreen(onboarding, addressSearch, onLogOut = session::logOut)
         SessionState.Search -> when {
-            reviewDraftId != null -> ReviewPlaceholder(reviewDraftId!!, onBack = { reviewDraftId = null })
+            reviewDraftId != null -> ReviewScreen(
+                review, reviewDraftId!!,
+                // Posted (or already posted): the form is done; show the Hosting tab.
+                onPosted = { review.reset(); createSeries.reset(); reviewDraftId = null; creatingSeries = false },
+                // Back to the form, kept as it was; the backend's errors, if any, show there too.
+                onEdit = { review.reset(); createSeries.showReviewErrors(it.errors); reviewDraftId = null },
+            )
             creatingSeries -> CreateSeriesScreen(
                 createSeries, addressSearch,
                 onReview = { reviewDraftId = it },
                 onBack = { creatingSeries = false; createSeries.reset() },
             )
             else -> StudentShell(
+                initialTab = shellTab,
                 profileTab = { ProfileTab(profile, editProfile, addressSearch, onLogOut = session::logOut, modifier = it) },
-                onHostSeries = { createSeries.reset(); creatingSeries = true },
+                onHostSeries = { createSeries.reset(); shellTab = HOSTING_TAB; creatingSeries = true },
             )
         }
         SessionState.Staff -> StaffExportPlaceholder(onLogOut = session::logOut)
         SessionState.Error -> SessionErrorScreen(onRetry = session::retry, onLogOut = session::logOut, detail = errorDetail)
     }
 }
+
+private const val HOSTING_TAB = 1
