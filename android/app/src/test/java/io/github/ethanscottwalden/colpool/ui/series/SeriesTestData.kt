@@ -30,6 +30,11 @@ class FakeSeriesBackend : SeriesBackend {
     /** When set, [postSeries] suspends until completed (to test repeat taps). */
     var postGate: kotlinx.coroutines.CompletableDeferred<Unit>? = null
 
+    /** Updates the fake listener emits; replay keeps the latest for a late collector. */
+    val hosted = kotlinx.coroutines.flow.MutableSharedFlow<io.github.ethanscottwalden.colpool.data.series.HostedSeriesUpdate>(replay = 1)
+
+    override fun observeHostedSeries() = hosted
+
     override suspend fun loadDraft(draftId: String): DraftLoadResult {
         draftLoads += draftId
         return draftResult

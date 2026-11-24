@@ -93,9 +93,9 @@ object ReviewDraftParser {
         )
     }
 
-    private fun int(v: Any?): Int? = (v as? Number)?.toInt()
+    internal fun int(v: Any?): Int? = (v as? Number)?.toInt()
 
-    private fun leg(input: Any?, route: Any?): DraftLeg? {
+    internal fun leg(input: Any?, route: Any?): DraftLeg? {
         val i = input as? Map<*, *> ?: return null
         val r = route as? Map<*, *> ?: return null
         val campus = i["campusPointId"] as? String ?: return null

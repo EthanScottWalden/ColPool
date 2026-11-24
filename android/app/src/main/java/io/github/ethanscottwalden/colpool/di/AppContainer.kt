@@ -49,5 +49,5 @@ class AppContainer(private val appContext: Context) {
     val authBackend: AuthBackend by lazy { FirebaseAuthBackend(auth, firestore, functions) }
     val onboardingBackend: OnboardingBackend by lazy { FirebaseOnboardingBackend(auth, firestore) }
     val profileBackend: ProfileBackend by lazy { FirebaseProfileBackend(auth, firestore) }
-    val seriesBackend: SeriesBackend by lazy { FirebaseSeriesBackend(firestore, functions) }
+    val seriesBackend: SeriesBackend by lazy { FirebaseSeriesBackend(firestore, functions) { auth.currentUser?.uid } }
 }

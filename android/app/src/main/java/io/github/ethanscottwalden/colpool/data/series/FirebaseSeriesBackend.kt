@@ -4,11 +4,15 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.FirebaseFunctionsException
 import io.github.ethanscottwalden.colpool.data.session.await
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlin.coroutines.cancellation.CancellationException
 
 class FirebaseSeriesBackend(
     private val firestore: FirebaseFirestore,
     private val functions: FirebaseFunctions,
+    private val uid: () -> String? = { null },
 ) : SeriesBackend {
 
     override suspend fun loadCampusPoints(): List<CampusPoint> {
@@ -47,6 +51,24 @@ class FirebaseSeriesBackend(
         mapPostFailure(e.code.name, e.message, e.details)
     } catch (e: Exception) {
         PostSeriesResult.Failed
+    }
+
+    override fun observeHostedSeries(): Flow<HostedSeriesUpdate> = callbackFlow {
+        val me = uid()
+        if (me == null) {
+            trySend(HostedSeriesUpdate.Failed)
+            close()
+            return@callbackFlow
+        }
+        val reg = firestore.collection("series").whereEqualTo("hostId", me).whereEqualTo("status", "active")
+            .addSnapshotListener { snap, err ->
+                if (err != null || snap == null) {
+                    trySend(HostedSeriesUpdate.Failed)
+                } else {
+                    trySend(HostedSeriesUpdate.Loaded(snap.documents.mapNotNull { HostedSeriesParser.parse(it.id, it.data ?: emptyMap()) }))
+                }
+            }
+        awaitClose { reg.remove() }
     }
 
     companion object {

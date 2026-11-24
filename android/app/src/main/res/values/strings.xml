@@ -196,6 +196,27 @@
     <string name="review_err_retry">Couldn’t post your series right now. Check your connection and try again.</string>
     <string name="review_err_invalid_title">This series can’t be posted yet</string>
 
+    <!-- Hosting list and Hosted Series Details (#33). Wording is provisional. -->
+    <string name="hosting_title">Hosting</string>
+    <string name="hosting_heading">Series you’re hosting</string>
+    <string name="hosting_empty_title">You’re not hosting a series</string>
+    <string name="hosting_empty_body">Drive to campus regularly? Post your schedule and split the gas money with nearby students.</string>
+    <string name="hosting_loading">Loading your series…</string>
+    <string name="hosting_load_failed">Couldn’t load your series. Check your connection and try again.</string>
+    <string name="hosting_retry">Try again</string>
+    <string name="hosting_price_per_trip">$%1$d per round trip</string>
+    <string name="hosting_dates_price">%1$s · %2$s</string>
+    <plurals name="hosting_seats_open">
+        <item quantity="one">%1$d of %2$d seat open</item>
+        <item quantity="other">%1$d of %2$d seats open</item>
+    </plurals>
+    <string name="hosting_details_title">%1$s series</string>
+    <string name="hosting_by_day">Riders by day</string>
+    <string name="hosting_day_open">%1$d open</string>
+    <string name="hosting_riders_none">No riders yet</string>
+    <string name="hosting_requests_heading">Requests</string>
+    <string name="hosting_requests_none">No requests yet</string>
+
     <string name="weekday_mon_short">Mon</string>
     <string name="weekday_tue_short">Tue</string>
     <string name="weekday_wed_short">Wed</string>
