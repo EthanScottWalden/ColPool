@@ -1,6 +1,10 @@
 package io.github.ethanscottwalden.colpool.ui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -21,6 +25,9 @@ import io.github.ethanscottwalden.colpool.ui.hosting.HostedSeriesDetailsScreen
 import io.github.ethanscottwalden.colpool.ui.hosting.RequesterProfileScreen
 import io.github.ethanscottwalden.colpool.ui.hosting.HostingTab
 import io.github.ethanscottwalden.colpool.ui.hosting.HostingViewModel
+import io.github.ethanscottwalden.colpool.ui.notifications.NotificationBannerHost
+import io.github.ethanscottwalden.colpool.ui.notifications.NotificationsTab
+import io.github.ethanscottwalden.colpool.ui.notifications.NotificationsViewModel
 import io.github.ethanscottwalden.colpool.ui.onboarding.OnboardingScreen
 import io.github.ethanscottwalden.colpool.ui.onboarding.OnboardingViewModel
 import io.github.ethanscottwalden.colpool.ui.profile.EditProfileViewModel
@@ -35,6 +42,7 @@ import io.github.ethanscottwalden.colpool.ui.series.ReviewViewModel
 import io.github.ethanscottwalden.colpool.ui.session.SessionState
 import io.github.ethanscottwalden.colpool.ui.session.SessionViewModel
 import io.github.ethanscottwalden.colpool.ui.shell.LoadingScreen
+import io.github.ethanscottwalden.colpool.ui.shell.NOTIFICATIONS_TAB
 import io.github.ethanscottwalden.colpool.ui.shell.SessionErrorScreen
 import io.github.ethanscottwalden.colpool.ui.shell.StaffExportPlaceholder
 import io.github.ethanscottwalden.colpool.ui.shell.StudentShell
@@ -54,12 +62,14 @@ fun ColPoolRoot(
     search: SearchViewModel,
     details: DetailsViewModel,
     hostRequests: HostRequestsViewModel,
+    notifications: NotificationsViewModel,
 ) {
     val state by session.state.collectAsState()
     val authState by auth.state.collectAsState()
     val hostingState by hosting.state.collectAsState()
     val searchState by search.state.collectAsState()
     val requestsState by hostRequests.state.collectAsState()
+    val notificationsState by notifications.state.collectAsState()
     // Requests with a pending day on the series the host still has active.
     val pendingBadge = remember(requestsState.all, hostingState.series) {
         HostRequestRules.pendingCount(requestsState.all, hostingState.series.map { it.id }.toSet())
@@ -91,10 +101,17 @@ fun ColPoolRoot(
         if (state == SessionState.Search) profile.load() else { profile.reset(); editProfile.reset() }
         if (state == SessionState.Search) hosting.start() else hosting.reset()
         if (state == SessionState.Search) hostRequests.start() else hostRequests.reset()
+        if (state == SessionState.Search) notifications.start() else notifications.reset()
         if (state != SessionState.Search) { search.reset(); details.reset() }
         if (state != SessionState.Search) { createSeries.reset(); review.reset(); creatingSeries = false; reviewDraftId = null; shellTab = 0 }
     }
 
+    // The student shell (with its tabs) is what shows when no flow or details screen sits above it.
+    val shellShowing = state == SessionState.Search && reviewDraftId == null && !creatingSeries && searchState.openedSeriesId == null && hostingState.selectedId == null
+    // Opening the Notifications tab clears the badge and marks records read; leaving it ends the visit.
+    LaunchedEffect(shellShowing, shellTab) { if (shellShowing && shellTab == NOTIFICATIONS_TAB) notifications.openTab() else notifications.closeTab() }
+
+    Box(Modifier.fillMaxSize()) {
     when (val s = state) {
         SessionState.Resolving -> LoadingScreen()
         is SessionState.SignedOut -> AuthContent(
@@ -130,6 +147,10 @@ fun ColPoolRoot(
             else -> StudentShell(
                 initialTab = shellTab,
                 hostingBadge = pendingBadge,
+                notificationsBadge = notificationsState.unreadCount,
+                selectedTab = shellTab,
+                onTabSelected = { shellTab = it },
+                notificationsTab = { NotificationsTab(notifications, modifier = it) },
                 searchTab = { SearchTab(search, modifier = it) },
                 profileTab = { ProfileTab(profile, editProfile, addressSearch, onLogOut = session::logOut, modifier = it) },
                 hostingTab = { HostingTab(hosting, onHostSeries = { createSeries.reset(); shellTab = HOSTING_TAB; creatingSeries = true }, modifier = it) },
@@ -138,6 +159,22 @@ fun ColPoolRoot(
         SessionState.Staff -> StaffExportPlaceholder(onLogOut = session::logOut)
         SessionState.Error -> SessionErrorScreen(onRetry = session::retry, onLogOut = session::logOut, detail = errorDetail)
     }
+    // A new notification shows over any student screen; tapping it goes to the Notifications tab.
+    if (state == SessionState.Search) NotificationBannerHost(
+        notifications,
+        onOpen = {
+            // Create Series and Review keep what the student typed: the tap only closes the banner (the badge still shows).
+            if (bannerTapOpensTab(creatingSeries, reviewDraftId)) {
+                search.close(); hosting.close()
+                shellTab = NOTIFICATIONS_TAB
+            }
+        },
+        modifier = Modifier.align(Alignment.TopCenter),
+    )
+    }
 }
 
 private const val HOSTING_TAB = 1
+
+/** Tapping the banner opens the Notifications tab unless a form (Create Series, Review) is open. */
+internal fun bannerTapOpensTab(creatingSeries: Boolean, reviewDraftId: String?): Boolean = !creatingSeries && reviewDraftId == null

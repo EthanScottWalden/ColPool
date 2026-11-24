@@ -232,6 +232,20 @@
         <item quantity="other">%1$d requests with pending days</item>
     </plurals>
 
+    <!-- Notifications (#25). Wording is provisional. -->
+    <string name="notifications_title">Notifications</string>
+    <string name="notifications_empty">No notifications yet. You’ll see updates about your ride series and requests here.</string>
+    <string name="notifications_load_failed">Couldn’t load notifications. Check your connection and try again.</string>
+    <string name="notifications_retry">Try again</string>
+    <string name="notifications_loading">Loading notifications…</string>
+    <string name="notifications_new_tag">New</string>
+    <string name="notifications_banner_close">Close notification</string>
+    <string name="notifications_banner_cd">%1$s. %2$s. Opens your notifications.</string>
+    <plurals name="notifications_tab_badge_cd">
+        <item quantity="one">%1$d unread notification</item>
+        <item quantity="other">%1$d unread notifications</item>
+    </plurals>
+
     <string name="weekday_mon_short">Mon</string>
     <string name="weekday_tue_short">Tue</string>
     <string name="weekday_wed_short">Wed</string>
