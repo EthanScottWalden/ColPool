@@ -156,11 +156,44 @@
     <string name="series_continue">Continue to review</string>
     <string name="series_checking">Checking routes…</string>
     <string name="series_errors_title">Fix these before continuing</string>
-    <string name="series_review_placeholder_title">Review your ride series</string>
-    <string name="series_review_placeholder_body">Your route preview is saved. The review screen is coming soon.</string>
     <string name="series_host_button">Host a ride series</string>
     <string name="series_direction_to_campus_phrase">to campus</string>
     <string name="series_direction_from_campus_phrase">back to the pickup spot</string>
+
+    <!-- Review Calculated Route (#31). Wording is provisional until the owner confirms it. -->
+    <string name="review_title">Review your ride series</string>
+    <string name="review_warning">Check everything carefully. A posted series can’t be edited. To change it later, you’d have to cancel it and post a new one.</string>
+    <string name="review_price">Price</string>
+    <string name="review_price_value">$%1$d</string>
+    <string name="review_price_sub">per round trip</string>
+    <string name="review_dates">Dates</string>
+    <string name="review_dates_value">%1$s to %2$s</string>
+    <string name="review_riders">Riders</string>
+    <string name="review_riders_value">%1$d max</string>
+    <string name="review_riders_sub">per day</string>
+    <string name="review_heading">Calculated route and times</string>
+    <string name="review_day_unused">%1$s, not in this series</string>
+    <string name="review_card_total">%1$s mi · %2$d min</string>
+    <string name="review_hop">%1$d min · %2$s mi</string>
+    <string name="review_leave">Leave</string>
+    <string name="review_arrive">Arrive</string>
+    <string name="review_pickup_spot">Pickup spot</string>
+    <string name="review_back_at_pickup">Back at pickup spot</string>
+    <string name="review_stop">Stop · %1$d min · leave %2$s</string>
+    <string name="review_next_day">(next day)</string>
+    <string name="review_footnote">%1$s: %2$s miles round trip. Times include stops and assume the recommended route, without live traffic. Pacific Time.</string>
+    <string name="review_go_back_edit">Go back and edit</string>
+    <string name="review_post">Post series</string>
+    <string name="review_posting">Posting…</string>
+    <string name="review_confirm_title">Post this series?</string>
+    <string name="review_confirm_body">Once it’s posted you can’t edit it. Riders who join agree to this exact schedule. To change anything later, you’d cancel the series and post a new one.</string>
+    <string name="review_confirm_go_back">Go back</string>
+    <string name="review_loading">Loading your review…</string>
+    <string name="review_load_failed">Couldn’t load your review. Check your connection and try again.</string>
+    <string name="review_retry">Try again</string>
+    <string name="review_err_not_found">We couldn’t find this review. Go back and review again.</string>
+    <string name="review_err_retry">Couldn’t post your series right now. Check your connection and try again.</string>
+    <string name="review_err_invalid_title">This series can’t be posted yet</string>
 
     <string name="weekday_mon_short">Mon</string>
     <string name="weekday_tue_short">Tue</string>
@@ -196,5 +229,6 @@
     <string name="series_err_route_not_found_address">We can’t find a driving route using this address. Choose a different one.</string>
     <string name="series_err_route_not_found_leg">We can’t find a driving route for %1$s, %2$s. Check the addresses.</string>
     <string name="series_err_unavailable">Route calculation is busy right now. Try again in a moment.</string>
+    <string name="series_err_draft_changed">This series changed after you reviewed it. Go back and review it again.</string>
     <string name="series_err_unknown">Something went wrong. Try again.</string>
 </resources>

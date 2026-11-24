@@ -146,10 +146,13 @@ class CreateSeriesViewModel(
     }
 
     /** Shows the errors and jumps the schedule card to the first weekday that has one. */
-    private fun showErrors(errors: List<SeriesError>) = _state.update { s ->
+    fun showErrors(errors: List<SeriesError>) = _state.update { s ->
         val day = errors.firstNotNullOfOrNull { SeriesErrorText.weekdayOf(it.path) }?.takeIf { it in s.weekdays }
         s.copy(submitting = false, errors = errors, activeDay = day ?: s.activeDay)
     }
+
+    /** Errors from Review (the series changed, or the backend refused it): shown on the form, which is kept. */
+    fun showReviewErrors(errors: List<SeriesError>) { if (errors.isNotEmpty()) showErrors(errors) }
 
     /** The screen has opened Review. */
     fun consumeReview() = _state.update { it.copy(reviewDraftId = null) }

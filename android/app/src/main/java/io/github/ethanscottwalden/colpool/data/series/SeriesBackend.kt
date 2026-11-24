@@ -33,4 +33,10 @@ interface SeriesBackend {
 
     /** Calls `routePreview` with the `SeriesInput` map and, to overwrite a reviewed draft, its [draftId]. Never throws except cancellation. */
     suspend fun routePreview(series: Map<String, Any>, draftId: String? = null): RoutePreviewResult
+
+    /** Reads `seriesDrafts/{draftId}` (the host's own draft, get only). Never throws except cancellation. */
+    suspend fun loadDraft(draftId: String): DraftLoadResult
+
+    /** Calls `postSeries` with the draft id and the stored `SeriesInput`. Never throws except cancellation. */
+    suspend fun postSeries(draftId: String, series: Map<String, Any>): PostSeriesResult
 }
