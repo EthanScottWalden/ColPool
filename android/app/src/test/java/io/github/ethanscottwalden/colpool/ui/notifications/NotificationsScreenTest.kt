@@ -66,6 +66,19 @@ class NotificationsScreenTest {
         composeRule.onNodeWithText("Day declined").assertExists()
     }
 
+    @Test fun todayBecomesYesterdayWhenThePacificDayChangesWhileOpen() {
+        var now = NotificationsTestData.pacific(2026, 11, 24, 23, 59, 30)
+        val items = listOf(note("a", NotificationsTestData.pacific(2026, 11, 24, 9, 5), read = true))
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent { ColPoolTheme { NotificationsContent(NotificationsUiState(items = items, loaded = true), onRetry = {}, clockMillis = { now }) } }
+        frames()
+        composeRule.onNodeWithText("Today, 9:05 AM").assertExists()
+        now = NotificationsTestData.pacific(2026, 11, 25, 0, 0, 30)
+        composeRule.mainClock.advanceTimeBy(CLOCK_TICK_MILLIS + 100)
+        frames()
+        composeRule.onNodeWithText("Yesterday, 9:05 AM").assertExists()
+    }
+
     @Test fun emptyState() {
         content(NotificationsUiState(loaded = true))
         composeRule.onNodeWithTag(NotificationTags.Empty).assertTextEquals("No notifications yet. You’ll see updates about your ride series and requests here.")

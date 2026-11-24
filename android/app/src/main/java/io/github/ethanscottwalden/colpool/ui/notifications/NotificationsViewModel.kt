@@ -56,7 +56,7 @@ class NotificationsViewModel(private val backend: NotificationsBackend) : ViewMo
             try {
                 backend.observe().collect { u ->
                     when (u) {
-                        is NotificationsUpdate.Loaded -> onLoaded(u.notifications)
+                        is NotificationsUpdate.Loaded -> onLoaded(u.notifications, u.fromCache)
                         NotificationsUpdate.Failed -> _state.update { it.copy(loaded = true, failed = true) }
                     }
                 }
@@ -76,15 +76,16 @@ class NotificationsViewModel(private val backend: NotificationsBackend) : ViewMo
         start()
     }
 
-    private fun onLoaded(list: List<AppNotification>) {
+    private fun onLoaded(list: List<AppNotification>, fromCache: Boolean) {
         val items = NotificationRules.newestFirst(list)
         val previous = known
-        known = items.map { it.id }.toSet()
+        // What existed is the first snapshot from the server; a cache-sourced one can be empty or old.
+        if (!fromCache || previous != null) known = items.map { it.id }.toSet()
         val arrived = if (previous == null) emptyList() else items.filter { it.id !in previous && !it.read }
         val s = _state.value
         if (s.tabOpen) {
-            // Seen on arrival: no banner, the tag stays for this visit, and it is marked read.
-            visitNew = visitNew + arrived.map { it.id }
+            // Seen on load or arrival (also after a retry): no banner, the tag stays for this visit, and it is marked read.
+            visitNew = visitNew + items.filter { !it.read }.map { it.id }
         } else if (arrived.isNotEmpty()) {
             // Newest first; a later arrival goes in front of those still waiting.
             val merged = arrived + queue.toList()

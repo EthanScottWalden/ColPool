@@ -25,6 +25,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,6 +61,9 @@ object NotificationTags {
 /** How long the banner stays up (US-16: "a few seconds"; the value is provisional). */
 const val BANNER_MILLIS = 5_000L
 
+/** How often the history re-reads the clock for "Today" and "Yesterday". */
+const val CLOCK_TICK_MILLIS = 60_000L
+
 private val UnreadFill = Color(0xFFFFF1CC)
 private val NewTagColor = Color(0xFFB23A0A)
 
@@ -70,9 +75,15 @@ fun NotificationsTab(viewModel: NotificationsViewModel, modifier: Modifier = Mod
 }
 
 @Composable
-fun NotificationsContent(state: NotificationsUiState, onRetry: () -> Unit, modifier: Modifier = Modifier, nowMillis: Long? = null) {
-    // "Today" and "Yesterday" come from the device clock at the time the list is drawn (display only).
-    val now = remember(state.items) { nowMillis ?: System.currentTimeMillis() }
+fun NotificationsContent(state: NotificationsUiState, onRetry: () -> Unit, modifier: Modifier = Modifier, nowMillis: Long? = null, clockMillis: () -> Long = System::currentTimeMillis) {
+    // "Today" and "Yesterday" come from the device clock (display only). Refreshed when the list changes and every minute,
+    // so they stay right if the screen is open across Pacific midnight.
+    var clock by remember { mutableLongStateOf(clockMillis()) }
+    if (nowMillis == null) {
+        LaunchedEffect(state.items) { clock = clockMillis() }
+        LaunchedEffect(Unit) { while (true) { delay(CLOCK_TICK_MILLIS); clock = clockMillis() } }
+    }
+    val now = nowMillis ?: clock
     Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize()) {
             Header(stringResource(R.string.notifications_title))

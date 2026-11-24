@@ -29,6 +29,7 @@ class FakeNotificationsBackend : NotificationsBackend {
     }
 
     fun load(vararg n: AppNotification) = updates.tryEmit(NotificationsUpdate.Loaded(n.toList()))
+    fun loadFromCache(vararg n: AppNotification) = updates.tryEmit(NotificationsUpdate.Loaded(n.toList(), fromCache = true))
     fun fail() = updates.tryEmit(NotificationsUpdate.Failed)
 }
 

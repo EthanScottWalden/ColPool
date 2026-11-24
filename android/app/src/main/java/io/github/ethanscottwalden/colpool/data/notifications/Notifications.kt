@@ -22,7 +22,8 @@ data class AppNotification(
 }
 
 sealed interface NotificationsUpdate {
-    data class Loaded(val notifications: List<AppNotification>) : NotificationsUpdate
+    /** [fromCache]: the snapshot came from the local cache, not the server; it is not yet a reliable "what already existed". */
+    data class Loaded(val notifications: List<AppNotification>, val fromCache: Boolean = false) : NotificationsUpdate
     data object Failed : NotificationsUpdate
 }
 

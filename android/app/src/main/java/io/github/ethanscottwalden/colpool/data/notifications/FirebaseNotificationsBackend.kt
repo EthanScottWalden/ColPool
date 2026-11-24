@@ -1,6 +1,7 @@
 package io.github.ethanscottwalden.colpool.data.notifications
 
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.firestore.Query
 import io.github.ethanscottwalden.colpool.data.session.await
 import kotlinx.coroutines.channels.awaitClose
@@ -22,11 +23,11 @@ class FirebaseNotificationsBackend(
             return@callbackFlow
         }
         // No composite index (ADR 0005): history is one orderBy on createdAt.
-        val reg = col.orderBy("createdAt", Query.Direction.DESCENDING).limit(NOTIFICATIONS_LIMIT.toLong()).addSnapshotListener { snap, err ->
+        val reg = col.orderBy("createdAt", Query.Direction.DESCENDING).limit(NOTIFICATIONS_LIMIT.toLong()).addSnapshotListener(MetadataChanges.INCLUDE) { snap, err ->
             if (err != null || snap == null) {
                 trySend(NotificationsUpdate.Failed)
             } else {
-                trySend(NotificationsUpdate.Loaded(snap.documents.mapNotNull { NotificationParser.parse(it.id, it.data ?: emptyMap()) }))
+                trySend(NotificationsUpdate.Loaded(snap.documents.mapNotNull { NotificationParser.parse(it.id, it.data ?: emptyMap()) }, snap.metadata.isFromCache))
             }
         }
         awaitClose { reg.remove() }

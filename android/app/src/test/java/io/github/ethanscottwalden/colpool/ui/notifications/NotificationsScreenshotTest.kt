@@ -3,6 +3,8 @@ package io.github.ethanscottwalden.colpool.ui.notifications
 import android.app.Application
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,7 +61,7 @@ class NotificationsScreenshotTest {
                 searchTab = { SearchContent(SearchUiState(currentYear = 2026), SearchActions(), it) }, profileTab = {}, hostingTab = {},
                 notificationsBadge = 4,
             )
-            NotificationBanner(n, onClick = {}, onClose = {}, modifier = Modifier.align(Alignment.TopCenter))
+            NotificationBanner(n, onClick = {}, onClose = {}, modifier = Modifier.align(Alignment.TopCenter).padding(top = 24.dp)) // stands in for the status bar
         }
     }
 

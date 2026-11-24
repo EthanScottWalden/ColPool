@@ -162,6 +162,52 @@ class NotificationsViewModelTest {
         assertEquals(1, vm.state.value.unreadCount)
     }
 
+    @Test fun aCacheSourcedFirstSnapshotIsNotTheBaseline() = runTest {
+        val vm = started()
+        backend.loadFromCache()
+        // The server's first snapshot holds what already existed: history, not banners.
+        backend.load(note("a", 1_000), note("b", 2_000))
+        assertNull(vm.state.value.banner)
+        assertEquals(2, vm.state.value.unreadCount)
+        // Only now does a new one count.
+        backend.load(note("c", 3_000), note("a", 1_000), note("b", 2_000))
+        assertEquals("c", vm.state.value.banner?.id)
+    }
+
+    @Test fun cacheSnapshotsStillShowTheirItemsButNeverBanner() = runTest {
+        val vm = started()
+        backend.loadFromCache(note("a"))
+        backend.loadFromCache(note("a"), note("b", 2_000))
+        assertNull(vm.state.value.banner)
+        assertEquals(2, vm.state.value.items.size)
+    }
+
+    @Test fun retryAlsoWaitsForAServerSnapshot() = runTest {
+        val vm = started()
+        backend.load(note("a"))
+        backend.fail()
+        vm.retry()
+        backend.loadFromCache()
+        backend.load(note("a"), note("b", 2_000))
+        assertNull(vm.state.value.banner)
+        backend.load(note("c", 3_000), note("a"), note("b", 2_000))
+        assertEquals("c", vm.state.value.banner?.id)
+    }
+
+    @Test fun retryWithTheTabOpenKeepsNewTagsForUnreadRowsLoadedInThatVisit() = runTest {
+        val vm = started()
+        backend.fail()
+        vm.openTab()
+        vm.retry()
+        backend.load(note("a"), note("b", 2_000))
+        assertEquals(setOf("a", "b"), vm.state.value.newIds)
+        assertEquals(0, vm.state.value.unreadCount)
+        backend.load(note("a").copy(read = true), note("b", 2_000).copy(read = true))
+        assertEquals(setOf("a", "b"), vm.state.value.newIds)
+        vm.closeTab()
+        assertEquals(emptySet<String>(), vm.state.value.newIds)
+    }
+
     @Test fun oneListenerEvenIfStartedTwice() = runTest {
         val vm = started()
         vm.start()

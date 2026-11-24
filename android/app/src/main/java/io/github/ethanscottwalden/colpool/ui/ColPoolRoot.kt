@@ -163,8 +163,11 @@ fun ColPoolRoot(
     if (state == SessionState.Search) NotificationBannerHost(
         notifications,
         onOpen = {
-            search.close(); hosting.close(); review.reset(); reviewDraftId = null; creatingSeries = false
-            shellTab = NOTIFICATIONS_TAB
+            // Create Series and Review keep what the student typed: the tap only closes the banner (the badge still shows).
+            if (bannerTapOpensTab(creatingSeries, reviewDraftId)) {
+                search.close(); hosting.close()
+                shellTab = NOTIFICATIONS_TAB
+            }
         },
         modifier = Modifier.align(Alignment.TopCenter),
     )
@@ -172,3 +175,6 @@ fun ColPoolRoot(
 }
 
 private const val HOSTING_TAB = 1
+
+/** Tapping the banner opens the Notifications tab unless a form (Create Series, Review) is open. */
+internal fun bannerTapOpensTab(creatingSeries: Boolean, reviewDraftId: String?): Boolean = !creatingSeries && reviewDraftId == null
