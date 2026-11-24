@@ -283,7 +283,7 @@ private fun RefusedLines(state: DetailsUiState) {
     if (state.refused.isEmpty()) return
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         state.refused.entries.sortedBy { it.key.ordinal }.forEach { (w, r) ->
-            Text(stringResource(R.string.details_day_cd, stringResource(w.fullName), stringResource(DetailsRules.failureText(r))), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.details_refused_line, stringResource(w.fullName), stringResource(DetailsRules.failureText(r))), style = MaterialTheme.typography.bodyMedium)
         }
     }
 }

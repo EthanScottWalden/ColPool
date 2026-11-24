@@ -304,6 +304,7 @@
     <string name="details_reason_full">Full</string>
     <string name="details_reason_no_trips">No trips left</string>
     <string name="details_reason_conflict">Conflicts with a series you ride or host</string>
+    <string name="details_refused_line">%1$s: %2$s</string>
     <string name="details_chip_conflict">Conflict</string>
     <string name="details_confirm_title">Send your request?</string>
     <string name="details_confirm_days">Days: %1$s</string>

@@ -515,7 +515,8 @@ internal fun DayChip(
     ) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(title, maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelLarge)
-            if (sub != null) Text(sub, maxLines = subMaxLines, softWrap = subMaxLines > 1, textAlign = androidx.compose.ui.text.style.TextAlign.Center, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, letterSpacing = 0.sp).let { if (subMaxLines > 1) it.copy(lineHeight = 12.sp) else it })
+            if (sub != null && subMaxLines > 1) Text(sub, maxLines = subMaxLines, textAlign = androidx.compose.ui.text.style.TextAlign.Center, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, letterSpacing = 0.sp, lineHeight = 12.sp))
+            else if (sub != null) Text(sub, maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, letterSpacing = 0.sp))
         }
     }
 }
