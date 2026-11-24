@@ -12,6 +12,7 @@ The owner presents a weekly progress update for CSCI 5520 (Sunday deadline). Eac
 
 ## Who writes them
 - **docs-keeper** maintains them. During each docs pass (before a `dev` → `staging` PR), it updates the current week's file. On the first pass of a new week, it starts a new file from the template below.
+- **Lessons become rules** (owner decision 2026-11-24). Any lesson that changes how agents work ("the lead will now…") also goes into `CLAUDE.md`, `DEVELOPMENT.md` or an agent file in the same docs pass, or is listed under Open follow-ups as a proposal waiting on the owner. A lesson that lives only in a retrospective isn't loaded at session start.
 - **The lead** supplies the session facts docs-keeper can't see: earlier chats aren't readable from the sandbox. When a chat ends mid-week, the lead adds its notes to the current file first.
 - **Evidence only** (CLAUDE.md §8): cite PRs, commits, commands and results. If a section is rebuilt from git and PRs without the session transcript, say so.
 
