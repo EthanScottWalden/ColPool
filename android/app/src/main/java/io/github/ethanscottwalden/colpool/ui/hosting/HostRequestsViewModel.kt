@@ -24,6 +24,8 @@ data class HostRequestsUiState(
     /** The open series' requests, oldest first, with at least one pending day. */
     val forSeries: List<IncomingRequest> = emptyList(),
     val seriesLoaded: Boolean = false,
+    /** The series listener failed; [forSeries] is the last good list, if any. */
+    val seriesFailed: Boolean = false,
     /** Rider id to the profile that was read; null when unreadable. */
     val names: Map<String, HostProfile?> = emptyMap(),
     val options: ProfileOptions = ProfileOptions(),
@@ -40,7 +42,9 @@ class HostRequestsViewModel(private val backend: HostRequestsBackend) : ViewMode
     private var allJob: Job? = null
     private var seriesJob: Job? = null
     private var openedSeriesId: String? = null
-    private val requested = mutableSetOf<String>()
+    private val inFlight = mutableSetOf<String>()
+    private val readJobs = mutableSetOf<Job>()
+    private var profileJob: Job? = null
 
     /** Starts the all-requests listener (once) used for the badge. */
     fun start() {
@@ -69,40 +73,56 @@ class HostRequestsViewModel(private val backend: HostRequestsBackend) : ViewMode
                     when (u) {
                         is RequestsUpdate.Loaded -> {
                             val list = HostRequestRules.listed(u.requests, seriesId)
-                            _state.update { it.copy(forSeries = list, seriesLoaded = true) }
+                            _state.update { it.copy(forSeries = list, seriesLoaded = true, seriesFailed = false) }
                             loadNames(list)
                         }
-                        RequestsUpdate.Failed -> _state.update { it.copy(forSeries = emptyList(), seriesLoaded = true) }
+                        RequestsUpdate.Failed -> _state.update { it.copy(seriesLoaded = true, seriesFailed = true) }
                     }
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                _state.update { it.copy(seriesLoaded = true) }
+                _state.update { it.copy(seriesLoaded = true, seriesFailed = true) }
             }
         }
+    }
+
+    /** Restarts the open series' listener after a failure. */
+    fun retrySeries() {
+        val id = openedSeriesId ?: return
+        seriesJob?.cancel()
+        seriesJob = null
+        openedSeriesId = null
+        openSeries(id)
     }
 
     fun closeSeries() {
         seriesJob?.cancel()
         seriesJob = null
         openedSeriesId = null
-        _state.update { it.copy(forSeries = emptyList(), seriesLoaded = false, opened = null) }
+        _state.update { it.copy(forSeries = emptyList(), seriesLoaded = false, seriesFailed = false, opened = null) }
     }
 
+    /** Reads names not read yet. A failed read is not kept, so the next update tries again. */
     private fun loadNames(list: List<IncomingRequest>) {
-        list.map { it.riderId }.filter { requested.add(it) }.forEach { rider ->
-            viewModelScope.launch {
-                val p = backend.loadRequesterProfile(rider)
-                _state.update { it.copy(names = it.names + (rider to p)) }
+        list.map { it.riderId }.filter { _state.value.names[it] == null && inFlight.add(it) }.forEach { rider ->
+            val job = viewModelScope.launch {
+                try {
+                    backend.loadRequesterProfile(rider)?.let { p -> _state.update { it.copy(names = it.names + (rider to p)) } }
+                } finally {
+                    inFlight.remove(rider)
+                }
             }
+            readJobs += job
+            job.invokeOnCompletion { readJobs.remove(job) }
         }
     }
 
     /** Opens the requester's profile (only reachable from a request row). */
     fun openProfile(riderId: String) {
         _state.update { it.copy(opened = RequesterProfileState(riderId, it.names[riderId], it.names.containsKey(riderId))) }
-        viewModelScope.launch {
+        profileJob?.cancel()
+        profileJob = viewModelScope.launch {
             if (_state.value.options.genders.isEmpty()) {
                 try {
                     val o = backend.loadOptions()
@@ -115,7 +135,7 @@ class HostRequestsViewModel(private val backend: HostRequestsBackend) : ViewMode
             }
             val p = backend.loadRequesterProfile(riderId)
             _state.update { s ->
-                if (s.opened?.riderId == riderId) s.copy(opened = RequesterProfileState(riderId, p, true), names = s.names + (riderId to p)) else s
+                if (s.opened?.riderId == riderId) s.copy(opened = RequesterProfileState(riderId, p, true), names = if (p != null) s.names + (riderId to p) else s.names) else s
             }
         }
     }
@@ -129,7 +149,11 @@ class HostRequestsViewModel(private val backend: HostRequestsBackend) : ViewMode
         allJob = null
         seriesJob = null
         openedSeriesId = null
-        requested.clear()
+        readJobs.toList().forEach { it.cancel() }
+        readJobs.clear()
+        inFlight.clear()
+        profileJob?.cancel()
+        profileJob = null
         _state.value = HostRequestsUiState()
     }
 }

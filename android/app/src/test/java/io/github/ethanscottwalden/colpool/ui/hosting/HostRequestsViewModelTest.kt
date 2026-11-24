@@ -35,7 +35,7 @@ class HostRequestsViewModelTest {
         assertTrue(s.seriesLoaded)
         assertEquals(listOf("s1_maya", "s1_jordan"), s.forSeries.map { it.id })
         assertEquals("Maya", s.names["maya"]?.firstName)
-        assertTrue(s.names.containsKey("jordan") && s.names["jordan"] == null)
+        assertFalse(s.names.containsKey("jordan"))
     }
 
     @Test fun aNewRequestAppearsLive() = runTest {
@@ -58,12 +58,44 @@ class HostRequestsViewModelTest {
         assertEquals(2, vm.state.value.all.size)
     }
 
-    @Test fun failedSeriesListenerShowsNoRequests() = runTest {
+    @Test fun failedSeriesListenerKeepsTheLastListAndFlagsFailure() = runTest {
+        val vm = vm()
+        vm.openSeries("s1")
+        backend.bySeries.emit(RequestsUpdate.Loaded(HostRequestsTestData.MIXED))
+        backend.bySeries.emit(RequestsUpdate.Failed)
+        assertTrue(vm.state.value.seriesFailed)
+        assertEquals(2, vm.state.value.forSeries.size)
+        backend.bySeries.emit(RequestsUpdate.Loaded(HostRequestsTestData.MIXED))
+        assertFalse(vm.state.value.seriesFailed)
+    }
+
+    @Test fun retryRestartsTheSeriesListener() = runTest {
         val vm = vm()
         vm.openSeries("s1")
         backend.bySeries.emit(RequestsUpdate.Failed)
-        assertTrue(vm.state.value.seriesLoaded)
-        assertTrue(vm.state.value.forSeries.isEmpty())
+        vm.retrySeries()
+        assertEquals(listOf<String?>("s1", "s1"), backend.observed)
+    }
+
+    @Test fun anUnreadableNameIsReadAgainOnTheNextUpdate() = runTest {
+        val vm = vm()
+        vm.openSeries("s1")
+        backend.bySeries.emit(RequestsUpdate.Loaded(HostRequestsTestData.MIXED))
+        assertFalse(vm.state.value.names.containsKey("jordan"))
+        backend.profiles["jordan"] = HostRequestsTestData.JORDAN
+        backend.bySeries.emit(RequestsUpdate.Loaded(HostRequestsTestData.MIXED))
+        assertEquals("Jordan", vm.state.value.names["jordan"]?.firstName)
+    }
+
+    @Test fun aReadInFlightAtResetNeverLandsInTheNextState() = runTest {
+        val gate = kotlinx.coroutines.CompletableDeferred<Unit>()
+        backend.gate = gate
+        val vm = vm()
+        vm.openSeries("s1")
+        backend.bySeries.emit(RequestsUpdate.Loaded(HostRequestsTestData.MIXED))
+        vm.reset()
+        gate.complete(Unit)
+        assertTrue(vm.state.value.names.isEmpty())
     }
 
     @Test fun profileOpensWithLabelsAndCloses() = runTest {

@@ -62,6 +62,8 @@ object HostingTags {
     const val Back = "hosting_details_back"
     const val Riders = "hosting_riders_none"
     const val Requests = "hosting_requests_none"
+    const val RequestsFailed = "hosting_requests_failed"
+    const val RequestsRetry = "hosting_requests_retry"
     const val RequestsHeading = "hosting_requests_heading"
     fun request(id: String) = "hosting_request_$id"
     const val Badge = "hosting_seats_badge"
@@ -77,6 +79,7 @@ class HostingActions(
     val onRetry: () -> Unit = {},
     /** Opens the requester's profile; the argument is the rider id (never shown). */
     val onOpenRequest: (String) -> Unit = {},
+    val onRetryRequests: () -> Unit = {},
 )
 
 /** Stateful Hosting tab. */
@@ -93,7 +96,7 @@ fun HostedSeriesDetailsScreen(viewModel: HostingViewModel, requests: HostRequest
     val requestsState by requests.state.collectAsStateWithLifecycle()
     BackHandler { viewModel.close() }
     HostedSeriesDetailsContent(
-        state, HostingActions(onBack = viewModel::close, onSelectDay = viewModel::selectDay, onOpenRequest = requests::openProfile), modifier, requestsState,
+        state, HostingActions(onBack = viewModel::close, onSelectDay = viewModel::selectDay, onOpenRequest = requests::openProfile, onRetryRequests = requests::retrySeries), modifier, requestsState,
     )
 }
 
@@ -243,8 +246,14 @@ private fun Details(state: HostingUiState, s: HostedSeries, actions: HostingActi
             stringResource(R.string.hosting_requests_heading, requests.forSeries.size), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
             modifier = Modifier.testTag(HostingTags.RequestsHeading).semantics { heading() },
         )
+        if (requests.seriesFailed) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(stringResource(R.string.requests_load_failed), Modifier.testTag(HostingTags.RequestsFailed).semantics { liveRegion = LiveRegionMode.Polite }, style = MaterialTheme.typography.bodyLarge)
+                Button(onClick = actions.onRetryRequests, modifier = Modifier.sizeIn(minHeight = 48.dp).testTag(HostingTags.RequestsRetry)) { Text(stringResource(R.string.hosting_retry)) }
+            }
+        }
         if (requests.forSeries.isEmpty()) {
-            Text(stringResource(R.string.hosting_requests_none), Modifier.testTag(HostingTags.Requests), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (!requests.seriesFailed) Text(stringResource(R.string.hosting_requests_none), Modifier.testTag(HostingTags.Requests), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {
             requests.forSeries.forEach { r -> RequestRow(r, requests.names, actions.onOpenRequest) }
         }

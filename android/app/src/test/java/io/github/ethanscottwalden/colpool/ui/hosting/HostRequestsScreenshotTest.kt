@@ -43,6 +43,11 @@ class HostRequestsScreenshotTest {
         )
     }
 
+    @Config(sdk = [36], qualifiers = "w360dp-h1700dp-xxhdpi", application = Application::class)
+    @Test fun requestsFailed() = shoot("hosted_series_requests_failed") {
+        HostedSeriesDetailsContent(HostingTestData.state(selectedId = "s1", activeDay = SeriesWeekday.Tue), HostingActions(), requests = HostRequestsUiState(seriesFailed = true, seriesLoaded = true))
+    }
+
     @Test fun profile() = shoot("requester_profile") {
         RequesterProfileContent(RequesterProfileState("maya", HostRequestsTestData.MAYA, true), DetailsTestData.OPTIONS, {})
     }

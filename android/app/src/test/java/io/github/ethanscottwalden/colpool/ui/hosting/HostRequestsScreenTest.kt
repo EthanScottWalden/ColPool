@@ -67,6 +67,21 @@ class HostRequestsScreenTest {
         composeRule.onNodeWithText("Maya Okafor").assertDoesNotExist()
     }
 
+    @Test fun failedListenerShowsTheErrorAndRetryNotTheEmptyText() {
+        var retried = 0
+        details(HostRequestsUiState(seriesFailed = true), HostingActions(onRetryRequests = { retried++ }))
+        composeRule.onNodeWithTag(HostingTags.Requests).assertDoesNotExist()
+        composeRule.onNodeWithTag(HostingTags.RequestsFailed).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag(HostingTags.RequestsRetry).performScrollTo().performClick()
+        assertEquals(1, retried)
+    }
+
+    @Test fun failedListenerKeepsTheLastGoodRows() {
+        details(withMixed().copy(seriesFailed = true))
+        composeRule.onNodeWithText("Maya Okafor").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag(HostingTags.RequestsFailed).assertExists()
+    }
+
     @Test fun noAcceptOrDeclineButtons() {
         details(withMixed())
         composeRule.onNodeWithText("Accept").assertDoesNotExist()

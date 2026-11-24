@@ -75,4 +75,10 @@ class HostRequestRulesTest {
         val r = request("a", days = arrayOf("fri" to "pending", "sun" to "pending", "tue" to "accepted"))
         assertEquals(listOf(SeriesWeekday.Tue, SeriesWeekday.Fri), HostRequestRules.orderedDays(r).map { it.first })
     }
+
+    @Test fun badgeIgnoresRequestsForSeriesNotInTheActiveList() {
+        val rs = listOf(request("x", seriesId = "ended", riderId = "x", days = arrayOf("mon" to "pending")), request("y", seriesId = "other", riderId = "y", days = arrayOf("tue" to "pending")))
+        assertEquals(0, HostRequestRules.pendingCount(rs, setOf("s1")))
+        assertEquals(1, HostRequestRules.pendingCount(rs, setOf("s1", "other")))
+    }
 }

@@ -53,7 +53,7 @@ fun RequesterProfileContent(opened: RequesterProfileState, options: io.github.et
                 val p = opened.profile
                 when {
                     p != null -> ProfileCard("${p.firstName} ${p.lastName}", DetailsRules.hostFields(p, options), Modifier.testTag(RequesterTags.Card))
-                    !opened.loaded -> Text(stringResource(R.string.requester_loading), Modifier.testTag(RequesterTags.Loading), style = MaterialTheme.typography.bodyLarge)
+                    !opened.loaded -> Text(stringResource(R.string.requester_loading), Modifier.testTag(RequesterTags.Loading).semantics { liveRegion = LiveRegionMode.Polite }, style = MaterialTheme.typography.bodyLarge)
                     else -> Text(
                         stringResource(R.string.requester_unavailable),
                         Modifier.fillMaxWidth().testTag(RequesterTags.Unavailable).semantics { liveRegion = LiveRegionMode.Polite },

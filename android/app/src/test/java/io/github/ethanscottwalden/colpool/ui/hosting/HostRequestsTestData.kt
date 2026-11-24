@@ -26,7 +26,13 @@ class FakeHostRequestsBackend : HostRequestsBackend {
         return if (seriesId == null) all else bySeries
     }
 
-    override suspend fun loadRequesterProfile(riderId: String): HostProfile? = profiles[riderId]
+    /** When set, profile reads wait for it (to test a read in flight). */
+    var gate: kotlinx.coroutines.CompletableDeferred<Unit>? = null
+
+    override suspend fun loadRequesterProfile(riderId: String): HostProfile? {
+        gate?.await()
+        return profiles[riderId]
+    }
     override suspend fun loadOptions(): ProfileOptions = optionsError?.let { throw it } ?: options
 }
 

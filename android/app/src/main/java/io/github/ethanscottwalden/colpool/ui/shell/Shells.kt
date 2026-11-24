@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Badge
@@ -70,7 +71,7 @@ fun StudentShell(searchTab: @Composable (Modifier) -> Unit, profileTab: @Composa
                             val glyph = @Composable { Text(tab.glyph, Modifier.clearAndSetSemantics {}, style = MaterialTheme.typography.titleMedium) }
                             if (tab == StudentTab.Hosting && hostingBadge > 0) {
                                 val cd = pluralStringResource(R.plurals.hosting_tab_badge_cd, hostingBadge, hostingBadge)
-                                BadgedBox(badge = { Badge(Modifier.testTag(HOSTING_BADGE_TAG).semantics { contentDescription = cd }) { Text(hostingBadge.toString(), Modifier.clearAndSetSemantics {}) } }) { glyph() }
+                                BadgedBox(badge = { Badge(Modifier.offset(x = 10.dp, y = (-4).dp).testTag(HOSTING_BADGE_TAG).semantics { contentDescription = cd }) { Text(hostingBadge.toString(), Modifier.clearAndSetSemantics {}) } }) { glyph() }
                             } else {
                                 glyph()
                             }
