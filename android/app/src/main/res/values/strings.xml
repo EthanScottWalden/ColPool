@@ -214,8 +214,23 @@
     <string name="hosting_by_day">Riders by day</string>
     <string name="hosting_day_open">%1$d open</string>
     <string name="hosting_riders_none">No riders yet</string>
-    <string name="hosting_requests_heading">Requests</string>
-    <string name="hosting_requests_none">No requests yet</string>
+    <string name="hosting_requests_heading">Requests · %1$d with pending days</string>
+    <string name="hosting_requests_heading_plain">Requests</string>
+    <string name="hosting_requests_none">No requests yet.</string>
+    <string name="requests_status_pending">pending</string>
+    <string name="requests_status_accepted">accepted</string>
+    <string name="requests_status_declined">declined</string>
+    <string name="requests_day_status">%1$s · %2$s</string>
+    <string name="requests_unknown_rider">A rider</string>
+    <string name="requests_row_cd">%1$s, %2$s. Opens profile.</string>
+    <string name="requests_load_failed">Couldn’t load requests. They update when your connection is back.</string>
+    <string name="requester_title">Requester</string>
+    <string name="requester_unavailable">This profile is no longer available.</string>
+    <string name="requester_loading">Loading profile…</string>
+    <plurals name="hosting_tab_badge_cd">
+        <item quantity="one">%1$d request with pending days</item>
+        <item quantity="other">%1$d requests with pending days</item>
+    </plurals>
 
     <string name="weekday_mon_short">Mon</string>
     <string name="weekday_tue_short">Tue</string>
