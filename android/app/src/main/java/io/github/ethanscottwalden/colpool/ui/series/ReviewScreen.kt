@@ -231,7 +231,7 @@ private fun SummaryCard(draft: ReviewDraft) {
 }
 
 @Composable
-private fun Fact(label: Int, value: String, sub: String?, modifier: Modifier) {
+internal fun Fact(label: Int, value: String, sub: String?, modifier: Modifier) {
     Surface(modifier, color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(10.dp)) {
         Column(Modifier.padding(10.dp).semantics(mergeDescendants = true) {}) {
             Text(stringResource(label).uppercase(), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -262,7 +262,7 @@ private fun DayTabs(draft: ReviewDraft, active: SeriesWeekday, onSelect: (Series
 }
 
 @Composable
-private fun DirectionCard(direction: Direction, card: ReviewCard) {
+internal fun DirectionCard(direction: Direction, card: ReviewCard) {
     val toCampus = direction == Direction.ToCampus
     val nextDay = stringResource(R.string.review_next_day)
     Surface(

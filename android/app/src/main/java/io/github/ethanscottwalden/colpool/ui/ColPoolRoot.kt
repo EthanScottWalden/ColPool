@@ -12,6 +12,9 @@ import io.github.ethanscottwalden.colpool.ui.auth.AuthContent
 import io.github.ethanscottwalden.colpool.ui.auth.AuthMode
 import io.github.ethanscottwalden.colpool.ui.address.AddressSearchViewModel
 import io.github.ethanscottwalden.colpool.ui.auth.AuthViewModel
+import io.github.ethanscottwalden.colpool.ui.hosting.HostedSeriesDetailsScreen
+import io.github.ethanscottwalden.colpool.ui.hosting.HostingTab
+import io.github.ethanscottwalden.colpool.ui.hosting.HostingViewModel
 import io.github.ethanscottwalden.colpool.ui.onboarding.OnboardingScreen
 import io.github.ethanscottwalden.colpool.ui.onboarding.OnboardingViewModel
 import io.github.ethanscottwalden.colpool.ui.profile.EditProfileViewModel
@@ -39,9 +42,11 @@ fun ColPoolRoot(
     addressSearch: AddressSearchViewModel,
     createSeries: CreateSeriesViewModel,
     review: ReviewViewModel,
+    hosting: HostingViewModel,
 ) {
     val state by session.state.collectAsState()
     val authState by auth.state.collectAsState()
+    val hostingState by hosting.state.collectAsState()
     val errorDetail by session.errorDetail.collectAsState()
     // No navigation library yet (ADR 0004): Create Series and the Review placeholder sit above the student shell.
     var creatingSeries by rememberSaveable { mutableStateOf(false) }
@@ -49,12 +54,16 @@ fun ColPoolRoot(
     // The Hosting tab starts the flow, so every way out of it lands back on Hosting (#33 replaces its placeholder).
     var shellTab by rememberSaveable { mutableStateOf(0) }
 
+    // Returning from the details screen must land on the Hosting tab.
+    LaunchedEffect(hostingState.selectedId) { if (hostingState.selectedId != null) shellTab = HOSTING_TAB }
+
     LaunchedEffect(state) {
         if (state !is SessionState.SignedOut) auth.reset()
         // Onboarding state (including the private address) never outlives the screen.
         if (state == SessionState.Onboarding) onboarding.loadOptions() else onboarding.reset()
         // Same for the own profile (address, email): loaded for the student shell only.
         if (state == SessionState.Search) profile.load() else { profile.reset(); editProfile.reset() }
+        if (state == SessionState.Search) hosting.start() else hosting.reset()
         if (state != SessionState.Search) { createSeries.reset(); review.reset(); creatingSeries = false; reviewDraftId = null; shellTab = 0 }
     }
 
@@ -87,10 +96,11 @@ fun ColPoolRoot(
                 onReview = { reviewDraftId = it },
                 onBack = { creatingSeries = false; createSeries.reset() },
             )
+            hostingState.selectedId != null -> HostedSeriesDetailsScreen(hosting)
             else -> StudentShell(
                 initialTab = shellTab,
                 profileTab = { ProfileTab(profile, editProfile, addressSearch, onLogOut = session::logOut, modifier = it) },
-                onHostSeries = { createSeries.reset(); shellTab = HOSTING_TAB; creatingSeries = true },
+                hostingTab = { HostingTab(hosting, onHostSeries = { createSeries.reset(); shellTab = HOSTING_TAB; creatingSeries = true }, modifier = it) },
             )
         }
         SessionState.Staff -> StaffExportPlaceholder(onLogOut = session::logOut)

@@ -45,9 +45,9 @@ private enum class StudentTab(val label: Int, val glyph: String) {
     Profile(R.string.tab_profile, "P"),
 }
 
-/** Student footer with five tabs. Profile is real; the other tabs are placeholders until their Issues. */
+/** Student footer with five tabs. Profile and Hosting are real; the other tabs are placeholders until their Issues. */
 @Composable
-fun StudentShell(profileTab: @Composable (Modifier) -> Unit, initialTab: Int = 0, modifier: Modifier = Modifier, onHostSeries: () -> Unit = {}) {
+fun StudentShell(profileTab: @Composable (Modifier) -> Unit, hostingTab: @Composable (Modifier) -> Unit, initialTab: Int = 0, modifier: Modifier = Modifier) {
     var selected by rememberSaveable { mutableIntStateOf(initialTab) }
     Scaffold(
         modifier = modifier,
@@ -67,12 +67,12 @@ fun StudentShell(profileTab: @Composable (Modifier) -> Unit, initialTab: Int = 0
         val tab = StudentTab.entries[selected]
         if (tab == StudentTab.Profile) {
             profileTab(Modifier.padding(padding))
+        } else if (tab == StudentTab.Hosting) {
+            hostingTab(Modifier.padding(padding))
         } else {
             Centered(Modifier.padding(padding)) {
                 Text(stringResource(tab.label), style = MaterialTheme.typography.headlineMedium)
                 Text(stringResource(R.string.placeholder_coming_soon), style = MaterialTheme.typography.bodyMedium)
-                // TODO(#33): the Hosting list replaces this placeholder; this button is the entry point to Create Series until then.
-                if (tab == StudentTab.Hosting) Button(onClick = onHostSeries) { Text(stringResource(R.string.series_host_button)) }
             }
         }
     }
