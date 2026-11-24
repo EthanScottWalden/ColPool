@@ -12,6 +12,8 @@ import io.github.ethanscottwalden.colpool.ui.auth.AuthContent
 import io.github.ethanscottwalden.colpool.ui.auth.AuthMode
 import io.github.ethanscottwalden.colpool.ui.address.AddressSearchViewModel
 import io.github.ethanscottwalden.colpool.ui.auth.AuthViewModel
+import io.github.ethanscottwalden.colpool.ui.details.DetailsViewModel
+import io.github.ethanscottwalden.colpool.ui.details.SeriesDetailsScreen
 import io.github.ethanscottwalden.colpool.ui.hosting.HostedSeriesDetailsScreen
 import io.github.ethanscottwalden.colpool.ui.hosting.HostingTab
 import io.github.ethanscottwalden.colpool.ui.hosting.HostingViewModel
@@ -22,7 +24,6 @@ import io.github.ethanscottwalden.colpool.ui.profile.ProfileTab
 import io.github.ethanscottwalden.colpool.ui.profile.ProfileViewModel
 import io.github.ethanscottwalden.colpool.ui.search.SearchTab
 import io.github.ethanscottwalden.colpool.ui.search.SearchViewModel
-import io.github.ethanscottwalden.colpool.ui.search.SeriesDetailsPlaceholder
 import io.github.ethanscottwalden.colpool.ui.series.CreateSeriesScreen
 import io.github.ethanscottwalden.colpool.ui.series.CreateSeriesViewModel
 import io.github.ethanscottwalden.colpool.ui.series.ReviewScreen
@@ -47,6 +48,7 @@ fun ColPoolRoot(
     review: ReviewViewModel,
     hosting: HostingViewModel,
     search: SearchViewModel,
+    details: DetailsViewModel,
 ) {
     val state by session.state.collectAsState()
     val authState by auth.state.collectAsState()
@@ -62,6 +64,12 @@ fun ColPoolRoot(
     // Returning from the details screen must land on the Hosting tab.
     LaunchedEffect(hostingState.selectedId) { if (hostingState.selectedId != null) shellTab = HOSTING_TAB }
 
+    // Opening a series from Search fills the details; closing it forgets them.
+    LaunchedEffect(searchState.openedSeriesId) {
+        val r = searchState.results.firstOrNull { it.series.id == searchState.openedSeriesId }
+        if (r != null) details.open(r.series, r.distanceTenths, searchState.hostNames[r.series.hostId]) else details.reset()
+    }
+
     LaunchedEffect(state) {
         if (state !is SessionState.SignedOut) auth.reset()
         // Onboarding state (including the private address) never outlives the screen.
@@ -69,7 +77,7 @@ fun ColPoolRoot(
         // Same for the own profile (address, email): loaded for the student shell only.
         if (state == SessionState.Search) profile.load() else { profile.reset(); editProfile.reset() }
         if (state == SessionState.Search) hosting.start() else hosting.reset()
-        if (state != SessionState.Search) search.reset()
+        if (state != SessionState.Search) { search.reset(); details.reset() }
         if (state != SessionState.Search) { createSeries.reset(); review.reset(); creatingSeries = false; reviewDraftId = null; shellTab = 0 }
     }
 
@@ -102,7 +110,7 @@ fun ColPoolRoot(
                 onReview = { reviewDraftId = it },
                 onBack = { creatingSeries = false; createSeries.reset() },
             )
-            searchState.openedSeriesId != null -> SeriesDetailsPlaceholder(searchState.openedSeriesId!!, onBack = search::close)
+            searchState.openedSeriesId != null -> SeriesDetailsScreen(details, onBack = search::close, onSent = search::requestSent)
             hostingState.selectedId != null -> HostedSeriesDetailsScreen(hosting)
             else -> StudentShell(
                 initialTab = shellTab,

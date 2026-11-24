@@ -52,7 +52,8 @@ object SearchTags {
     const val Retry = "search_retry"
     const val Count = "search_count"
     const val NoAddress = "search_no_address"
-    const val Back = "search_details_back"
+    const val Sent = "search_request_sent"
+    const val SentDismiss = "search_request_sent_dismiss"
     fun day(w: SeriesWeekday) = "search_day_${w.id}"
     fun card(id: String) = "search_card_$id"
 }
@@ -61,6 +62,7 @@ class SearchActions(
     val onToggleDay: (SeriesWeekday) -> Unit = {},
     val onOpen: (String) -> Unit = {},
     val onRetry: () -> Unit = {},
+    val onDismissSent: () -> Unit = {},
 )
 
 /** Stateful Search tab. Reads fresh results each time the tab is shown. */
@@ -68,19 +70,7 @@ class SearchActions(
 fun SearchTab(viewModel: SearchViewModel, modifier: Modifier = Modifier) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { viewModel.refresh() }
-    SearchContent(state, SearchActions(viewModel::toggle, viewModel::open, viewModel::retry), modifier)
-}
-
-/** Placeholder until #38 builds Series Details. [seriesId] is passed on but never shown. */
-@Composable
-fun SeriesDetailsPlaceholder(seriesId: String, onBack: () -> Unit, modifier: Modifier = Modifier) {
-    BackHandler(onBack = onBack)
-    Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(Modifier.fillMaxSize()) {
-            Header(stringResource(R.string.details_placeholder_title), onBack)
-            Text(stringResource(R.string.details_placeholder_body), Modifier.padding(16.dp).testTag("series_details_$seriesId"), style = MaterialTheme.typography.bodyLarge)
-        }
-    }
+    SearchContent(state, SearchActions(viewModel::toggle, viewModel::open, viewModel::retry, viewModel::dismissRequestSent), modifier)
 }
 
 @Composable
@@ -88,6 +78,7 @@ fun SearchContent(state: SearchUiState, actions: SearchActions, modifier: Modifi
     Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize()) {
             Header(stringResource(R.string.search_title))
+            if (state.requestSent) SentBanner(actions.onDismissSent)
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(stringResource(R.string.search_days_label), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.semantics { heading() })
                 Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -190,6 +181,17 @@ private fun StateChip(w: SeriesWeekday, st: DayState, modifier: Modifier = Modif
         Column(Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(stringResource(w.shortName), maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelLarge)
             Text(label, maxLines = 2, textAlign = TextAlign.Center, style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp, letterSpacing = 0.sp, lineHeight = 14.sp))
+        }
+    }
+}
+
+/** "Request sent" after returning from Series Details. A live region, dismissible. */
+@Composable
+private fun SentBanner(onDismiss: () -> Unit) {
+    Surface(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).testTag(SearchTags.Sent), color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)) {
+        Row(Modifier.padding(start = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(stringResource(R.string.search_request_sent), Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            androidx.compose.material3.TextButton(onClick = onDismiss, modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).testTag(SearchTags.SentDismiss)) { Text(stringResource(R.string.search_request_sent_dismiss)) }
         }
     }
 }

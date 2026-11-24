@@ -497,6 +497,8 @@ internal fun DayChip(
     selected: Boolean, enabled: Boolean, onClick: () -> Unit, title: String, sub: String?, modifier: Modifier = Modifier,
     /** [Role.Tab] where the chips switch the day shown (selected is announced); [Role.Checkbox] where they toggle days. Null keeps the default. */
     role: Role? = null,
+    /** Lines allowed for [sub]; more than one lets a longer word such as "no trips left" wrap. */
+    subMaxLines: Int = 1,
 ) {
     Surface(
         onClick = onClick,
@@ -513,7 +515,7 @@ internal fun DayChip(
     ) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(title, maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelLarge)
-            if (sub != null) Text(sub, maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, letterSpacing = 0.sp))
+            if (sub != null) Text(sub, maxLines = subMaxLines, softWrap = subMaxLines > 1, textAlign = androidx.compose.ui.text.style.TextAlign.Center, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, letterSpacing = 0.sp).let { if (subMaxLines > 1) it.copy(lineHeight = 12.sp) else it })
         }
     }
 }

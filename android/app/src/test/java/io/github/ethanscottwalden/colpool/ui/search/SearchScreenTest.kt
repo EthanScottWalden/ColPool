@@ -3,6 +3,7 @@ package io.github.ethanscottwalden.colpool.ui.search
 import android.app.Application
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -55,8 +56,9 @@ class SearchScreenTest {
     private fun Wired(vm: SearchViewModel) {
         val state by vm.state.collectAsStateWithLifecycle()
         val opened = state.openedSeriesId
-        if (opened != null) SeriesDetailsPlaceholder(opened, onBack = vm::close)
-        else SearchContent(state, SearchActions(vm::toggle, vm::open, vm::retry))
+        // Series Details has its own tests (DetailsScreenTest); here the opened id just hides the list.
+        if (opened != null) androidx.compose.material3.Text("details open", androidx.compose.ui.Modifier.testTag("details_stub"))
+        else SearchContent(state, SearchActions(vm::toggle, vm::open, vm::retry, vm::dismissRequestSent))
     }
 
     private fun show(vm: SearchViewModel = SearchViewModel(backend, SearchTestData.CLOCK)): SearchViewModel {
@@ -140,17 +142,21 @@ class SearchScreenTest {
         assertTrue(composeRule.onAllNodes(hasText("open")).fetchSemanticsNodes().isNotEmpty())
     }
 
-    @Test fun cardTapOpensTheDetailsPlaceholderAndBackReturns() {
+    @Test fun cardTapOpensDetailsAndRequestSentShowsTheBannerAndRefreshes() {
         val vm = show()
         composeRule.onNodeWithTag(SearchTags.day(SeriesWeekday.Mon)).performClick()
         composeRule.onNodeWithTag(SearchTags.card("near")).performClick()
         assertEquals("near", vm.state.value.openedSeriesId)
-        composeRule.onNodeWithText("Series details").assertIsDisplayed()
-        composeRule.onNodeWithText("Series details are coming soon.").assertExists()
-        // The id is never shown.
-        composeRule.onAllNodesWithTextCount("near", 0)
-        composeRule.onNodeWithTag(io.github.ethanscottwalden.colpool.ui.hosting.HostingTags.Back).performClick()
-        composeRule.onNodeWithTag(SearchTags.Count).assertIsDisplayed()
+        composeRule.onNodeWithTag("details_stub").assertIsDisplayed()
+        // The request went through: the server now lists it, so the series leaves the results (RC-16).
+        backend.requested = setOf("near")
+        vm.requestSent()
+        composeRule.onNodeWithTag(SearchTags.Sent).assertIsDisplayed()
+        composeRule.onNodeWithText("Request sent").assertIsDisplayed()
+        composeRule.onNodeWithTag(SearchTags.Count).assert(hasText("1 series near you"))
+        composeRule.onAllNodesWithTextCount("Hosted by Ava", 0)
+        composeRule.onNodeWithTag(SearchTags.SentDismiss).performClick()
+        composeRule.onAllNodesWithTextCount("Request sent", 0)
     }
 
     @Test fun dayChipsAreCheckboxesAtLeast48dp() {
