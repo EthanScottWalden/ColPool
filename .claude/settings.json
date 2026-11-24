@@ -137,8 +137,14 @@
         "hooks": [
           { "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/gh-guard.mjs\" pre" }
         ]
+      },
+      { "matcher": "Agent|Task",
+        "hooks": [
+          { "type": "command", "command": "node \"${CLAUDE_PROJECT_DIR}/.claude/hooks/agent-guard.mjs\"" }
+        ] 
       }
     ],
+    
     "PostToolUse": [
       {
         "matcher": "Bash|PowerShell",
