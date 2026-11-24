@@ -195,12 +195,18 @@ private fun dayText(st: DayState, open: Int): String = when (st) {
     else -> stringResource(R.string.details_day_no_trips)
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun HostCard(state: DetailsUiState) {
     val fields = state.profile?.let { DetailsRules.hostFields(it, state.options) }.orEmpty()
     val name = state.profile?.let { "${it.firstName} ${it.lastName}" } ?: state.firstNameHint ?: stringResource(R.string.details_host_unknown)
-    Surface(Modifier.fillMaxWidth().testTag(DetailsTags.HostCard), color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)) {
+    ProfileCard(name, fields, Modifier.testTag(DetailsTags.HostCard))
+}
+
+/** A person's card: the name, then only the optional fields that are filled in. Shared by the host card and the requester profile. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun ProfileCard(name: String, fields: List<HostField>, modifier: Modifier = Modifier) {
+    Surface(modifier.fillMaxWidth(), color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             fields.forEach { f ->

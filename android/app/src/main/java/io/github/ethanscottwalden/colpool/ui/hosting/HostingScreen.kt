@@ -43,6 +43,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.ethanscottwalden.colpool.R
+import io.github.ethanscottwalden.colpool.data.requests.HostProfile
+import io.github.ethanscottwalden.colpool.data.requests.IncomingRequest
 import io.github.ethanscottwalden.colpool.data.series.DraftLeg
 import io.github.ethanscottwalden.colpool.data.series.HostedSeries
 import io.github.ethanscottwalden.colpool.ui.series.Direction
@@ -60,6 +62,8 @@ object HostingTags {
     const val Back = "hosting_details_back"
     const val Riders = "hosting_riders_none"
     const val Requests = "hosting_requests_none"
+    const val RequestsHeading = "hosting_requests_heading"
+    fun request(id: String) = "hosting_request_$id"
     const val Badge = "hosting_seats_badge"
     fun row(id: String) = "hosting_row_$id"
     fun day(w: SeriesWeekday) = "hosting_day_${w.id}"
@@ -71,6 +75,8 @@ class HostingActions(
     val onBack: () -> Unit = {},
     val onSelectDay: (SeriesWeekday) -> Unit = {},
     val onRetry: () -> Unit = {},
+    /** Opens the requester's profile; the argument is the rider id (never shown). */
+    val onOpenRequest: (String) -> Unit = {},
 )
 
 /** Stateful Hosting tab. */
@@ -82,10 +88,13 @@ fun HostingTab(viewModel: HostingViewModel, onHostSeries: () -> Unit, modifier: 
 
 /** Stateful details screen. */
 @Composable
-fun HostedSeriesDetailsScreen(viewModel: HostingViewModel, modifier: Modifier = Modifier) {
+fun HostedSeriesDetailsScreen(viewModel: HostingViewModel, requests: HostRequestsViewModel, modifier: Modifier = Modifier) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val requestsState by requests.state.collectAsStateWithLifecycle()
     BackHandler { viewModel.close() }
-    HostedSeriesDetailsContent(state, HostingActions(onBack = viewModel::close, onSelectDay = viewModel::selectDay), modifier)
+    HostedSeriesDetailsContent(
+        state, HostingActions(onBack = viewModel::close, onSelectDay = viewModel::selectDay, onOpenRequest = requests::openProfile), modifier, requestsState,
+    )
 }
 
 @Composable
@@ -161,19 +170,19 @@ private fun SeriesRow(s: HostedSeries, year: Int, onOpen: (String) -> Unit) {
 }
 
 @Composable
-fun HostedSeriesDetailsContent(state: HostingUiState, actions: HostingActions, modifier: Modifier = Modifier) {
+fun HostedSeriesDetailsContent(state: HostingUiState, actions: HostingActions, modifier: Modifier = Modifier, requests: HostRequestsUiState = HostRequestsUiState()) {
     val s = state.selected
     Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.fillMaxSize()) {
             val res = LocalContext.current.resources
             Header(if (s == null) "" else stringResource(R.string.hosting_details_title, HostingText.weekdays(res, s.weekdayIds)), actions.onBack)
-            if (s != null) Details(state, s, actions)
+            if (s != null) Details(state, s, actions, requests)
         }
     }
 }
 
 @Composable
-private fun Details(state: HostingUiState, s: HostedSeries, actions: HostingActions) {
+private fun Details(state: HostingUiState, s: HostedSeries, actions: HostingActions, requests: HostRequestsUiState) {
     val res = LocalContext.current.resources
     val active = state.activeDay ?: SeriesWeekday.fromId(s.weekdayIds.first())!!
     val day = s.days[active.id]
@@ -230,7 +239,32 @@ private fun Details(state: HostingUiState, s: HostedSeries, actions: HostingActi
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Text(stringResource(R.string.hosting_requests_heading), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.semantics { heading() })
-        Text(stringResource(R.string.hosting_requests_none), Modifier.testTag(HostingTags.Requests), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            stringResource(R.string.hosting_requests_heading, requests.forSeries.size), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
+            modifier = Modifier.testTag(HostingTags.RequestsHeading).semantics { heading() },
+        )
+        if (requests.forSeries.isEmpty()) {
+            Text(stringResource(R.string.hosting_requests_none), Modifier.testTag(HostingTags.Requests), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        } else {
+            requests.forSeries.forEach { r -> RequestRow(r, requests.names, actions.onOpenRequest) }
+        }
+    }
+}
+
+@Composable
+private fun RequestRow(r: IncomingRequest, names: Map<String, HostProfile?>, onOpen: (String) -> Unit) {
+    val res = LocalContext.current.resources
+    val name = names[r.riderId]?.let { "${it.firstName} ${it.lastName}" } ?: stringResource(R.string.requests_unknown_rider)
+    val days = HostRequestRules.rowDays(res, r)
+    val cd = stringResource(R.string.requests_row_cd, name, days)
+    Surface(
+        onClick = { onOpen(r.riderId) },
+        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag(HostingTags.request(r.id)).semantics(mergeDescendants = true) { contentDescription = cd },
+        color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+    ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(days, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }

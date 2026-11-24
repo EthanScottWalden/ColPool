@@ -5,6 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import io.github.ethanscottwalden.colpool.ui.auth.AuthActions
@@ -14,7 +15,10 @@ import io.github.ethanscottwalden.colpool.ui.address.AddressSearchViewModel
 import io.github.ethanscottwalden.colpool.ui.auth.AuthViewModel
 import io.github.ethanscottwalden.colpool.ui.details.DetailsViewModel
 import io.github.ethanscottwalden.colpool.ui.details.SeriesDetailsScreen
+import io.github.ethanscottwalden.colpool.ui.hosting.HostRequestRules
+import io.github.ethanscottwalden.colpool.ui.hosting.HostRequestsViewModel
 import io.github.ethanscottwalden.colpool.ui.hosting.HostedSeriesDetailsScreen
+import io.github.ethanscottwalden.colpool.ui.hosting.RequesterProfileScreen
 import io.github.ethanscottwalden.colpool.ui.hosting.HostingTab
 import io.github.ethanscottwalden.colpool.ui.hosting.HostingViewModel
 import io.github.ethanscottwalden.colpool.ui.onboarding.OnboardingScreen
@@ -49,11 +53,17 @@ fun ColPoolRoot(
     hosting: HostingViewModel,
     search: SearchViewModel,
     details: DetailsViewModel,
+    hostRequests: HostRequestsViewModel,
 ) {
     val state by session.state.collectAsState()
     val authState by auth.state.collectAsState()
     val hostingState by hosting.state.collectAsState()
     val searchState by search.state.collectAsState()
+    val requestsState by hostRequests.state.collectAsState()
+    // Requests with a pending day on the series the host still has active.
+    val pendingBadge = remember(requestsState.all, hostingState.series) {
+        HostRequestRules.pendingCount(requestsState.all, hostingState.series.map { it.id }.toSet())
+    }
     val errorDetail by session.errorDetail.collectAsState()
     // No navigation library yet (ADR 0004): Create Series and the Review placeholder sit above the student shell.
     var creatingSeries by rememberSaveable { mutableStateOf(false) }
@@ -63,6 +73,9 @@ fun ColPoolRoot(
 
     // Returning from the details screen must land on the Hosting tab.
     LaunchedEffect(hostingState.selectedId) { if (hostingState.selectedId != null) shellTab = HOSTING_TAB }
+
+    // The open hosted series listens to its own requests; closing it stops.
+    LaunchedEffect(hostingState.selectedId) { hostingState.selectedId?.let { hostRequests.openSeries(it) } ?: hostRequests.closeSeries() }
 
     // Opening a series from Search fills the details; closing it forgets them.
     LaunchedEffect(searchState.openedSeriesId) {
@@ -77,6 +90,7 @@ fun ColPoolRoot(
         // Same for the own profile (address, email): loaded for the student shell only.
         if (state == SessionState.Search) profile.load() else { profile.reset(); editProfile.reset() }
         if (state == SessionState.Search) hosting.start() else hosting.reset()
+        if (state == SessionState.Search) hostRequests.start() else hostRequests.reset()
         if (state != SessionState.Search) { search.reset(); details.reset() }
         if (state != SessionState.Search) { createSeries.reset(); review.reset(); creatingSeries = false; reviewDraftId = null; shellTab = 0 }
     }
@@ -111,9 +125,11 @@ fun ColPoolRoot(
                 onBack = { creatingSeries = false; createSeries.reset() },
             )
             searchState.openedSeriesId != null -> SeriesDetailsScreen(details, onBack = search::close, onSent = search::requestSent)
-            hostingState.selectedId != null -> HostedSeriesDetailsScreen(hosting)
+            hostingState.selectedId != null && requestsState.opened != null -> RequesterProfileScreen(hostRequests)
+            hostingState.selectedId != null -> HostedSeriesDetailsScreen(hosting, hostRequests)
             else -> StudentShell(
                 initialTab = shellTab,
+                hostingBadge = pendingBadge,
                 searchTab = { SearchTab(search, modifier = it) },
                 profileTab = { ProfileTab(profile, editProfile, addressSearch, onLogOut = session::logOut, modifier = it) },
                 hostingTab = { HostingTab(hosting, onHostSeries = { createSeries.reset(); shellTab = HOSTING_TAB; creatingSeries = true }, modifier = it) },
