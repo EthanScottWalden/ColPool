@@ -37,9 +37,9 @@ class ReviewScreenTest {
         composeRule.onNodeWithText("7:30 AM").assertExists()
         composeRule.onNodeWithText("Yeager Center").assertExists()
         composeRule.onNodeWithText("Stop · 5 min · leave 8:06 AM").assertExists()
-        // 16093.44 m + 15932 m = 19.9 mi to campus; per-card total = 31 + 19 + 5 min.
+        // 10.0 + 9.9 = 19.9 mi to campus (sum of shown hops); back is 5.0 + 4.5 = 9.5, so 29.4 round trip; per-card total = 31 + 19 + 5 min.
         composeRule.onNodeWithText("19.9 mi · 55 min").assertExists()
-        composeRule.onNodeWithText("Wednesday: 29.3 miles round trip.", substring = true).assertExists()
+        composeRule.onNodeWithText("Wednesday: 29.4 miles round trip.", substring = true).assertExists()
     }
 
     @Test fun unselectedWeekdaysAreDisabledAndSelectedOnesSwitch() {

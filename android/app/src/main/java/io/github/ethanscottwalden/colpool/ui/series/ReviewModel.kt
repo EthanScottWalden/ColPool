@@ -17,6 +17,12 @@ object ReviewFormat {
     /** `19.9`; the caller adds the unit. */
     fun miles(meters: Double): String = String.format(Locale.US, "%.1f", meters / METERS_PER_MILE)
 
+    /** A hop's miles as whole tenths, rounded once: the value shown, so totals can sum what the rider sees. */
+    fun milesTenths(meters: Double): Int = Math.round(meters / METERS_PER_MILE * 10.0).toInt()
+
+    /** `19.9` from 199 tenths; the caller adds the unit. */
+    fun tenths(tenths: Int): String = String.format(Locale.US, "%d.%d", tenths / 10, tenths % 10)
+
     /** One hop's minutes: `round(durationSec / 60)` per hop, a half minute rounds up (data-model 2.11). */
     fun hopMinutes(durationSec: Double): Int = Math.round(durationSec / 60.0).toInt()
 }
@@ -34,17 +40,17 @@ data class ReviewPoint(
 )
 
 /** The leg between a point and the next one. */
-data class ReviewHopRow(val minutes: Int, val meters: Double)
+data class ReviewHopRow(val minutes: Int, val milesTenths: Int)
 
 /**
  * One direction's card. [totalMinutes] is the sum of the displayed hop minutes plus the stop minutes, never a
- * recomputation from total seconds; [totalMeters] is the sum of the hop meters.
+ * recomputation from total seconds; [totalMilesTenths] is the sum of the displayed one-decimal hop miles (tenths), so the card total equals its hops.
  */
 data class ReviewCard(
     val points: List<ReviewPoint>,
     val hops: List<ReviewHopRow>,
     val totalMinutes: Int,
-    val totalMeters: Double,
+    val totalMilesTenths: Int,
 )
 
 object ReviewCards {
@@ -53,7 +59,7 @@ object ReviewCards {
      * campus point (names, in the order the direction travels). Times come from the stored `times`, never recomputed.
      */
     fun build(leg: DraftLeg, startName: String, endName: String): ReviewCard {
-        val hops = leg.hops.map { ReviewHopRow(ReviewFormat.hopMinutes(it.durationSec), it.meters) }
+        val hops = leg.hops.map { ReviewHopRow(ReviewFormat.hopMinutes(it.durationSec), ReviewFormat.milesTenths(it.meters)) }
         val last = leg.times.lastIndex
         val points = leg.times.mapIndexed { i, t ->
             when (i) {
@@ -62,6 +68,6 @@ object ReviewCards {
                 else -> ReviewPoint(ReviewRole.Stop, leg.stops[i - 1].name, t.arriveMin ?: 0, leg.stops[i - 1].minutes, t.departMin)
             }
         }
-        return ReviewCard(points, hops, hops.sumOf { it.minutes } + leg.stops.sumOf { it.minutes }, hops.sumOf { it.meters })
+        return ReviewCard(points, hops, hops.sumOf { it.minutes } + leg.stops.sumOf { it.minutes }, hops.sumOf { it.milesTenths })
     }
 }

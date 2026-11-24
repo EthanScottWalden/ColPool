@@ -112,7 +112,7 @@ fun ReviewScreen(
 fun ReviewContent(state: ReviewUiState, actions: ReviewActions, modifier: Modifier = Modifier) {
     Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Box(Modifier.fillMaxSize()) {
-            Column(Modifier.fillMaxSize()) {
+            Column(Modifier.fillMaxSize().then(if (state.confirming) Modifier.clearAndSetSemantics {} else Modifier)) {
                 ReviewHeader(actions.onBack)
                 when (state.load) {
                     ReviewLoad.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -179,13 +179,14 @@ private fun Loaded(state: ReviewUiState, draft: ReviewDraft, actions: ReviewActi
         DayTabs(draft, active, actions.onSelectDay)
         if (day != null) {
             val pickup = draft.pickupName
-            fun campus(l: DraftLeg) = state.campusNames[l.campusPointId] ?: l.campusPointId
+            val campusFallback = stringResource(R.string.review_campus_fallback)
+            fun campus(l: DraftLeg) = state.campusNames[l.campusPointId] ?: campusFallback
             val to = ReviewCards.build(day.toCampus, pickup, campus(day.toCampus))
             val from = ReviewCards.build(day.fromCampus, campus(day.fromCampus), pickup)
             DirectionCard(Direction.ToCampus, to)
             DirectionCard(Direction.FromCampus, from)
             Text(
-                stringResource(R.string.review_footnote, dayName, ReviewFormat.miles(to.totalMeters + from.totalMeters)),
+                stringResource(R.string.review_footnote, dayName, ReviewFormat.tenths(to.totalMilesTenths + from.totalMilesTenths)),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -271,7 +272,7 @@ private fun DirectionCard(direction: Direction, card: ReviewCard) {
         Column(Modifier.padding(16.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                 Text(stringResource(if (toCampus) R.string.series_to_campus else R.string.series_from_campus), Modifier.weight(1f).semantics { heading() }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(stringResource(R.string.review_card_total, ReviewFormat.miles(card.totalMeters), card.totalMinutes), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.review_card_total, ReviewFormat.tenths(card.totalMilesTenths), card.totalMinutes), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(Modifier.height(8.dp))
             card.points.forEachIndexed { i, p ->
@@ -327,7 +328,7 @@ private fun HopRow(h: ReviewHopRow) {
             Box(Modifier.width(2.dp).fillMaxHeight().background(MaterialTheme.colorScheme.onSurface).clearAndSetSemantics {})
         }
         Text(
-            stringResource(R.string.review_hop, h.minutes, ReviewFormat.miles(h.meters)),
+            stringResource(R.string.review_hop, h.minutes, ReviewFormat.tenths(h.milesTenths)),
             Modifier.padding(vertical = 8.dp),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

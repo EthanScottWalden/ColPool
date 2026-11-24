@@ -48,7 +48,7 @@ class ReviewFormatTest {
         assertEquals(listOf(ReviewRole.Start, ReviewRole.End), c.points.map { it.role })
         assertEquals(listOf("Pickup", "Yeager Center"), c.points.map { it.name })
         assertEquals(listOf(450, 500), c.points.map { it.time })
-        assertEquals(listOf(ReviewHopRow(50, 32000.0)), c.hops)
+        assertEquals(listOf(ReviewHopRow(50, 199)), c.hops)
         assertEquals(50, c.totalMinutes)
     }
 
@@ -70,7 +70,8 @@ class ReviewFormatTest {
         assertEquals(listOf(31, 19), c.hops.map { it.minutes })
         // Sum of the displayed hops plus the stop, not round(2940 / 60) + 5 = 54.
         assertEquals(31 + 19 + 5, c.totalMinutes)
-        assertEquals(15000.0, c.totalMeters, 0.001)
+        assertEquals(listOf(62, 31), c.hops.map { it.milesTenths })
+        assertEquals(93, c.totalMilesTenths)
     }
 
     @Test fun twoStopsKeepOrderAndTotals() {
@@ -85,7 +86,25 @@ class ReviewFormatTest {
         assertEquals(listOf("Campus", "A", "B", "Pickup"), c.points.map { it.name })
         assertEquals(listOf(5, 2, 10), c.hops.map { it.minutes })
         assertEquals(5 + 2 + 10 + 2 + 10, c.totalMinutes)
-        assertEquals(6000.0, c.totalMeters, 0.001)
+        assertEquals(37, c.totalMilesTenths)
         assertEquals("11:49 PM", ReviewFormat.time(c.points.last().time, nd))
+    }
+
+    @Test fun milesTotalsEqualTheSumOfDisplayedHopMiles() {
+        // Each 2000 m hop shows 1.2 mi; raw 6000 m would show 3.7, but the rider sees 1.2 + 1.2 + 1.2 = 3.6.
+        fun card(from: String, to: String) = ReviewCards.build(
+            leg(
+                listOf(DraftStop("A", 1), DraftStop("B", 1)),
+                List(3) { RouteHop(2000.0, 300.0) },
+                listOf(RouteTime(null, 400), RouteTime(405, 406), RouteTime(411, 412), RouteTime(417, null)),
+            ),
+            from, to,
+        )
+        val a = card("Pickup", "Yeager Center")
+        val b = card("Yeager Center", "Pickup")
+        assertEquals(listOf("1.2", "1.2", "1.2"), a.hops.map { ReviewFormat.tenths(it.milesTenths) })
+        assertEquals(a.hops.sumOf { it.milesTenths }, a.totalMilesTenths)
+        assertEquals("3.6", ReviewFormat.tenths(a.totalMilesTenths))
+        assertEquals("7.2", ReviewFormat.tenths(a.totalMilesTenths + b.totalMilesTenths))
     }
 }

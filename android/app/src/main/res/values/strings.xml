@@ -181,6 +181,7 @@
     <string name="review_back_at_pickup">Back at pickup spot</string>
     <string name="review_stop">Stop · %1$d min · leave %2$s</string>
     <string name="review_next_day">(next day)</string>
+    <string name="review_campus_fallback">Campus point</string>
     <string name="review_footnote">%1$s: %2$s miles round trip. Times include stops and assume the recommended route, without live traffic. Pacific Time.</string>
     <string name="review_go_back_edit">Go back and edit</string>
     <string name="review_post">Post series</string>
