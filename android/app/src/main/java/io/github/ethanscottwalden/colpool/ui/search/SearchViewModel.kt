@@ -30,6 +30,8 @@ data class SearchUiState(
     val currentYear: Int = 0,
     /** The series whose details are open. Never shown. */
     val openedSeriesId: String? = null,
+    /** True after a request was sent from the details screen: a "Request sent" banner shows until dismissed. */
+    val requestSent: Boolean = false,
 ) {
     override fun toString(): String = "SearchUiState(redacted)"
 }
@@ -46,7 +48,7 @@ class SearchViewModel(
 
     fun toggle(w: SeriesWeekday) {
         val picked = _state.value.picked.let { if (w in it) it - w else it + w }
-        _state.update { it.copy(picked = picked) }
+        _state.update { it.copy(picked = picked, requestSent = false) }
         if (picked.isEmpty()) {
             job?.cancel()
             _state.update { it.copy(load = SearchLoad.Idle, results = emptyList()) }
@@ -65,6 +67,14 @@ class SearchViewModel(
     fun open(id: String) = _state.update { s -> if (s.results.any { it.series.id == id }) s.copy(openedSeriesId = id) else s }
 
     fun close() = _state.update { it.copy(openedSeriesId = null) }
+
+    /** A request was sent (#38): back to the list with a confirmation, and the series is gone from the fresh results (RC-16). */
+    fun requestSent() {
+        _state.update { it.copy(openedSeriesId = null, requestSent = true) }
+        refresh()
+    }
+
+    fun dismissRequestSent() = _state.update { it.copy(requestSent = false) }
 
     /** Forgets everything (logging out, or leaving the student shell). */
     fun reset() {
