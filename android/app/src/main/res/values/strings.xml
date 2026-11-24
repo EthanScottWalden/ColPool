@@ -215,6 +215,7 @@
     <string name="hosting_day_open">%1$d open</string>
     <string name="hosting_riders_none">No riders yet</string>
     <string name="hosting_requests_heading">Requests · %1$d with pending days</string>
+    <string name="hosting_requests_heading_plain">Requests</string>
     <string name="hosting_requests_none">No requests yet.</string>
     <string name="requests_status_pending">pending</string>
     <string name="requests_status_accepted">accepted</string>

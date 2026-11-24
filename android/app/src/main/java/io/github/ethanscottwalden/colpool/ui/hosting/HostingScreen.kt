@@ -243,7 +243,7 @@ private fun Details(state: HostingUiState, s: HostedSeries, actions: HostingActi
             )
         }
         Text(
-            stringResource(R.string.hosting_requests_heading, requests.forSeries.size), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
+            if (requests.seriesFailed && requests.forSeries.isEmpty()) stringResource(R.string.hosting_requests_heading_plain) else stringResource(R.string.hosting_requests_heading, requests.forSeries.size), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold,
             modifier = Modifier.testTag(HostingTags.RequestsHeading).semantics { heading() },
         )
         if (requests.seriesFailed) {
