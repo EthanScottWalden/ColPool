@@ -76,7 +76,7 @@ object SearchRules {
         start: GeoPoint?,
     ): List<SearchResult> {
         val results = series.asSequence()
-            .filter { it.hostId != me && it.id !in requested && qualifies(it, picked, now) }
+            .filter { it.hostId.isNotBlank() && it.hostId != me && it.id !in requested && qualifies(it, picked, now) }
             .map { s ->
                 val days = SeriesWeekday.entries.filter { it.id in s.weekdayIds }.map { it to dayState(s, it, picked, now) }
                 val d = if (start != null && s.pickupLat != null && s.pickupLng != null) tenths(haversineMiles(start.lat, start.lng, s.pickupLat, s.pickupLng)) else null

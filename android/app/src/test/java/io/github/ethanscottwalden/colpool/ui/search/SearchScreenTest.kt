@@ -132,6 +132,9 @@ class SearchScreenTest {
         composeRule.onNodeWithTag(SearchTags.day(SeriesWeekday.Mon)).performClick()
         composeRule.onNodeWithTag(SearchTags.day(SeriesWeekday.Tue)).performClick()
         // mid: Mon full, Tue open, Thu not needed; far (Tue has no trips left) does not qualify via Tue but Thu is not picked.
+        composeRule.onAllNodes(androidx.compose.ui.test.hasContentDescription("Tuesday, open")).fetchSemanticsNodes().isNotEmpty().let(::assertTrue)
+        composeRule.onAllNodes(androidx.compose.ui.test.hasContentDescription("Monday, full")).fetchSemanticsNodes().isNotEmpty().let(::assertTrue)
+        composeRule.onAllNodes(androidx.compose.ui.test.hasContentDescription("Thursday, not needed")).fetchSemanticsNodes().isNotEmpty().let(::assertTrue)
         composeRule.onAllNodesWithTextCount("full", 1)
         assertTrue(composeRule.onAllNodes(hasText("not needed")).fetchSemanticsNodes().isNotEmpty())
         assertTrue(composeRule.onAllNodes(hasText("open")).fetchSemanticsNodes().isNotEmpty())
@@ -154,6 +157,7 @@ class SearchScreenTest {
         show()
         composeRule.onNodeWithTag(SearchTags.day(SeriesWeekday.Mon)).assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Checkbox))
         composeRule.onNodeWithTag(SearchTags.day(SeriesWeekday.Mon)).performClick()
+        composeRule.onNodeWithTag(SearchTags.day(SeriesWeekday.Mon)).assert(hasText("needed", substring = true))
         composeRule.onNodeWithTag(SearchTags.day(SeriesWeekday.Mon)).assert(SemanticsMatcher.expectValue(SemanticsProperties.ToggleableState, androidx.compose.ui.state.ToggleableState.On))
         composeRule.onNodeWithTag(SearchTags.day(SeriesWeekday.Mon)).assertHeightIsAtLeast(48.dp)
     }

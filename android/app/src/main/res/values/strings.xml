@@ -278,6 +278,8 @@
     <string name="search_day_open">open</string>
     <string name="search_day_full">full</string>
     <string name="search_day_no_trips">no trips left</string>
+    <string name="search_day_needed">needed</string>
+    <string name="search_day_cd">%1$s, %2$s</string>
     <string name="search_day_not_needed">not needed</string>
     <string name="search_picked_cd">%1$s, needed</string>
     <string name="search_times">%1$s: leaves %2$s, at campus ~%3$s, leaves campus %4$s</string>

@@ -4,7 +4,10 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -87,15 +90,15 @@ fun SearchContent(state: SearchUiState, actions: SearchActions, modifier: Modifi
             Header(stringResource(R.string.search_title))
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(stringResource(R.string.search_days_label), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.semantics { heading() })
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     SeriesWeekday.entries.forEach { w ->
                         val name = stringResource(w.fullName)
                         val cd = stringResource(R.string.search_picked_cd, name)
                         val picked = w in state.picked
                         DayChip(
                             selected = picked, enabled = true, onClick = { actions.onToggleDay(w) },
-                            title = stringResource(w.shortName), sub = null,
-                            modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag(SearchTags.day(w)).semantics { contentDescription = if (picked) cd else name },
+                            title = stringResource(w.shortName), sub = if (picked) stringResource(R.string.search_day_needed) else null,
+                            modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = 48.dp).testTag(SearchTags.day(w)).semantics { contentDescription = if (picked) cd else name },
                             role = Role.Checkbox,
                         )
                     }
@@ -113,7 +116,7 @@ private fun Body(state: SearchUiState, actions: SearchActions) {
         SearchLoad.Idle -> Text(stringResource(R.string.search_pick_days), Modifier.testTag(SearchTags.Pick), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         SearchLoad.Loading -> Row(Modifier.fillMaxWidth().padding(24.dp), horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
             CircularProgressIndicator()
-            Text(stringResource(R.string.search_loading), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.search_loading), Modifier.semantics { liveRegion = LiveRegionMode.Polite }, style = MaterialTheme.typography.bodyMedium)
         }
         SearchLoad.Failed -> Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(stringResource(R.string.search_load_failed), Modifier.semantics { liveRegion = LiveRegionMode.Polite }, style = MaterialTheme.typography.bodyLarge)
@@ -126,7 +129,7 @@ private fun Body(state: SearchUiState, actions: SearchActions) {
                 Text(stringResource(R.string.search_no_address), Modifier.testTag(SearchTags.NoAddress), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
             }
             if (state.results.isEmpty()) {
-                Text(stringResource(R.string.search_empty), Modifier.testTag(SearchTags.Empty), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.search_empty), Modifier.testTag(SearchTags.Empty).semantics { liveRegion = LiveRegionMode.Polite }, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
                 Text(
                     SearchText.count(res, state.results.size, state.hasStart), Modifier.testTag(SearchTags.Count).semantics { heading() },
@@ -176,8 +179,9 @@ private fun StateChip(w: SeriesWeekday, st: DayState, modifier: Modifier = Modif
     val res = LocalContext.current.resources
     val label = SearchText.dayState(res, st)
     val active = st == DayState.Open
+    val cd = stringResource(R.string.search_day_cd, stringResource(w.fullName), label)
     Surface(
-        modifier = modifier,
+        modifier = modifier.semantics(mergeDescendants = true) { contentDescription = cd },
         shape = RoundedCornerShape(8.dp),
         color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
         contentColor = if (st == DayState.NotNeeded) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
@@ -185,7 +189,7 @@ private fun StateChip(w: SeriesWeekday, st: DayState, modifier: Modifier = Modif
     ) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(stringResource(w.shortName), maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelLarge)
-            Text(label, maxLines = 2, textAlign = TextAlign.Center, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, letterSpacing = 0.sp, lineHeight = 12.sp))
+            Text(label, maxLines = 2, textAlign = TextAlign.Center, style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp, letterSpacing = 0.sp, lineHeight = 14.sp))
         }
     }
 }

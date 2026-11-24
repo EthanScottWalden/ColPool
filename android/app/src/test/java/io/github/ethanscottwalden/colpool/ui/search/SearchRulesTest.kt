@@ -39,6 +39,11 @@ class SearchRulesTest {
         assertEquals(SearchRules.haversineMiles(33.9, -117.3, 34.0, -117.5), SearchRules.haversineMiles(34.0, -117.5, 33.9, -117.3), 1e-9)
     }
 
+    @Test fun seriesWithoutAHostIdIsSkipped() {
+        val s = SearchTestData.series("blank", SearchTestData.doc("", "p", 33.9190, -117.3700, listOf("mon")))
+        assertTrue(SearchRules.rank(listOf(s), setOf(Mon), now, "me", emptySet(), SearchTestData.RIDER).isEmpty())
+    }
+
     @Test fun roundsToOneDecimal() {
         assertEquals(41, SearchRules.tenths(4.1))
         assertEquals(41, SearchRules.tenths(4.14))
