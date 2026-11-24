@@ -76,7 +76,7 @@ class HostingScreenTest {
         composeRule.onNodeWithText("7:30 AM").assertExists()
         composeRule.onNodeWithText("Stop · 5 min · leave 8:06 AM").assertExists()
         composeRule.onNodeWithText("No riders yet").assertExists()
-        composeRule.onNodeWithText("No requests yet").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("No requests yet.").performScrollTo().assertIsDisplayed()
     }
 
     @Test fun dayTabsSwitchAndUnusedDaysAreDisabled() {
