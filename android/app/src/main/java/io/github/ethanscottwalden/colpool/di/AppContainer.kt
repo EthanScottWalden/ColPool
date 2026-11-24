@@ -10,6 +10,8 @@ import com.google.firebase.firestore.MemoryCacheSettings
 import com.google.firebase.functions.FirebaseFunctions
 import io.github.ethanscottwalden.colpool.BuildConfig
 import io.github.ethanscottwalden.colpool.config.EmulatorConfig
+import io.github.ethanscottwalden.colpool.data.notifications.FirebaseNotificationsBackend
+import io.github.ethanscottwalden.colpool.data.notifications.NotificationsBackend
 import io.github.ethanscottwalden.colpool.data.places.PlacesAutocomplete
 import io.github.ethanscottwalden.colpool.data.places.PlacesSdkAutocomplete
 import io.github.ethanscottwalden.colpool.data.requests.FirebaseHostRequestsBackend
@@ -59,4 +61,5 @@ class AppContainer(private val appContext: Context) {
     val seriesBackend: SeriesBackend by lazy { FirebaseSeriesBackend(firestore, functions) { auth.currentUser?.uid } }
     val requestBackend: RequestBackend by lazy { FirebaseRequestBackend(firestore, functions) { auth.currentUser?.uid } }
     val hostRequestsBackend: HostRequestsBackend by lazy { FirebaseHostRequestsBackend(firestore) { auth.currentUser?.uid } }
+    val notificationsBackend: NotificationsBackend by lazy { FirebaseNotificationsBackend(firestore) { auth.currentUser?.uid } }
 }

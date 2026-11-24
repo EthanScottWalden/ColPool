@@ -11,6 +11,7 @@ import io.github.ethanscottwalden.colpool.ui.ColPoolRoot
 import io.github.ethanscottwalden.colpool.ui.address.AddressSearchViewModel
 import io.github.ethanscottwalden.colpool.ui.auth.AuthViewModel
 import io.github.ethanscottwalden.colpool.ui.hosting.HostRequestsViewModel
+import io.github.ethanscottwalden.colpool.ui.notifications.NotificationsViewModel
 import io.github.ethanscottwalden.colpool.ui.hosting.HostingViewModel
 import io.github.ethanscottwalden.colpool.ui.details.DetailsViewModel
 import io.github.ethanscottwalden.colpool.ui.search.SearchViewModel
@@ -75,13 +76,17 @@ class MainActivity : ComponentActivity() {
         viewModelFactory { initializer { HostRequestsViewModel((application as ColPoolApp).container.hostRequestsBackend) } }
     }
 
+    private val notifications: NotificationsViewModel by viewModels {
+        viewModelFactory { initializer { NotificationsViewModel((application as ColPoolApp).container.notificationsBackend) } }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
         splash.setKeepOnScreenCondition { session.state.value is SessionState.Resolving }
         setContent {
             ColPoolTheme {
-                ColPoolRoot(session, auth, onboarding, profile, editProfile, addressSearch, createSeries, review, hosting, search, details, hostRequests)
+                ColPoolRoot(session, auth, onboarding, profile, editProfile, addressSearch, createSeries, review, hosting, search, details, hostRequests, notifications)
             }
         }
     }

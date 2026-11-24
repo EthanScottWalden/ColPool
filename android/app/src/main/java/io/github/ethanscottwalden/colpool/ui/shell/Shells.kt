@@ -39,9 +39,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.ethanscottwalden.colpool.R
+import io.github.ethanscottwalden.colpool.ui.notifications.NotificationRules
 
 /** Test tag of the Hosting tab's pending-requests badge. */
 const val HOSTING_BADGE_TAG = "hosting_tab_badge"
+
+/** Test tag of the Notifications tab's unread badge. */
+const val NOTIFICATIONS_BADGE_TAG = "notifications_tab_badge"
+
+/** Index of the Notifications tab in the student footer. */
+const val NOTIFICATIONS_TAB = 3
 
 /** Prototype green for the staff header (26-export-carpool-data.png); dark text on it has strong contrast. */
 private val StaffGreen = Color(0xFFCDE5C4)
@@ -57,8 +64,21 @@ private enum class StudentTab(val label: Int, val glyph: String) {
 
 /** Student footer with five tabs. Search, Profile and Hosting are real; the other tabs are placeholders until their Issues. */
 @Composable
-fun StudentShell(searchTab: @Composable (Modifier) -> Unit, profileTab: @Composable (Modifier) -> Unit, hostingTab: @Composable (Modifier) -> Unit, initialTab: Int = 0, modifier: Modifier = Modifier, hostingBadge: Int = 0) {
-    var selected by rememberSaveable { mutableIntStateOf(initialTab) }
+fun StudentShell(
+    searchTab: @Composable (Modifier) -> Unit,
+    profileTab: @Composable (Modifier) -> Unit,
+    hostingTab: @Composable (Modifier) -> Unit,
+    initialTab: Int = 0,
+    modifier: Modifier = Modifier,
+    hostingBadge: Int = 0,
+    notificationsTab: (@Composable (Modifier) -> Unit)? = null,
+    notificationsBadge: Int = 0,
+    /** When set, the caller owns which tab is open (e.g. the banner opens Notifications). */
+    selectedTab: Int? = null,
+    onTabSelected: (Int) -> Unit = {},
+) {
+    var own by rememberSaveable { mutableIntStateOf(initialTab) }
+    val selected = selectedTab ?: own
     Scaffold(
         modifier = modifier,
         bottomBar = {
@@ -66,12 +86,16 @@ fun StudentShell(searchTab: @Composable (Modifier) -> Unit, profileTab: @Composa
                 StudentTab.entries.forEachIndexed { i, tab ->
                     NavigationBarItem(
                         selected = selected == i,
-                        onClick = { selected = i },
+                        onClick = { own = i; onTabSelected(i) },
                         icon = {
                             val glyph = @Composable { Text(tab.glyph, Modifier.clearAndSetSemantics {}, style = MaterialTheme.typography.titleMedium) }
                             if (tab == StudentTab.Hosting && hostingBadge > 0) {
                                 val cd = pluralStringResource(R.plurals.hosting_tab_badge_cd, hostingBadge, hostingBadge)
                                 BadgedBox(badge = { Badge(Modifier.offset(x = 10.dp, y = (-4).dp).testTag(HOSTING_BADGE_TAG).semantics { contentDescription = cd }) { Text(hostingBadge.toString(), Modifier.clearAndSetSemantics {}) } }) { glyph() }
+                            } else if (tab == StudentTab.Notifications && notificationsBadge > 0) {
+                                val cd = pluralStringResource(R.plurals.notifications_tab_badge_cd, notificationsBadge, notificationsBadge)
+                                val text = NotificationRules.badgeText(notificationsBadge).orEmpty()
+                                BadgedBox(badge = { Badge(Modifier.offset(x = 10.dp, y = (-4).dp).testTag(NOTIFICATIONS_BADGE_TAG).semantics { contentDescription = cd }) { Text(text, Modifier.clearAndSetSemantics {}) } }) { glyph() }
                             } else {
                                 glyph()
                             }
@@ -89,6 +113,8 @@ fun StudentShell(searchTab: @Composable (Modifier) -> Unit, profileTab: @Composa
             profileTab(Modifier.padding(padding))
         } else if (tab == StudentTab.Hosting) {
             hostingTab(Modifier.padding(padding))
+        } else if (tab == StudentTab.Notifications && notificationsTab != null) {
+            notificationsTab(Modifier.padding(padding))
         } else {
             Centered(Modifier.padding(padding)) {
                 Text(stringResource(tab.label), style = MaterialTheme.typography.headlineMedium)
