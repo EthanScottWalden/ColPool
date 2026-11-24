@@ -3,7 +3,7 @@
 > **Contract #13 (TMP-04).** Changes only through a separate, reviewed contract-change Issue.
 > Decisions and rejected alternatives: [ADR 0002](adr/0002-firestore-layout.md).
 > Code: `functions/src/shared/schema/` (names, types, limits, key builders, option seeds). The Android Kotlin models must mirror these names exactly.
-> Series, draft, request and roster collections are not here: #20 and #44 own them. Notifications are #21.
+> Series, draft, request and roster collections are not here: #20 and #44 own them. Notifications are in §2.9 (#21).
 
 Conventions:
 - Document ids for per-student docs are the Auth uid.
@@ -25,6 +25,10 @@ Conventions:
 | `schedules/{uid}` | backend | owner | RC-32 lookup. |
 | `campusPoints/{pointId}` | seed script | consented students | Never deleted. |
 | `options/profile` | seed script | consented students | One doc, five lists. |
+| `series/{seriesId}` | backend | any consented student | Posted series with stored routes and seats (§2.10). |
+| `seriesDrafts/{draftId}` | backend | its host (get only) | Reviewed draft with calculated routes (§2.11). |
+| `requests/{seriesId}_{riderUid}` | backend | its rider and the series' host | One request per rider and series (§2.12). |
+| `users/{uid}/notifications/{id}` | backend | owner (may flip `read` to true) | Server-rendered notification (§2.9). |
 
 "Consented student" means `exists(/databases/$(database)/documents/consents/$(request.auth.uid))` and not an institution account.
 
@@ -71,7 +75,7 @@ RC-30 constants (code: `PROFILE_LIMITS`; a test checks this table against the co
 | `aboutMeMax` | 300 | `aboutMe` |
 | `ageMin` | 18 | `age` |
 
-Other RC-30 limits (riders, price, stop minutes, vehicle) belong to the series contract (#20). The password limit belongs to the sign-up function (#14).
+Other RC-30 limits (riders, price, stop minutes, vehicle) are in §2.10. The password limit belongs to the sign-up function (#14).
 
 ### 2.4 `consents/{uid}`
 | Field | Type | Notes |
@@ -164,5 +168,112 @@ One doc holds all five predefined lists (RC-22). Each entry is `{ id, label, ord
 
 Values come from the prototype (24-edit-profile) with stable kebab-case ids; see `options.ts`. Rules read the doc with one `get()` and only when a write changes a list-backed field. `buildProfileOptionsDoc()` derives the id arrays from the entries so they cannot drift.
 
+### 2.9 `users/{uid}/notifications/{notificationId}` (contract #21, [ADR 0005](adr/0005-notifications.md))
+One doc per notification, in the recipient's own subcollection. Created only through `writeNotification` (`functions/src/shared/notifications/`), inside the transaction or batch that caused the event. Layout is **provisional** until the owner confirms (ADR 0005).
+
+| Field | Type | Notes |
+|---|---|---|
+| `type` | string | `request_new`, `day_accepted`, `day_declined`, `day_auto_declined_full`, `day_auto_declined_conflict`, `rider_removed`, `rider_left`, `request_withdrawn`, `series_cancelled`, `series_ended` |
+| `seriesId` | string | Related series. |
+| `weekdays` | string[] | Optional. Weekday ids, Monday first. One id for per-weekday events, one or more for `request_new`. Absent on series events. |
+| `title`, `body`, `seriesLine` | string | Server-rendered, frozen at event time. `seriesLine` is "[Host first name]'s series from [pickup spot]". |
+| `createdAt` | timestamp | Server timestamp. |
+| `read` | bool | `false` at create. |
+
+Ids are deterministic so a repeated event fails with ALREADY_EXISTS instead of duplicating: `${type}_${seriesId}` for `series_cancelled` and `series_ended`; `request_new_${seriesId}_${riderUid}`; `${type}_${seriesId}_${weekday}` for the four day decisions and `rider_removed`; `${type}_${seriesId}_${riderUid}_${weekday}` for `rider_left` and `request_withdrawn`. Leaving or withdrawing several days writes one notification per weekday. No actor uid is stored. Text never contains addresses, emails or free text.
+
+Rules: the recipient (a consented student) may get and list; update may change only `read`, only to `true`; create and delete are denied; no collection-group rule.
+
+### 2.10 `series/{seriesId}` (contract #20, [ADR 0006](adr/0006-series-draft-seat-layout.md))
+`seriesId` equals the draft id, so posting twice cannot create two series. Written by functions only; any consented student may get or list. Layout is **provisional** until the owner confirms (ADR 0006).
+
+| Field | Type | Notes |
+|---|---|---|
+| `hostId` | string | Host uid. No host name copy; readers use `profiles` through RC-01. |
+| `status` | `"active"` \| `"cancelled"` \| `"ended"` | active to cancelled and active to ended only; both terminal. Never deleted (RC-24). |
+| `pickupSpot` | `{text, placeId, lat, lng}` | Chosen Places suggestion (RC-13). |
+| `startDate`, `endDate` | `PacificDate` (`YYYY-MM-DD`) | America/Los_Angeles dates. |
+| `priceDollars` | integer | 1 to 99 (RC-30). |
+| `vehicle` | string | At most 60 chars (RC-30). |
+| `maxRiders` | integer | 1 to 6 (RC-30). |
+| `weekdays` | `Weekday[]` | Monday first. |
+| `days` | map weekday to `{toCampus: Leg, fromCampus: Leg}` | Only selected weekdays. |
+| `openSeats` | map weekday to integer | Seat source of truth; starts at `maxRiders`. |
+| `openWeekdays` | `Weekday[]` | Weekdays with `openSeats` above 0 (search field); changes with `openSeats`. |
+| `lastDepartureAt` | map weekday to timestamp | Last departure from the pickup spot on or before `endDate`, computed at posting. Key absent if no date in range. |
+| `inputHash` | string | SHA-256 of the reviewed input (matches the draft). |
+| `postedAt` | timestamp | Server time. |
+
+`Leg` = `{departTime: "HH:mm", campusPointId, stops: [{address: {text, placeId, lat, lng}, minutes}], route: RouteResult}`. Stop `minutes` is 0 to 120 (RC-30), at most 25 stops per direction (provisional; to become 10, #143).
+`RouteResult` = `{legs: [{meters, durationSec}], totalMeters, totalDurationSec, times: [{arriveMin?, departMin?}]}`; times are minutes after local midnight and may exceed 1439.
+
+Created by the post-series function in one transaction with the draft update, the host's `schedules` entries and `profileAccess.activeHostedSeries` ([ADR 0009](adr/0009-post-series.md)).
+
+After posting only `SERIES_MUTABLE_FIELDS` (`openSeats`, `openWeekdays`, `status`) change, and only from functions. #26 adds `cancelledAt` and `endedAt`. Routes never change (RC-12).
+
+Constants (code: `SERIES_LIMITS`; a test checks this table against the code):
+
+| Constant | Value | Applies to |
+|---|---|---|
+| `ridersMin` | 1 | `maxRiders` |
+| `ridersMax` | 6 | `maxRiders` |
+| `priceDollarsMin` | 1 | `priceDollars` |
+| `priceDollarsMax` | 99 | `priceDollars` |
+| `vehicleMax` | 60 | `vehicle` |
+| `stopMinutesMin` | 0 | `stops[].minutes` |
+| `stopMinutesMax` | 120 | `stops[].minutes` |
+| `maxActiveHosted` | 5 | Active hosted series per student (RC-31) |
+| `maxStopsPerDirection` | 25 | Provisional; Routes API waypoint limit. Owner decision 2026-11-23: becomes 10 in contract-change Issue #143 (not yet applied) |
+
+Time helper (`functions/src/shared/time`): "trips left" for a weekday is true when `now` is strictly before `lastDepartureAt[weekday]`. A selected weekday with no date in range has no key and never has trips left.
+
+### 2.11 `seriesDrafts/{draftId}`
+Written by the route-preview and post functions. The host may `get` their own draft; no list. Never deleted.
+
+| Field | Type | Notes |
+|---|---|---|
+| `hostId` | string | |
+| `input` | `SeriesInput` | Everything the host entered; no route values. |
+| `inputHash` | string | SHA-256 of canonical JSON (sorted keys) of `input`: the "reviewed" marker. Post checks it still matches. |
+| `route` | map weekday to `{toCampus, fromCampus}` `RouteResult` | Calculated once per weekday and direction. |
+| `reviewedAt`, `createdAt`, `updatedAt` | timestamp | Server time. |
+| `status` | `"reviewed"` \| `"posted"` | |
+| `postedAt` | timestamp, optional | |
+
+Post series (#30, [ADR 0009](adr/0009-post-series.md)) sets `status: "posted"` and `postedAt`.
+
+Route preview (#28, [ADR 0008](adr/0008-route-preview.md)) writes it in one Firestore transaction with no external calls inside it:
+- **Create** (no draft id sent): auto id, `status: "reviewed"`, all three timestamps set to server time.
+- **Overwrite** (draft id sent, still `reviewed` and owned by the caller): replaces `input`, `inputHash`, `route`, `reviewedAt` and `updatedAt`; `createdAt` and `hostId` are kept. A posted draft or another host's draft is never touched (the caller gets `failed-precondition` or `not-found`).
+- A failed preview (invalid input, no route, campus-time check, Routes down) writes nothing. Nothing is deleted.
+
+**Expected times (`RouteResult.times`)**, computed once at review and stored; the Android app uses the same rule if it ever needs to show a time:
+- Each hop is rounded on its own: `legMin = Math.round(durationSec / 60)` (a half minute rounds up). Rounding the total instead would give different times.
+- The first point has `departMin` = the leg's `departTime` in minutes after local midnight. Each later point has `arriveMin` = previous `departMin` + previous `legMin`. At a stop, `departMin` = `arriveMin` + that stop's `minutes`. The last point has only `arriveMin`.
+- Values above 1439 are kept (a trip can cross midnight); the campus-departure check rejects an arrival past midnight.
+- `legs[].durationSec` is the Routes value as returned (may be fractional); totals are plain sums.
+
+### 2.12 `requests/{seriesId}_{riderUid}` (#35, [ADR 0010](adr/0010-requests.md))
+Backend written by `sendRequest`; the rider and the series' host may `get` and `list` (queries must filter on `riderId` or `hostId`). No client write. Never deleted. The id is the one-request-per-rider-and-series guarantee (RC-15). **Provisional:** the per-weekday status values and the timestamp fields are settled by #26.
+
+| Field | Type | Notes |
+|---|---|---|
+| `seriesId` | string | |
+| `riderId` | string | |
+| `hostId` | string | Copied from the series so rules need no second read. |
+| `weekdays` | `Weekday[]` | Monday-first, the weekdays asked for. |
+| `days` | map weekday to `{status}` | `status` is `"pending"` at creation. Not indexed. |
+| `createdAt` | timestamp | Server time. |
+
+No names or other personal data are stored. Sending also writes `schedules/{rider}.entries` (role `rider`, state `pending`, one per weekday), `profileAccess` for RC-01 cases 2 and 3 (`req:<seriesId>`), and one `request_new` notification for the host, in one transaction. Seats are not changed until the host accepts (#40).
+
 ## 3. Indexes
-`firestore.indexes.json` carries single-field index exemptions for `profileAccess.viewers`, `profileAccess.activeHostedSeries` and `schedules.entries`. These maps have per-uid and per-series keys, so automatic indexing would create an index entry per key that no query uses. Search indexes belong to #20.
+`firestore.indexes.json` carries single-field index exemptions for `profileAccess.viewers`, `profileAccess.activeHostedSeries`, `schedules.entries`, `series.days`, `series.openSeats`, `series.lastDepartureAt`, `requests.days`, `seriesDrafts.input` and `seriesDrafts.route`. These maps have per-uid, per-series or per-weekday keys, so automatic indexing would create index entries that no query uses.
+
+No index is needed for notifications: the unread count uses `where read == false` and history uses `orderBy createdAt`. "Unread newest first" in one query would need a composite index on `read` and `createdAt` (#25).
+
+Composite indexes (collection scope):
+- `series`: `status` ascending, `openWeekdays` array-contains. The search query: `status == "active"` and `openWeekdays array-contains-any [...]`.
+- `series`: `hostId` ascending, `status` ascending. A host's active series (RC-31 count, hosted list).
+- `requests`: `riderId` ascending, `createdAt` descending. A rider's requests, newest first.
+- `requests`: `hostId` ascending, `seriesId` ascending, `createdAt` ascending. A host's requests for one series.

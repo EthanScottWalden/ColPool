@@ -35,8 +35,8 @@ Rules treat a student as consented iff `exists(/databases/$(database)/documents/
 - **Rejected: query-time RC-32 checks** (querying every series and request on each check). It is slow, needs many indexes, cannot be made atomic with an accept, and misses concurrency.
 - Recorded in ARCHITECTURE §2.
 
-#### RC-32 edge semantics: OPEN
-These are **not settled here**. The Issue that implements the conflict check (request, accept, post) must decide them, with the product owner where SPEC is silent. The schedule doc stores enough (dates, weekday, state) to support any answer.
+#### RC-32 edge semantics: see [ADR 0007](0007-shared-series-validation.md)
+Settled by owner decision in ADR 0007; the original open questions follow for reference. These were **not settled here**. The Issue that implements the conflict check (request, accept, post) must decide them, with the product owner where SPEC is silent. The schedule doc stores enough (dates, weekday, state) to support any answer.
 1. **Posting while holding a conflicting pending weekday.** RC-32 blocks posting on a weekday the host is *accepted* on as a rider. SPEC does not say what happens if the host has only a *pending* request on that weekday.
 2. **Date-range overlap.** Whether overlap counts only on actual shared weekdays within the range, or the whole date ranges overlapping, when the two series have different weekdays. (SPEC §4.1: "both run on it and their date ranges overlap".)
 3. **A weekday with no trips left (RC-33)** that is still pending or accepted: whether it still blocks a conflicting weekday.

@@ -7,3 +7,6 @@ setGlobalOptions({ region: "us-west2" });
 export const ping = process.env["FUNCTIONS_EMULATOR"] === "true" ? pingFunction : undefined;
 
 export { signUp } from "./signUp.js";
+export { routePreview } from "./routePreview.js";
+export { postSeries } from "./postSeries.js";
+export { sendRequest } from "./sendRequest.js";

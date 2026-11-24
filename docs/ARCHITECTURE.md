@@ -61,12 +61,15 @@ Not in the approved stack (don't add without a documented human decision): Cloud
 | Android UI toolkit, minimum Android version and app structure (pattern, modules) | #11 (TMP-02) | Jetpack Compose + Material 3, single Activity; minSdk 26 (compile 37, target 36); MVVM with one-way data flow, manual DI (`AppContainer`), single `:app` module packaged by feature. See [ADR 0001](adr/0001-android-setup.md). |
 | Gradle root and emulator auto-start for debug builds | Developer tooling (#116, #117, #118), owner decision 2026-11-17 | Gradle root is the repo root, `:app` stays at `android/app`; Windows `assembleDebug`/`installDebug` start the seeded emulators in WSL (`npm run emulators:dev`). See [ADR 0001](adr/0001-android-setup.md). |
 | Functions toolchain and emulator harness | #12 (TMP-03) | TypeScript on a Node 22 runtime (Node >=24.12 for dev and CI), `node:test`, emulator project `demo-colpool`, default-deny `firestore.rules`, project-local `.cache/`. See [ADR 0003](adr/0003-functions-emulator-setup.md). |
-| Exact Firestore collection layout | #13 (TMP-04), #20 (TMP-14) | Core: `users`, `privateDetails`, `profiles`, `consents`, `profileAccess`, `schedules`, `campusPoints`, `options/profile`, one doc per student where per-student. See [data model](data-model.md) and [ADR 0002](adr/0002-firestore-layout.md). Series, draft and request layout: #20 (_TBD_). |
+| Exact Firestore collection layout | #13 (TMP-04), #20 (TMP-14) | Core: `users`, `privateDetails`, `profiles`, `consents`, `profileAccess`, `schedules`, `campusPoints`, `options/profile`, one doc per student where per-student. See [data model](data-model.md) and [ADR 0002](adr/0002-firestore-layout.md). Series and drafts: `series/{seriesId}` (seats per weekday in `openSeats`, search fields `status` and `openWeekdays`) and `seriesDrafts/{draftId}` (reviewed input hash and routes); provisional, see [ADR 0006](adr/0006-series-draft-seat-layout.md) and [data model](data-model.md) §2.10-2.11. Requests: `requests/{seriesId}_{riderUid}`; [ADR 0010](adr/0010-requests.md), [data model](data-model.md) §2.12 (status values and timestamps: #26). |
 | How rules recognize a consented student (custom claim vs reading the consent record) | #13 (TMP-04) | Rules read the record: `exists(consents/{uid})`; no consent claim. See [ADR 0002](adr/0002-firestore-layout.md) §1. |
 | Institution custom claim key | #18 (TMP-13), #15 | `institution: true` (boolean). Rules treat any `institution` claim as institution; the script sets `true`. Rules check it alongside the consent record (`isInstitution()` in `firestore.rules`); #15's script sets it. Owner decision 2026-11-16. |
 | Role routing signal, splash and Firestore cache | #19 (TMP-06) | Staff = `institution` token claim; students = server read of own `privateDetails` (denied = no consent, missing = Onboarding, address = Search; errors = retry, never a route). Android system splash (core-splashscreen). Firestore memory-only cache. Log out lives on the Profile screen (#27) and Onboarding. See [ADR 0004](adr/0004-sign-in-routing.md). |
 | How profile permissions and weekday rosters are stored | #13 (TMP-04), #44 (TMP-37) | Permissions: one backend-only `profileAccess/{ownerId}` doc with reason sets (idempotent). See [ADR 0002](adr/0002-firestore-layout.md) §3, [data model](data-model.md) §2.5. Weekday rosters: _TBD_ (#44). |
-| How the backend finds a student's accepted and hosted weekdays across series for RC-32 conflict checks (e.g. a per-student schedule record kept in the same transactions) | #13 (TMP-04), #20 (TMP-14) | One `schedules/{uid}` doc per student, kept in the same transactions as every lifecycle change; concurrent accepts serialize on it. See [ADR 0002](adr/0002-firestore-layout.md) §4. RC-32 edge semantics still open there. |
+| How the backend finds a student's accepted and hosted weekdays across series for RC-32 conflict checks (e.g. a per-student schedule record kept in the same transactions) | #13 (TMP-04), #20 (TMP-14) | One `schedules/{uid}` doc per student, kept in the same transactions as every lifecycle change; concurrent accepts serialize on it. See [ADR 0002](adr/0002-firestore-layout.md) §4. Edge semantics: [ADR 0007](adr/0007-shared-series-validation.md). |
+| Route preview | #28 (TMP-16) | Callable `routePreview`, latLng waypoints, per-leg rounding; [ADR 0008](adr/0008-route-preview.md). |
+| Post series | #30 (TMP-17) | `postSeries` callable, one transaction, idempotent on draft id; [ADR 0009](adr/0009-post-series.md). |
+| Notification records and writer | #21 | `users/{uid}/notifications`, server-rendered text, deterministic ids, read-only flip; [ADR 0005](adr/0005-notifications.md). |
 | Phase 6 performance dataset size | #50 (TMP-48) | _TBD_ |
 
 ---
@@ -89,7 +92,7 @@ Not in the approved stack (don't add without a documented human decision): Cloud
 | Function / job | Responsibility | Source |
 |---|---|---|
 | Sign-up | Checks `@calbaptist.edu`, password, name lengths, consent; creates Auth account + user records + consent record (server timestamp) in one step; deletes the Auth account if a later step fails, and logs failures (uid and error code only). Errors carry `details.reason`, listed in `functions/src/shared/auth/reasons.ts` (`SIGN_UP_REASONS`). Every student-facing callable first runs the shared `requireStudent` check (`functions/src/shared/auth/requireStudent.ts`): signed in, no `institution` claim, consent record exists. | RC-06, INTENT §3.1 |
-| Route preview | Runs shared validation; calls Routes once per weekday × direction; computes expected times; stores result on a **server-side draft** with a "what was reviewed" marker; names the failing address. | RC-12, RC-14, RC-28 |
+| Route preview | Runs shared validation; calls Routes once per weekday × direction (identical legs are sent once, [ADR 0008](adr/0008-route-preview.md)); computes expected times; stores result on a **server-side draft** with a "what was reviewed" marker; names the failing address. | RC-12, RC-14, RC-28 |
 | Post series | Re-runs shared validation (start date, matching date, RC-31, no weekday the host rides in a conflicting series per RC-32); confirms draft unchanged since review; saves exactly the reviewed results; idempotent on duplicate tap; makes host profile visible. | RC-12, RC-31, RC-01 |
 | Send request | One request per rider × series; checks open seat, trips left and schedule conflicts for each chosen weekday; grants host view of requester; notifies host. | RC-16, RC-01, RC-32, RC-33 |
 | Accept / decline | One weekday at a time; accept only with an open seat, trips left and no schedule conflict; atomic seat + request state + timestamp + search fields; auto-declines that weekday in other pending requests when full, **and** the rider's conflicting pending weekdays in other series, all in the same transaction; updates permissions/rosters; one notification per weekday decision. | RC-15, RC-32, RC-33, US-08, US-15 |
@@ -107,7 +110,7 @@ Each exists **exactly once**. Changing one is its own reviewed contract-change i
 |---|---|---|
 | Core schema + profile-permission model | everything | #13 (TMP-04) |
 | Series / draft / seat data model (incl. copied search fields: open weekdays, pickup coordinates, status) | hosting, search, lifecycle | #20 (TMP-14) |
-| Shared series validation | route preview **and** post | #23 (TMP-15) |
+| Shared series validation and weekday-conflict test (`functions/src/shared/validation/`; [ADR 0007](adr/0007-shared-series-validation.md)) | route preview **and** post; conflict test also #35, #40 | #23 (TMP-15) |
 | Notification writer | every function that notifies, daily job | #21 (TMP-28) |
 | Per-weekday timestamp contract (accepted / left / removed / cancelled, server timestamps) | lifecycle functions, trip counting | #26 (TMP-31) |
 | Seat-update path (Firestore transaction) | accept, remove, leave, cancel | inside #40 (TMP-32) |
@@ -116,7 +119,7 @@ Each exists **exactly once**. Changing one is its own reviewed contract-change i
 
 ### 3.4 Firestore (logical entities)
 
-Core collection names are decided ([data model](data-model.md)); series, draft, request and roster names are TBD (#20, #44). Logical entities and who may touch them:
+Core, series and draft collection names are decided ([data model](data-model.md)); the request name is decided (#35, ADR 0010); roster names are TBD (#26, #44). Logical entities and who may touch them:
 
 | Entity | Client read | Client write |
 |---|---|---|
@@ -127,8 +130,8 @@ Core collection names are decided ([data model](data-model.md)); series, draft, 
 | Profile permissions (`profileAccess`) | as needed by rules | **never** |
 | Student schedule (`schedules`, RC-32 lookup) | owner | **never** |
 | Campus points (`campusPoints`), option lists (`options/profile`) (seeded) | students | **never** |
-| Series draft | its host | **never** |
-| Series (incl. stored routes, per-weekday seats, status) | students | **never** |
+| Series draft (`seriesDrafts`) | its host (get only) | **never** |
+| Series (`series`: stored routes, per-weekday `openSeats`, status) | students | **never** |
 | Request (one per rider × series) | its rider and the series host | **never** |
 | Weekday roster | host; riders accepted on that weekday | **never** |
 | Notification | its recipient | read flag only |
@@ -197,7 +200,7 @@ Product privacy and safety rules (who sees what, test data, verification wording
 - **Nothing is deleted.** Cancel and end change status; series, requests, consent and notifications are kept. (RC-24)
 - A posted series is **immutable**. Stored routes are **never recalculated**. (RC-12, DD-06)
 - Exactly **one request per rider × series**, ever; no rejoining a weekday. Enforced by record structure, not just a check. (RC-16)
-- A student is never accepted on two conflicting weekdays (same weekday, overlapping dates), whether as rider or host; conflict checks run in the backend on request, accept, review and post. (RC-32)
+- A student is never accepted on two conflicting weekdays (same weekday, a shared ride date today or later), whether as rider or host; conflict checks run in the backend on request, accept, review and post. (RC-32)
 - A weekday with no trips left can't be requested or accepted, decided by the server clock. (RC-33)
 - Seats are per weekday; the backend is the single source of truth; changes are **atomic** — two riders can never take the last seat. (RC-15)
 - Every address has coordinates from Places. (RC-13)
@@ -226,8 +229,7 @@ Product privacy and safety rules (who sees what, test data, verification wording
 
 | Item | Status | Owner / where |
 |---|---|---|
-| Series, draft and request layout; weekday roster storage | Decide in issue, record in §2 | #20, #44 |
-| RC-32 edge semantics (pending vs posting; overlap on shared weekdays; no-trips-left) | Decide before the first RC-32 check ships ([ADR 0002](adr/0002-firestore-layout.md) §4) | #23 (shared validation); also applies to #35, #40 |
+| Request status values and timestamps; weekday roster storage (series, draft and request layout decided, provisional) | Decide in issue, record in §2 | #26, #44 |
 | Performance dataset size | Decide in issue | #50 |
 
 **Accepted architectural risks** (don't "fix" by adding scope): stale permissions if a function fails mid-update (mitigated by same-transaction updates); late series ending of up to a day; partial sign-up leaving a consent-less Auth account (unusable by RC-06, logged); search won't scale past MVP without geo-filtering; unverified emails (RISK-04); estimated, not live, route times (RISK-09); sign-up account enumeration (below); the address sheet not opening on one Medium Phone API 36 emulator ([ADR 0001](adr/0001-android-setup.md#places-autocomplete-16), owner decision 2026-11-19). See SDD §7.2 and INTENT §6.1.

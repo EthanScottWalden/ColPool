@@ -147,6 +147,41 @@ service cloud.firestore {
       allow read: if isStudent();
     }
 
+    // ---- series and drafts (#20, ADR 0006) -------------------------------
+
+    // Backend written only, host included (RC-12: stored routes and seats never change from
+    // the client). Any student may get or list: the search query filters on status and
+    // openWeekdays (data-model §2.10). Its subcollections are default deny.
+    match /series/{seriesId} {
+      allow get, list: if isStudent();
+    }
+
+    // The host may get their own draft (to resume). No list, no client write (data-model §2.11).
+    match /seriesDrafts/{draftId} {
+      allow get: if isStudent() && resource.data.hostId == request.auth.uid;
+    }
+
+    // ---- requests (#35, ADR 0010, data-model §2.12) ----------------------
+    // Backend written only: no client create, update or delete, rider and host included.
+    // Readable by the rider and by the series' host (hostId is copied onto the request).
+    // Queries must filter on riderId or hostId so the rule can be proven from the query.
+    match /requests/{requestId} {
+      allow get, list: if isStudent() &&
+        (resource.data.riderId == request.auth.uid || resource.data.hostId == request.auth.uid);
+    }
+
+    // ---- notifications (#21, ADR 0005, data-model §2.9) ------------------
+    // Backend creates. The recipient reads them and may only flip `read` to true.
+    // No collection-group rule: a query on `notifications` across users stays denied.
+    match /users/{uid}/notifications/{notificationId} {
+      allow get, list: if isStudentOwner(uid);
+      allow update: if isStudentOwner(uid) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']) &&
+        request.resource.data.read is bool &&
+        request.resource.data.read == true;
+      // create and delete: default deny (backend only, nothing is deleted).
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

@@ -11,3 +11,23 @@ export const PROFILE_LIMITS = {
   /** Age: optional whole number, 18 or older, no upper bound (RC-30). */
   ageMin: 18,
 } as const;
+
+// RC-30 and RC-31 limits for series input (contract #20). docs/data-model.md §2.10
+// repeats these values; a test keeps the two in step.
+export const SERIES_LIMITS = {
+  /** Riders per series: whole number 1 to 6 (RC-30). */
+  ridersMin: 1,
+  ridersMax: 6,
+  /** Price per rider per trip: whole dollars 1 to 99 (RC-30). */
+  priceDollarsMin: 1,
+  priceDollarsMax: 99,
+  /** Vehicle description: up to 60 characters (RC-30). */
+  vehicleMax: 60,
+  /** Minutes at one stop: whole number 0 to 120 (RC-30). */
+  stopMinutesMin: 0,
+  stopMinutesMax: 120,
+  /** Active hosted series per student (RC-31). */
+  maxActiveHosted: 5,
+  /** PROVISIONAL technical cap per direction (Routes API waypoint limit; ADR 0006). */
+  maxStopsPerDirection: 25,
+} as const;

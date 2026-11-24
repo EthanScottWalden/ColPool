@@ -1,5 +1,39 @@
 {
-  "indexes": [],
+  "indexes": [
+    {
+      "collectionGroup": "series",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "openWeekdays", "arrayConfig": "CONTAINS" }
+      ]
+    },
+    {
+      "collectionGroup": "series",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "hostId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "riderId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "requests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "hostId", "order": "ASCENDING" },
+        { "fieldPath": "seriesId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    }
+  ],
   "fieldOverrides": [
     {
       "collectionGroup": "profileAccess",
@@ -14,6 +48,36 @@
     {
       "collectionGroup": "schedules",
       "fieldPath": "entries",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "requests",
+      "fieldPath": "days",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "series",
+      "fieldPath": "days",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "series",
+      "fieldPath": "openSeats",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "series",
+      "fieldPath": "lastDepartureAt",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "seriesDrafts",
+      "fieldPath": "input",
+      "indexes": []
+    },
+    {
+      "collectionGroup": "seriesDrafts",
+      "fieldPath": "route",
       "indexes": []
     }
   ]

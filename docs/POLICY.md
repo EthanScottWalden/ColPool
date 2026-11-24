@@ -77,8 +77,8 @@ A user can always see their own profile. They can see another student's profile 
 - Every field except stops is required. (RC-12)
 - Start date not in the past; end date not before start; at least one date in range falls on a chosen weekday. (US-03)
 - On each weekday, leaving campus must be no earlier than the expected arrival at campus. (US-03)
-- **Hosting limits:** at most **five** active series per host, and no two active series of theirs may share a weekday during overlapping dates. Back-to-back series (e.g. one per semester) may reuse weekdays. Cancelled and ended series don't count. (RC-31)
-- A host can't post a series on a weekday they are accepted on as a rider in another series with overlapping dates. (RC-32)
+- **Hosting limits:** at most **five** active series per host, and no two active series of theirs may share a ride date on the same weekday (see RC-32 below). Back-to-back series (e.g. one per semester) may reuse weekdays. Cancelled and ended series don't count. (RC-31)
+- A host can't post a series on a weekday they are accepted on as a rider in another series on a shared ride date. (RC-32)
 - Routes and expected times are calculated by the backend when the host continues to review. The host sees them before posting, and posting saves **exactly** what was reviewed. The app never supplies distances or times. (RC-12, RC-14, US-04)
 - Posting rechecks the rules at the moment of posting and fails if the start date has passed, no remaining date matches, the hosting limits or schedule-conflict rules are broken, or the series changed since review. (RC-12, RC-32)
 - If a route can't be calculated, the host is told which address caused it and can't post until it's fixed. (RC-14)
@@ -108,7 +108,7 @@ A user can always see their own profile. They can see another student's profile 
 - A weekday can be accepted only if it has an open seat, trips left and no schedule conflict. Accepting takes one seat; leaving or removal frees exactly one. (US-08, US-12)
 - When a weekday fills up, that weekday is **declined automatically** in every pending request that includes it. The requests' other weekdays are untouched. (RC-15)
 - **Trips left (RC-33).** A weekday has trips left while some date on it, on or before the end date, has a departure from the pickup spot that is still in the future (server clock). Without trips left it is unavailable even with open seats: not shown as available in search, can't be requested, can't be accepted. A pending weekday in that state stays pending until it's declined or the series ends.
-- **No double-booking (RC-32).** Two series conflict on a weekday when both run on it and their date ranges overlap. A student is never scheduled on two conflicting weekdays:
+- **No double-booking (RC-32).** Two series conflict on a weekday when they share a ride date: a date on that weekday, today or later, that falls within both series' date ranges. Date ranges that overlap only on days neither series runs don't conflict, and two series stop conflicting once every shared date has passed. (Owner decision 2026-11-23.) A student is never scheduled on two conflicting weekdays:
   - A rider can't be accepted on a weekday that conflicts with one they're already accepted on or host.
   - A rider may have pending weekdays on several conflicting series. When one is accepted, the others are **declined automatically** in the same step, with a notification for each, and can't be rejoined.
   - A request that includes a weekday conflicting with one the rider is accepted on or hosts is rejected.

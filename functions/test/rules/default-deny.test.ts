@@ -9,7 +9,7 @@ setLogLevel("silent"); // denied calls log expected PERMISSION_DENIED noise
 
 const paths = [
   "anything/doc1",
-  "series/s1",
+  "seriesDrafts/d1",
   "series/s1/requests/r1",
   "users/student-consented/consent/current",
   "users/student-consented/anything/doc1",
@@ -44,7 +44,7 @@ describe("firestore.rules default deny", () => {
       }
       it("denies listing a collection", async () => {
         const db = rulesContext(env, persona).firestore();
-        await assertFails(getDocs(collection(db, "series")));
+        await assertFails(getDocs(collection(db, "seriesDrafts")));
       });
     });
   }
