@@ -45,9 +45,9 @@ private enum class StudentTab(val label: Int, val glyph: String) {
     Profile(R.string.tab_profile, "P"),
 }
 
-/** Student footer with five tabs. Profile and Hosting are real; the other tabs are placeholders until their Issues. */
+/** Student footer with five tabs. Search, Profile and Hosting are real; the other tabs are placeholders until their Issues. */
 @Composable
-fun StudentShell(profileTab: @Composable (Modifier) -> Unit, hostingTab: @Composable (Modifier) -> Unit, initialTab: Int = 0, modifier: Modifier = Modifier) {
+fun StudentShell(searchTab: @Composable (Modifier) -> Unit, profileTab: @Composable (Modifier) -> Unit, hostingTab: @Composable (Modifier) -> Unit, initialTab: Int = 0, modifier: Modifier = Modifier) {
     var selected by rememberSaveable { mutableIntStateOf(initialTab) }
     Scaffold(
         modifier = modifier,
@@ -65,7 +65,9 @@ fun StudentShell(profileTab: @Composable (Modifier) -> Unit, hostingTab: @Compos
         },
     ) { padding ->
         val tab = StudentTab.entries[selected]
-        if (tab == StudentTab.Profile) {
+        if (tab == StudentTab.Search) {
+            searchTab(Modifier.padding(padding))
+        } else if (tab == StudentTab.Profile) {
             profileTab(Modifier.padding(padding))
         } else if (tab == StudentTab.Hosting) {
             hostingTab(Modifier.padding(padding))

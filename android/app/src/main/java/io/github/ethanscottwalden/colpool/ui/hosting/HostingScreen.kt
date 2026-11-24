@@ -32,6 +32,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
@@ -88,7 +89,7 @@ fun HostedSeriesDetailsScreen(viewModel: HostingViewModel, modifier: Modifier = 
 }
 
 @Composable
-private fun Header(title: String, onBack: (() -> Unit)? = null) {
+internal fun Header(title: String, onBack: (() -> Unit)? = null) {
     val backCd = stringResource(R.string.series_back)
     Row(
         Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.primary).statusBarsPadding().padding(16.dp),
@@ -202,6 +203,7 @@ private fun Details(state: HostingUiState, s: HostedSeries, actions: HostingActi
                     modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag(HostingTags.day(w)).semantics {
                         contentDescription = if (used) "$name, $openText" else unusedCd
                     },
+                    role = Role.Tab,
                 )
             }
         }

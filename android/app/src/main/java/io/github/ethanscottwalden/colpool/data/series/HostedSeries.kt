@@ -18,6 +18,11 @@ data class HostedSeries(
     val days: Map<String, DraftDay>,
     val openSeats: Map<String, Int>,
     val lastDepartureAt: Map<String, Instant>,
+    /** The host's uid, for Search (a rider never sees it). */
+    val hostId: String = "",
+    /** The pickup spot's coordinates, for Search ranking only (RC-19). Null when the document has none. */
+    val pickupLat: Double? = null,
+    val pickupLng: Double? = null,
 ) {
     override fun toString(): String = "HostedSeries(redacted)"
 }
@@ -49,9 +54,10 @@ object HostedSeriesParser {
             days[w] = DraftDay(to, from)
             open[w] = (ReviewDraftParser.int(seats[w]) ?: return null).coerceIn(0, maxRiders)
         }
+        val pickup = doc["pickupSpot"] as? Map<*, *>
         return HostedSeries(
             id = id,
-            pickupName = ((doc["pickupSpot"] as? Map<*, *>)?.get("text") as? String) ?: return null,
+            pickupName = (pickup?.get("text") as? String) ?: return null,
             startDate = doc["startDate"] as? String ?: return null,
             endDate = doc["endDate"] as? String ?: return null,
             priceDollars = ReviewDraftParser.int(doc["priceDollars"]) ?: return null,
@@ -61,6 +67,9 @@ object HostedSeriesParser {
             days = days,
             openSeats = open,
             lastDepartureAt = departures(doc["lastDepartureAt"]),
+            hostId = doc["hostId"] as? String ?: "",
+            pickupLat = (pickup["lat"] as? Number)?.toDouble(),
+            pickupLng = (pickup["lng"] as? Number)?.toDouble(),
         )
     }
 
