@@ -12,6 +12,8 @@ import io.github.ethanscottwalden.colpool.BuildConfig
 import io.github.ethanscottwalden.colpool.config.EmulatorConfig
 import io.github.ethanscottwalden.colpool.data.places.PlacesAutocomplete
 import io.github.ethanscottwalden.colpool.data.places.PlacesSdkAutocomplete
+import io.github.ethanscottwalden.colpool.data.search.FirebaseSearchBackend
+import io.github.ethanscottwalden.colpool.data.search.SearchBackend
 import io.github.ethanscottwalden.colpool.data.series.FirebaseSeriesBackend
 import io.github.ethanscottwalden.colpool.data.series.SeriesBackend
 import io.github.ethanscottwalden.colpool.data.session.AuthBackend
@@ -49,5 +51,6 @@ class AppContainer(private val appContext: Context) {
     val authBackend: AuthBackend by lazy { FirebaseAuthBackend(auth, firestore, functions) }
     val onboardingBackend: OnboardingBackend by lazy { FirebaseOnboardingBackend(auth, firestore) }
     val profileBackend: ProfileBackend by lazy { FirebaseProfileBackend(auth, firestore) }
+    val searchBackend: SearchBackend by lazy { FirebaseSearchBackend(firestore) { auth.currentUser?.uid } }
     val seriesBackend: SeriesBackend by lazy { FirebaseSeriesBackend(firestore, functions) { auth.currentUser?.uid } }
 }

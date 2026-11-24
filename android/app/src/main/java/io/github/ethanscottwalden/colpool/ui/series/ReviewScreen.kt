@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -256,6 +257,7 @@ private fun DayTabs(draft: ReviewDraft, active: SeriesWeekday, onSelect: (Series
                 sub = if (used) null else "—",
                 modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag(ReviewTags.day(w))
                     .semantics { if (!used) contentDescription = unusedCd else contentDescription = name },
+                role = Role.Tab,
             )
         }
     }

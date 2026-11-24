@@ -20,6 +20,9 @@ import io.github.ethanscottwalden.colpool.ui.onboarding.OnboardingViewModel
 import io.github.ethanscottwalden.colpool.ui.profile.EditProfileViewModel
 import io.github.ethanscottwalden.colpool.ui.profile.ProfileTab
 import io.github.ethanscottwalden.colpool.ui.profile.ProfileViewModel
+import io.github.ethanscottwalden.colpool.ui.search.SearchTab
+import io.github.ethanscottwalden.colpool.ui.search.SearchViewModel
+import io.github.ethanscottwalden.colpool.ui.search.SeriesDetailsPlaceholder
 import io.github.ethanscottwalden.colpool.ui.series.CreateSeriesScreen
 import io.github.ethanscottwalden.colpool.ui.series.CreateSeriesViewModel
 import io.github.ethanscottwalden.colpool.ui.series.ReviewScreen
@@ -43,10 +46,12 @@ fun ColPoolRoot(
     createSeries: CreateSeriesViewModel,
     review: ReviewViewModel,
     hosting: HostingViewModel,
+    search: SearchViewModel,
 ) {
     val state by session.state.collectAsState()
     val authState by auth.state.collectAsState()
     val hostingState by hosting.state.collectAsState()
+    val searchState by search.state.collectAsState()
     val errorDetail by session.errorDetail.collectAsState()
     // No navigation library yet (ADR 0004): Create Series and the Review placeholder sit above the student shell.
     var creatingSeries by rememberSaveable { mutableStateOf(false) }
@@ -64,6 +69,7 @@ fun ColPoolRoot(
         // Same for the own profile (address, email): loaded for the student shell only.
         if (state == SessionState.Search) profile.load() else { profile.reset(); editProfile.reset() }
         if (state == SessionState.Search) hosting.start() else hosting.reset()
+        if (state != SessionState.Search) search.reset()
         if (state != SessionState.Search) { createSeries.reset(); review.reset(); creatingSeries = false; reviewDraftId = null; shellTab = 0 }
     }
 
@@ -96,9 +102,11 @@ fun ColPoolRoot(
                 onReview = { reviewDraftId = it },
                 onBack = { creatingSeries = false; createSeries.reset() },
             )
+            searchState.openedSeriesId != null -> SeriesDetailsPlaceholder(searchState.openedSeriesId!!, onBack = search::close)
             hostingState.selectedId != null -> HostedSeriesDetailsScreen(hosting)
             else -> StudentShell(
                 initialTab = shellTab,
+                searchTab = { SearchTab(search, modifier = it) },
                 profileTab = { ProfileTab(profile, editProfile, addressSearch, onLogOut = session::logOut, modifier = it) },
                 hostingTab = { HostingTab(hosting, onHostSeries = { createSeries.reset(); shellTab = HOSTING_TAB; creatingSeries = true }, modifier = it) },
             )

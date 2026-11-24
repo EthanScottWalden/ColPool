@@ -253,4 +253,35 @@
     <string name="series_err_unavailable">Route calculation is busy right now. Try again in a moment.</string>
     <string name="series_err_draft_changed">This series changed after you reviewed it. Go back and review it again.</string>
     <string name="series_err_unknown">Something went wrong. Try again.</string>
+    <!-- Search (#34). Wording is provisional. -->
+    <string name="search_title">Find a ride</string>
+    <string name="search_days_label">Days you need a ride</string>
+    <string name="search_ranking_line">From your starting address · Nearest first</string>
+    <string name="search_no_address">Add your starting address to see distances</string>
+    <string name="search_pick_days">Pick the days you need a ride.</string>
+    <string name="search_loading">Finding series…</string>
+    <string name="search_load_failed">Couldn’t load series. Check your connection and try again.</string>
+    <string name="search_retry">Try again</string>
+    <string name="search_empty">No series have an open seat on those days. Try other days.</string>
+    <string name="search_footnote">Series you’ve already requested don’t appear. Times are Pacific Time.</string>
+    <plurals name="search_count_near">
+        <item quantity="one">%1$d series near you</item>
+        <item quantity="other">%1$d series near you</item>
+    </plurals>
+    <plurals name="search_count">
+        <item quantity="one">%1$d series with an open seat</item>
+        <item quantity="other">%1$d series with an open seat</item>
+    </plurals>
+    <string name="search_distance">%1$s mi away (straight line)</string>
+    <string name="search_hosted_by">Hosted by %1$s</string>
+    <string name="search_host_unknown">Host’s name unavailable</string>
+    <string name="search_day_open">open</string>
+    <string name="search_day_full">full</string>
+    <string name="search_day_no_trips">no trips left</string>
+    <string name="search_day_not_needed">not needed</string>
+    <string name="search_picked_cd">%1$s, needed</string>
+    <string name="search_times">%1$s: leaves %2$s, at campus ~%3$s, leaves campus %4$s</string>
+    <string name="search_price">$%1$d cash per round trip</string>
+    <string name="details_placeholder_title">Series details</string>
+    <string name="details_placeholder_body">Series details are coming soon.</string>
 </resources>
