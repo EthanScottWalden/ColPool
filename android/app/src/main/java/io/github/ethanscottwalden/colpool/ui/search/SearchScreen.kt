@@ -5,6 +5,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
@@ -31,7 +33,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
@@ -158,6 +159,7 @@ private fun Body(state: SearchUiState, actions: SearchActions) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ResultCard(r: SearchResult, state: SearchUiState, onOpen: (String) -> Unit) {
     val res = LocalContext.current.resources
@@ -174,17 +176,17 @@ private fun ResultCard(r: SearchResult, state: SearchUiState, onOpen: (String) -
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(host, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            if (distance != null || match != null) Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (distance != null || match != null) FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp), itemVerticalAlignment = Alignment.CenterVertically) {
                 if (distance != null) Surface(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), shape = RoundedCornerShape(50), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)) {
                     Text(distance, Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelLarge)
                 }
                 if (match != null) {
                     val cd = stringResource(R.string.match_badge_cd, match)
                     Surface(
-                        Modifier.testTag(SearchTags.badge(s.id)).clearAndSetSemantics { contentDescription = cd },
+                        Modifier.testTag(SearchTags.badge(s.id)).semantics(mergeDescendants = true) { contentDescription = cd },
                         color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(50), border = BorderStroke(2.dp, MaterialTheme.colorScheme.outline),
                     ) {
-                        Text(stringResource(R.string.match_badge, match), Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.match_badge, match), Modifier.padding(horizontal = 12.dp, vertical = 6.dp), maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                     }
                 }
             }
