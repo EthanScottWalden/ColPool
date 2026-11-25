@@ -36,15 +36,18 @@ object MatchRules {
         return max(0.0, 1.0 - YEAR_STEP_LOSS * abs(a - b))
     }
 
-    /** Whole percent (half rounds up), or null when nothing is chosen: no percentage is shown at all. */
+    /**
+     * Whole percent (half rounds up). Null when nothing is chosen, or when the host's profile could not be read
+     * ([host] null): no percentage is shown. A readable profile with empty fields scores 0.
+     */
     fun percent(prefs: MatchPreferences, host: HostMatchFields?): Int? {
         val items = prefs.count
-        if (items == 0) return null
+        if (items == 0 || host == null) return null
         var total = 0.0
-        total += prefs.interests.count { it in host?.interests.orEmpty() }
-        total += prefs.traits.count { it in host?.traits.orEmpty() }
-        if (prefs.major != null && prefs.major == host?.major) total += 1.0
-        if (prefs.year != null) total += yearScore(prefs.year, host?.year)
+        total += prefs.interests.count { it in host.interests }
+        total += prefs.traits.count { it in host.traits }
+        if (prefs.major != null && prefs.major == host.major) total += 1.0
+        if (prefs.year != null) total += yearScore(prefs.year, host.year)
         // The small epsilon keeps exact halves (such as 12.5) from falling below the line in floating point.
         return floor(total / items * 100.0 + 0.5 + 1e-9).toInt()
     }

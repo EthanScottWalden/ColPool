@@ -49,7 +49,10 @@ class PreferencesScreenTest {
     private val backend = FakeSearchBackend().apply {
         series = listOf(SearchTestData.far(), SearchTestData.mid(), SearchTestData.near(), SearchTestData.last())
         names = mapOf("hostA" to "Ava", "hostB" to "Riley", "hostC" to "Jamal", "hostD" to "Maya")
-        matchFields = mapOf("hostA" to HostMatchFields("Ava", "junior", "nursing", listOf("music", "coffee"), listOf("chatty")))
+        matchFields = mapOf(
+            "hostA" to HostMatchFields("Ava", "junior", "nursing", listOf("music", "coffee"), listOf("chatty")),
+            "hostD" to HostMatchFields("Maya", null, null, listOf("gaming"), emptyList()),
+        )
     }
 
     @Before fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())

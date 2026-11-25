@@ -43,7 +43,8 @@ class MatchRulesTest {
         val bare = HostMatchFields("Riley")
         val p = MatchPreferences(setOf("music"), setOf("chatty"), "nursing", "junior")
         assertEquals(0, MatchRules.percent(p, bare))
-        assertEquals(0, MatchRules.percent(p, null))
+        // An unreadable profile (null) is not a score of 0: no percentage.
+        assertNull(MatchRules.percent(p, null))
         // A host that fills only some: 2 of 4 items.
         assertEquals(50, MatchRules.percent(p, HostMatchFields("X", interests = listOf("music"), traits = listOf("chatty"))))
     }

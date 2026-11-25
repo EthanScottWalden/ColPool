@@ -42,7 +42,7 @@ data class SearchUiState(
     /** The predefined lists for the panel. Empty until loaded. */
     val options: ProfileOptions = ProfileOptions(),
     val optionsFailed: Boolean = false,
-    /** The match fields of the hosts shown (null value: not readable, so it scores 0). */
+    /** The match fields of the hosts shown (null value: not readable, so no badge). */
     val hostFields: Map<String, HostMatchFields?> = emptyMap(),
 ) {
     /** The match percentage for one host, or null when no preference is chosen. */
@@ -181,7 +181,7 @@ class SearchViewModel(
                 }
                 val results = SearchRules.rank(series, picked, clock.instant(), backend.currentUid(), requested, start)
                 val missing = results.map { it.series.hostId }.distinct().filter { it !in hostCache }
-                coroutineScope { missing.map { h -> async { hostCache[h] = backend.loadHostFields(h) } }.awaitAll() }
+                coroutineScope { missing.map { h -> async { backend.loadHostFields(h)?.let { f -> hostCache[h] = f } } }.awaitAll() }
                 _state.update {
                     it.copy(
                         load = SearchLoad.Loaded, results = results, hasStart = start != null,

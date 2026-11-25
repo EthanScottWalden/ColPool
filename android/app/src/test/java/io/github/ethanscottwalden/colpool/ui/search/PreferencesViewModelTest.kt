@@ -52,6 +52,45 @@ class PreferencesViewModelTest {
         assertEquals(off.size, vm.state.value.results.size)
     }
 
+    @Test fun orderStaysByDistanceWhenTheNearestMatchesWorstAndTheFarthestBest() {
+        // near=hostA (nearest), last=hostD, mid=hostB, far=hostC (farthest).
+        backend.matchFields = mapOf(
+            "hostA" to HostMatchFields("Ava", null, "biology", listOf("gaming"), listOf("quiet")),
+            "hostB" to HostMatchFields("Riley", "freshman", "biology", listOf("gaming"), listOf("quiet")),
+            "hostD" to HostMatchFields("Maya", "junior", "biology", listOf("music"), listOf("quiet")),
+            "hostC" to HostMatchFields("Jamal", "junior", "nursing", listOf("music"), listOf("chatty")),
+        )
+        val vm = vm()
+        vm.toggle(Mon); vm.toggle(Tue); vm.toggle(Thu)
+        val off = vm.state.value.results.map { it.series.id }
+        assertEquals(listOf("near", "last", "mid", "far"), off)
+        vm.toggleInterest("music"); vm.toggleTrait("chatty"); vm.toggleMajor("nursing"); vm.toggleYear("junior")
+        vm.retry()
+        assertEquals(off, vm.state.value.results.map { it.series.id })
+        assertEquals(0, vm.state.value.matchPercent("hostA"))
+        assertEquals(100, vm.state.value.matchPercent("hostC"))
+        assertTrue(vm.state.value.matchPercent("hostA")!! < vm.state.value.matchPercent("hostC")!!)
+    }
+
+    @Test fun failedProfileReadIsRetriedOnTheNextRunAndFillsIn() {
+        backend.matchFields = emptyMap()
+        backend.names = emptyMap()
+        val vm = vm()
+        vm.toggle(Mon)
+        vm.toggleInterest("music")
+        assertNull(vm.state.value.matchPercent("hostA"))
+        assertNull(vm.state.value.hostNames["hostA"])
+        val first = backend.nameReads.count { it == "hostA" }
+        backend.matchFields = mapOf("hostA" to HostMatchFields("Ava", interests = listOf("music")))
+        vm.retry()
+        assertEquals(first + 1, backend.nameReads.count { it == "hostA" })
+        assertEquals(100, vm.state.value.matchPercent("hostA"))
+        assertEquals("Ava", vm.state.value.hostNames["hostA"])
+        // A successful read is cached: no further read.
+        vm.retry()
+        assertEquals(first + 1, backend.nameReads.count { it == "hostA" })
+    }
+
     @Test fun matchPercentComesFromTheHostsProfileAndHidesWithoutPreferences() {
         val vm = vm()
         vm.toggle(Mon)
@@ -59,10 +98,10 @@ class PreferencesViewModelTest {
         vm.toggleInterest("music")
         vm.toggleMajor("nursing")
         assertEquals(100, vm.state.value.matchPercent("hostA"))
-        assertEquals(0, vm.state.value.matchPercent("hostB"))
+        assertNull(vm.state.value.matchPercent("hostZ"))
         assertEquals(100, vm.state.value.matchPercent("hostD"))
-        // An unreadable host scores 0 but still gets a number.
-        assertEquals(0, vm.state.value.matchPercent("hostC"))
+        // An unreadable host gets no badge at all (not 0%); a readable one with empty fields scores 0.
+        assertNull(vm.state.value.matchPercent("hostC"))
         vm.clearPrefs()
         assertNull(vm.state.value.matchPercent("hostA"))
     }
