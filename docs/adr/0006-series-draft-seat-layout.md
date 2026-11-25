@@ -15,11 +15,13 @@
 ## Alternative rejected: a `seats` subcollection (one doc per weekday)
 It would spread a series' seat state across documents, so one transaction touches several documents and the search needs a collection-group query or a copied field anyway. A map on the series document (at most 7 integers) keeps seat, search field and status updates in one document write and one read. Contention is per series, which the transaction serializes safely at MVP scale.
 
+## Owner decisions
+- **2026-11-23 (Issue #143): `maxStopsPerDirection` = 10.** The Routes API Essentials tier covers a maximum of 10 intermediate waypoints, and requests with more than 10 are billed at a higher rate (Routes usage and billing page, read 2026-11-23). Stops are the only intermediates; the pickup spot and campus point are origin and destination. Supports RC-28. It is a technical cap not in the SDD.
+
 ## Provisional, owner to confirm
 1. The collection layout above (`seriesDrafts` auto id, `series` with `seriesId == draftId`).
-2. `maxStopsPerDirection` is 25 (Routes API waypoint limit), a technical cap not in the SDD. **Note 2026-11-23:** the owner decided the cap should be **10** (Routes Essentials covers up to 10 intermediates; the higher rate starts after 10). The code and data-model still say 25 until contract-change Issue #143 (Human Review Pending) lands; then this item, ADR 0007 provisional item 2 and data-model §2.10 change to 10.
-3. A nonexistent spring-forward local time (for example 02:30 on 2026-03-08) shifts forward to the equivalent after the gap (10:30Z); a repeated fall-back time uses the earlier, PDT instant (like java.time).
-4. A selected weekday with no date in range is allowed; it has no `lastDepartureAt` key and never has trips left.
+2. A nonexistent spring-forward local time (for example 02:30 on 2026-03-08) shifts forward to the equivalent after the gap (10:30Z); a repeated fall-back time uses the earlier, PDT instant (like java.time).
+3. A selected weekday with no date in range is allowed; it has no `lastDepartureAt` key and never has trips left.
 
 ## Open item for later
 RC-32 open item 3 (do weekdays with no trips left still block a student's schedule?) may need `lastDepartureAt` in #13's `ScheduleEntry`. That would be a separate contract-change Issue; #13's contract is unchanged here.

@@ -28,6 +28,6 @@ export const SERIES_LIMITS = {
   stopMinutesMax: 120,
   /** Active hosted series per student (RC-31). */
   maxActiveHosted: 5,
-  /** PROVISIONAL technical cap per direction (Routes API waypoint limit; ADR 0006). */
-  maxStopsPerDirection: 25,
+  /** Stops per direction. Owner decision 2026-11-23: keeps every route preview within the Routes API Essentials tier (max 10 intermediate waypoints; ADR 0006, #143). */
+  maxStopsPerDirection: 10,
 } as const;
