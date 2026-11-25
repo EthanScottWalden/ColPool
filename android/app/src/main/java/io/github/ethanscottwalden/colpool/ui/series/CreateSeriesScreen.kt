@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -224,7 +223,6 @@ private fun PublicPlaceNote(text: String) {
 fun CreateSeriesContent(state: CreateSeriesUiState, today: LocalDate, actions: CreateSeriesActions, modifier: Modifier = Modifier) {
     var datePicker by remember { mutableStateOf<Boolean?>(null) } // true = start, false = end
     var timePicker by remember { mutableStateOf<Pair<SeriesWeekday, Direction>?>(null) }
-    val backCd = stringResource(R.string.series_back)
     val lessCd = stringResource(R.string.series_riders_less)
     val moreCd = stringResource(R.string.series_riders_more)
     val boxErrors = state.errors.filter { it.path.isEmpty() || !SeriesErrorText.hasInlineSpot(it.path) }

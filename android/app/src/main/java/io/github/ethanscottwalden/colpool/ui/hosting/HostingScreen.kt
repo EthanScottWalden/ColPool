@@ -6,8 +6,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,9 +13,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -35,6 +35,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
@@ -42,7 +43,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.ethanscottwalden.colpool.R
 import io.github.ethanscottwalden.colpool.data.requests.HostProfile
@@ -275,7 +275,8 @@ private fun RequestRow(r: IncomingRequest, names: Map<String, HostProfile?>, onO
     val name = names[r.riderId]?.let { "${it.firstName} ${it.lastName}" } ?: stringResource(R.string.requests_unknown_rider)
     val days = HostRequestRules.rowDays(res, r)
     val cd = stringResource(R.string.requests_profile_cd, name)
-    val initials = name.split(" ").filter { it.isNotEmpty() }.take(2).joinToString("") { it.first().uppercase() }
+    // An unreadable profile has no real name: show a neutral glyph, not initials of "A rider".
+    val initials = if (names[r.riderId] == null) "?" else name.split(" ").filter { it.isNotEmpty() }.take(2).joinToString("") { it.first().uppercase() }
     // The card is not a tap target: the Profile button is the one action, so TalkBack finds it once.
     Surface(
         modifier = Modifier.fillMaxWidth(),

@@ -150,7 +150,7 @@ private fun MajorPicker(majors: List<OptionItem>, chosen: String?, onPick: (Stri
                         if (i > 0) HorizontalDivider()
                         val on = m.id == chosen
                         Surface(
-                            onClick = { onPick(m.id) }, selected = on,
+                            onClick = { onPick(m.id); filter = "" }, selected = on,
                             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag(SearchTags.major(m.id)).semantics { role = Role.Checkbox },
                             color = if (on) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surface,
                         ) {

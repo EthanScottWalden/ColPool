@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -97,7 +98,7 @@ fun EditProfileContent(state: EditProfileUiState, actions: EditProfileActions, m
         Column(Modifier.verticalScroll(rememberScrollState()).imePadding()) {
             Text(
                 stringResource(R.string.edit_profile_title),
-                Modifier.fillMaxWidth().padding(16.dp),
+                Modifier.fillMaxWidth().statusBarsPadding().padding(16.dp),
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
             )
