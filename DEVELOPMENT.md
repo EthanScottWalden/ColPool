@@ -199,6 +199,8 @@ Configured in `.claude/settings.json`. It applies to the main session and every 
 
 **What runs outside the sandbox** (`sandbox.excludedCommands`): only the GitHub script `node .claude/hooks/github.mjs` and the `next-issue` script. They are the only commands that can use the token. Both live in folders sandboxed commands can't write, and both call `/usr/bin/gh` and `/usr/bin/git` without a shell and with a minimal environment (`PATH`, `HOME`, `LANG`), so nothing from the Claude Code process, such as tokens, `TMPDIR` or `NODE_OPTIONS`, reaches them.
 
+**Branching in the sandbox:** `.claude/` and `.git/config` are read-only, so a checkout that must rewrite `.claude/` files (for example switching to a stale local `dev`) stops halfway and leaves a mixed tree. Fetch, then branch straight from the remote: `git fetch origin` and `git checkout -b feature/<n>-<slug> origin/dev`. Never check out local `dev`. If a checkout does stop halfway, don't force it from the sandbox: ask the owner to run `git checkout -f -B <branch> origin/dev` (2026-11-25 lesson).
+
 **The GitHub script** (`.claude/hooks/github.mjs`) is the only way agents reach GitHub. Run it with no operation for the full list.
 - **Reads (any agent):** `auth-status`, `issue-view`, `issue-list`, `pr-view`, `pr-list`, `pr-checks`, `pr-diff`, `api-get` (paths under `repos/EthanScottWalden/ColPool/` or `users/EthanScottWalden/`).
 - **Worktrees:** an agent working in a git worktree must call the script by its absolute path, `node /home/walde/ColPool/.claude/hooks/github.mjs <op>`. The owner's `settings.local.json` exempts that path from the sandbox. The relative path from a worktree points at the worktree's copy, and the guard rejects it.
