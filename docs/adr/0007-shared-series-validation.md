@@ -48,12 +48,12 @@
   - Ranges overlapping only on days neither series rides do not conflict (S1 Mon/Wed Aug 24 to Fri Dec 11 and S2 Mon/Wed from Thu Dec 10 pass). Back-to-back ranges pass.
   - A weekday with no date in range never conflicts; once all shared dates are past it stops blocking. Trips left (RC-33) is not used.
   - A pending request does not block posting, and posting declines nothing. This settles ADR 0002 §4 items 1 to 3.
+- **2026-11-23 (Issue #143): `maxStopsPerDirection` = 10.** The Routes API Essentials tier covers a maximum of 10 intermediate waypoints, and requests with more than 10 are billed at a higher rate (Routes usage and billing page, read 2026-11-23). Stops are the only intermediates; the pickup spot and campus point are origin and destination. Supports RC-28. (Carried over from ADR 0006 as 25 before this decision.)
 
 ## Provisional, owner to confirm
 These are lead defaults.
 1. **Error wording** lives in the Android Issue; the backend sends codes only.
-2. **Decided (owner, 2026-11-23, Issue #143): `maxStopsPerDirection` = 10.** The Routes API Essentials tier covers a maximum of 10 intermediate waypoints, and requests with more than 10 are billed at a higher rate (Routes usage and billing page, read 2026-11-23). Stops are the only intermediates; the pickup spot and campus point are origin and destination. Supports RC-28. (Carried over from ADR 0006 as 25 before this decision.)
-3. **Stops array required.** `stops` must be present (may be empty); an absent array is `required`.
+2. **Stops array required.** `stops` must be present (may be empty); an absent array is `required`.
 
 ## L1 notes
 - RC-12 "no remaining date" is read as a date on or after today, so a series whose only trip departed earlier today can still be posted.
