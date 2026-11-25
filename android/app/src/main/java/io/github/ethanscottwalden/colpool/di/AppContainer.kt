@@ -19,7 +19,9 @@ import io.github.ethanscottwalden.colpool.data.requests.HostRequestsBackend
 import io.github.ethanscottwalden.colpool.data.requests.FirebaseRequestBackend
 import io.github.ethanscottwalden.colpool.data.requests.RequestBackend
 import io.github.ethanscottwalden.colpool.data.search.FirebaseSearchBackend
+import io.github.ethanscottwalden.colpool.data.search.PreferenceStore
 import io.github.ethanscottwalden.colpool.data.search.SearchBackend
+import io.github.ethanscottwalden.colpool.data.search.SharedPreferencesPreferenceStore
 import io.github.ethanscottwalden.colpool.data.series.FirebaseSeriesBackend
 import io.github.ethanscottwalden.colpool.data.series.SeriesBackend
 import io.github.ethanscottwalden.colpool.data.session.AuthBackend
@@ -58,6 +60,8 @@ class AppContainer(private val appContext: Context) {
     val onboardingBackend: OnboardingBackend by lazy { FirebaseOnboardingBackend(auth, firestore) }
     val profileBackend: ProfileBackend by lazy { FirebaseProfileBackend(auth, firestore) }
     val searchBackend: SearchBackend by lazy { FirebaseSearchBackend(firestore) { auth.currentUser?.uid } }
+    // Host preferences stay on this device (#37, provisional): never sent to a server.
+    val preferenceStore: PreferenceStore by lazy { SharedPreferencesPreferenceStore(appContext) }
     val seriesBackend: SeriesBackend by lazy { FirebaseSeriesBackend(firestore, functions) { auth.currentUser?.uid } }
     val requestBackend: RequestBackend by lazy { FirebaseRequestBackend(firestore, functions) { auth.currentUser?.uid } }
     val hostRequestsBackend: HostRequestsBackend by lazy { FirebaseHostRequestsBackend(firestore) { auth.currentUser?.uid } }

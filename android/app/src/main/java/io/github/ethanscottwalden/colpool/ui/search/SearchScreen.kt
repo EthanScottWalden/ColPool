@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
@@ -54,6 +55,17 @@ object SearchTags {
     const val NoAddress = "search_no_address"
     const val Sent = "search_request_sent"
     const val SentDismiss = "search_request_sent_dismiss"
+    const val PrefsRow = "search_prefs_row"
+    const val PrefsPanel = "search_prefs_panel"
+    const val PrefsClear = "search_prefs_clear"
+    const val PrefsDone = "search_prefs_done"
+    const val PrefsMajorFilter = "search_prefs_major_filter"
+    const val PrefsRetry = "search_prefs_retry"
+    fun badge(id: String) = "search_match_$id"
+    fun interest(id: String) = "search_pref_interest_$id"
+    fun trait(id: String) = "search_pref_trait_$id"
+    fun major(id: String) = "search_pref_major_$id"
+    fun year(id: String) = "search_pref_year_$id"
     fun day(w: SeriesWeekday) = "search_day_${w.id}"
     fun card(id: String) = "search_card_$id"
 }
@@ -63,6 +75,14 @@ class SearchActions(
     val onOpen: (String) -> Unit = {},
     val onRetry: () -> Unit = {},
     val onDismissSent: () -> Unit = {},
+    val onOpenPanel: () -> Unit = {},
+    val onClosePanel: () -> Unit = {},
+    val onInterest: (String) -> Unit = {},
+    val onTrait: (String) -> Unit = {},
+    val onMajor: (String) -> Unit = {},
+    val onYear: (String) -> Unit = {},
+    val onClearPrefs: () -> Unit = {},
+    val onRetryOptions: () -> Unit = {},
 )
 
 /** Stateful Search tab. Reads fresh results each time the tab is shown. */
@@ -70,7 +90,11 @@ class SearchActions(
 fun SearchTab(viewModel: SearchViewModel, modifier: Modifier = Modifier) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { viewModel.refresh() }
-    SearchContent(state, SearchActions(viewModel::toggle, viewModel::open, viewModel::retry, viewModel::dismissRequestSent), modifier)
+    SearchContent(state, SearchActions(
+        viewModel::toggle, viewModel::open, viewModel::retry, viewModel::dismissRequestSent,
+        viewModel::openPanel, viewModel::closePanel, viewModel::toggleInterest, viewModel::toggleTrait,
+        viewModel::toggleMajor, viewModel::toggleYear, viewModel::clearPrefs, viewModel::retryOptions,
+    ), modifier)
 }
 
 @Composable
@@ -94,6 +118,7 @@ fun SearchContent(state: SearchUiState, actions: SearchActions, modifier: Modifi
                         )
                     }
                 }
+                PreferencesRow(state, actions)
                 Body(state, actions)
             }
         }
@@ -141,6 +166,7 @@ private fun ResultCard(r: SearchResult, state: SearchUiState, onOpen: (String) -
     val distance = r.distanceTenths?.let { SearchText.distance(res, it) }
     val times = SearchRules.times(s, r.firstOpen)?.let { SearchText.times(res, r.firstOpen, it) }
     val dates = HostingText.dateRange(s.startDate, s.endDate, state.currentYear)
+    val match = state.matchPercent(s.hostId)
     Surface(
         onClick = { onOpen(s.id) },
         modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag(SearchTags.card(s.id)),
@@ -148,8 +174,19 @@ private fun ResultCard(r: SearchResult, state: SearchUiState, onOpen: (String) -
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(host, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            if (distance != null) Surface(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), shape = RoundedCornerShape(50), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)) {
-                Text(distance, Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelLarge)
+            if (distance != null || match != null) Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (distance != null) Surface(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f), shape = RoundedCornerShape(50), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)) {
+                    Text(distance, Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelLarge)
+                }
+                if (match != null) {
+                    val cd = stringResource(R.string.match_badge_cd, match)
+                    Surface(
+                        Modifier.testTag(SearchTags.badge(s.id)).clearAndSetSemantics { contentDescription = cd },
+                        color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(50), border = BorderStroke(2.dp, MaterialTheme.colorScheme.outline),
+                    ) {
+                        Text(stringResource(R.string.match_badge, match), Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
             Text(s.pickupName, style = MaterialTheme.typography.bodyLarge)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {

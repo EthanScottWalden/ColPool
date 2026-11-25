@@ -10,6 +10,7 @@ import io.github.ethanscottwalden.colpool.data.requests.SendRequestResult
 import io.github.ethanscottwalden.colpool.data.series.HostedSeries
 import io.github.ethanscottwalden.colpool.ui.hosting.HostingText
 import io.github.ethanscottwalden.colpool.ui.search.DayState
+import io.github.ethanscottwalden.colpool.ui.search.MatchPreferences
 import io.github.ethanscottwalden.colpool.ui.series.SeriesWeekday
 import java.time.Clock
 import kotlin.coroutines.cancellation.CancellationException
@@ -32,6 +33,8 @@ data class DetailsUiState(
     val options: ProfileOptions = ProfileOptions(),
     val campusNames: Map<String, String> = emptyMap(),
     val currentYear: Int = 0,
+    /** The rider's host preferences from Search: matched fields are highlighted on the host card. Device-local. */
+    val prefs: MatchPreferences = MatchPreferences(),
     val activeDay: SeriesWeekday? = null,
     val dayStates: Map<SeriesWeekday, DayState> = emptyMap(),
     val standing: Standing = Standing.Requestable,
@@ -61,14 +64,14 @@ class DetailsViewModel(
     private var openedId: String? = null
 
     /** Shows [series] now and reads the host's profile, the labels, the campus names and this rider's request in the background. */
-    fun open(series: HostedSeries, distanceTenths: Int?, firstNameHint: String?) {
+    fun open(series: HostedSeries, distanceTenths: Int?, firstNameHint: String?, prefs: MatchPreferences = MatchPreferences()) {
         if (openedId == series.id) return
         reset()
         openedId = series.id
         val own = series.hostId.isNotBlank() && series.hostId == backend.currentUid()
         val states = DetailsRules.dayStates(series, clock.instant())
         _state.value = DetailsUiState(
-            series = series, distanceTenths = distanceTenths, firstNameHint = firstNameHint, currentYear = HostingText.yearOf(clock),
+            series = series, distanceTenths = distanceTenths, firstNameHint = firstNameHint, prefs = prefs, currentYear = HostingText.yearOf(clock),
             activeDay = SeriesWeekday.entries.first { it.id in series.weekdayIds }, dayStates = states,
             standing = if (own) Standing.Own else Standing.Requestable,
         )

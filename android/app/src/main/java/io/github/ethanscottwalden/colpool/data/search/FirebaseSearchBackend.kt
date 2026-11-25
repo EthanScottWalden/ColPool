@@ -1,8 +1,10 @@
 package io.github.ethanscottwalden.colpool.data.search
 
 import com.google.firebase.firestore.FirebaseFirestore
+import io.github.ethanscottwalden.colpool.data.model.ProfileOptions
 import io.github.ethanscottwalden.colpool.data.series.HostedSeries
 import io.github.ethanscottwalden.colpool.data.series.HostedSeriesParser
+import io.github.ethanscottwalden.colpool.data.session.FirebaseOnboardingBackend
 import io.github.ethanscottwalden.colpool.data.session.await
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -34,15 +36,32 @@ class FirebaseSearchBackend(
         return snap.documents.mapNotNull { it.getString("seriesId") ?: it.id.substringBefore('_').ifEmpty { null } }.toSet()
     }
 
-    override suspend fun loadHostFirstName(hostId: String): String? = try {
-        firestore.collection("profiles").document(hostId).get().await().getString("firstName")?.trim()?.ifEmpty { null }
+    override suspend fun loadHostFields(hostId: String): HostMatchFields? = try {
+        parseHostFields(firestore.collection("profiles").document(hostId).get().await().data)
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
         null
     }
 
+    override suspend fun loadOptions(): ProfileOptions {
+        val snap = firestore.collection("options").document("profile").get().await()
+        return FirebaseOnboardingBackend.parseOptions(snap.data ?: error("options/profile is missing"))
+    }
+
     companion object {
+        /** Only the first name and the match fields are taken from the profile document. */
+        fun parseHostFields(doc: Map<String, Any?>?): HostMatchFields? {
+            if (doc == null) return null
+            return HostMatchFields(
+                firstName = (doc["firstName"] as? String)?.trim()?.ifEmpty { null },
+                year = doc["year"] as? String,
+                major = doc["major"] as? String,
+                interests = (doc["interests"] as? List<*>).orEmpty().filterIsInstance<String>(),
+                traits = (doc["traits"] as? List<*>).orEmpty().filterIsInstance<String>(),
+            )
+        }
+
         /** `startingAddress.{lat,lng}` as a point, or null when either is missing or not a valid coordinate. */
         fun parseStartingPoint(doc: Map<String, Any?>?): GeoPoint? {
             val a = doc?.get("startingAddress") as? Map<*, *> ?: return null

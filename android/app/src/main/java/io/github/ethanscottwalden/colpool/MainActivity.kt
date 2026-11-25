@@ -65,7 +65,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private val search: SearchViewModel by viewModels {
-        viewModelFactory { initializer { SearchViewModel((application as ColPoolApp).container.searchBackend) } }
+        viewModelFactory { initializer { SearchViewModel((application as ColPoolApp).container.searchBackend, store = (application as ColPoolApp).container.preferenceStore) } }
     }
 
     private val details: DetailsViewModel by viewModels {

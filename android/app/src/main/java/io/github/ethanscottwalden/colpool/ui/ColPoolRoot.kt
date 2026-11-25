@@ -90,7 +90,7 @@ fun ColPoolRoot(
     // Opening a series from Search fills the details; closing it forgets them.
     LaunchedEffect(searchState.openedSeriesId) {
         val r = searchState.results.firstOrNull { it.series.id == searchState.openedSeriesId }
-        if (r != null) details.open(r.series, r.distanceTenths, searchState.hostNames[r.series.hostId]) else details.reset()
+        if (r != null) details.open(r.series, r.distanceTenths, searchState.hostNames[r.series.hostId], searchState.prefs) else details.reset()
     }
 
     LaunchedEffect(state) {
@@ -127,7 +127,7 @@ fun ColPoolRoot(
                 onSubmit = auth::submit,
             ),
         )
-        SessionState.Onboarding -> OnboardingScreen(onboarding, addressSearch, onLogOut = session::logOut)
+        SessionState.Onboarding -> OnboardingScreen(onboarding, addressSearch, onLogOut = { search.clearStoredPreferences(); session.logOut() })
         SessionState.Search -> when {
             reviewDraftId != null -> ReviewScreen(
                 review, reviewDraftId!!,
@@ -152,12 +152,12 @@ fun ColPoolRoot(
                 onTabSelected = { shellTab = it },
                 notificationsTab = { NotificationsTab(notifications, modifier = it) },
                 searchTab = { SearchTab(search, modifier = it) },
-                profileTab = { ProfileTab(profile, editProfile, addressSearch, onLogOut = session::logOut, modifier = it) },
+                profileTab = { ProfileTab(profile, editProfile, addressSearch, onLogOut = { search.clearStoredPreferences(); session.logOut() }, modifier = it) },
                 hostingTab = { HostingTab(hosting, onHostSeries = { createSeries.reset(); shellTab = HOSTING_TAB; creatingSeries = true }, modifier = it) },
             )
         }
-        SessionState.Staff -> StaffExportPlaceholder(onLogOut = session::logOut)
-        SessionState.Error -> SessionErrorScreen(onRetry = session::retry, onLogOut = session::logOut, detail = errorDetail)
+        SessionState.Staff -> StaffExportPlaceholder(onLogOut = { search.clearStoredPreferences(); session.logOut() })
+        SessionState.Error -> SessionErrorScreen(onRetry = session::retry, onLogOut = { search.clearStoredPreferences(); session.logOut() }, detail = errorDetail)
     }
     // A new notification shows over any student screen; tapping it goes to the Notifications tab.
     if (state == SessionState.Search) NotificationBannerHost(
