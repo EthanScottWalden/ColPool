@@ -349,4 +349,23 @@
     <string name="details_err_retry">Couldn’t send your request. Check your connection and try again.</string>
     <string name="search_request_sent">Request sent</string>
     <string name="search_request_sent_dismiss">Dismiss</string>
+
+    <!-- Host preferences and match percentage (#37). Wording is provisional. -->
+    <string name="prefs_row">Host preferences (%1$d)</string>
+    <string name="prefs_row_open_cd">Host preferences, %1$d chosen. Opens the panel.</string>
+    <string name="prefs_row_close_cd">Host preferences, %1$d chosen. Closes the panel.</string>
+    <string name="prefs_intro">Pick what you’d like in a host. You’ll see a match percentage on each ride, but distance still decides the order.</string>
+    <string name="prefs_interests">Interests</string>
+    <string name="prefs_traits">Commute style</string>
+    <string name="prefs_major">Major (pick one)</string>
+    <string name="prefs_year">Year (pick one)</string>
+    <string name="prefs_major_filter">Find a major</string>
+    <string name="prefs_major_none">No majors match.</string>
+    <string name="prefs_clear">Clear preferences</string>
+    <string name="prefs_done">Done</string>
+    <string name="prefs_options_failed">Couldn’t load the choices. Check your connection and try again.</string>
+    <string name="prefs_options_loading">Loading choices…</string>
+    <string name="match_badge">%1$d%% match</string>
+    <string name="match_badge_cd">%1$d percent match</string>
+    <string name="match_highlight_cd">matches your preference</string>
 </resources>

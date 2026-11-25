@@ -2,6 +2,10 @@ package io.github.ethanscottwalden.colpool.ui.search
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.ethanscottwalden.colpool.data.model.ProfileOptions
+import io.github.ethanscottwalden.colpool.data.search.HostMatchFields
+import io.github.ethanscottwalden.colpool.data.search.InMemoryPreferenceStore
+import io.github.ethanscottwalden.colpool.data.search.PreferenceStore
 import io.github.ethanscottwalden.colpool.data.search.SearchBackend
 import io.github.ethanscottwalden.colpool.ui.hosting.HostingText
 import io.github.ethanscottwalden.colpool.ui.series.SeriesWeekday
@@ -32,7 +36,18 @@ data class SearchUiState(
     val openedSeriesId: String? = null,
     /** True after a request was sent from the details screen: a "Request sent" banner shows until dismissed. */
     val requestSent: Boolean = false,
+    /** What the rider would like in a host. Device-local; never changes order or filters (RC-20). */
+    val prefs: MatchPreferences = MatchPreferences(),
+    val panelOpen: Boolean = false,
+    /** The predefined lists for the panel. Empty until loaded. */
+    val options: ProfileOptions = ProfileOptions(),
+    val optionsFailed: Boolean = false,
+    /** The match fields of the hosts shown (null value: not readable, so no badge). */
+    val hostFields: Map<String, HostMatchFields?> = emptyMap(),
 ) {
+    /** The match percentage for one host, or null when no preference is chosen. */
+    fun matchPercent(hostId: String): Int? = MatchRules.percent(prefs, hostFields[hostId])
+
     override fun toString(): String = "SearchUiState(redacted)"
 }
 
@@ -40,13 +55,17 @@ data class SearchUiState(
 class SearchViewModel(
     private val backend: SearchBackend,
     private val clock: Clock = Clock.systemUTC(),
+    private val store: PreferenceStore = InMemoryPreferenceStore(),
 ) : ViewModel() {
     private val _state = MutableStateFlow(SearchUiState(currentYear = HostingText.yearOf(clock)))
     val state: StateFlow<SearchUiState> = _state.asStateFlow()
     private var job: Job? = null
-    private val nameCache = HashMap<String, String?>()
+    private val hostCache = HashMap<String, HostMatchFields?>()
+    private var prefsUid: String? = null
+    private var optionsJob: Job? = null
 
     fun toggle(w: SeriesWeekday) {
+        syncPrefs()
         val picked = _state.value.picked.let { if (w in it) it - w else it + w }
         _state.update { it.copy(picked = picked, requestSent = false) }
         if (picked.isEmpty()) {
@@ -61,6 +80,7 @@ class SearchViewModel(
 
     /** Called when the Search tab is shown again: reads fresh results without blanking the old ones. */
     fun refresh() {
+        syncPrefs()
         if (_state.value.picked.isNotEmpty() && _state.value.load != SearchLoad.Loading) run(showLoading = false)
     }
 
@@ -76,11 +96,73 @@ class SearchViewModel(
 
     fun dismissRequestSent() = _state.update { it.copy(requestSent = false) }
 
-    /** Forgets everything (logging out, or leaving the student shell). */
+    /** Loads this account's stored preferences when the signed-in account changed. */
+    private fun syncPrefs() {
+        val uid = backend.currentUid()
+        if (uid == prefsUid) return
+        prefsUid = uid
+        _state.update { it.copy(prefs = uid?.let(store::load) ?: MatchPreferences(), panelOpen = false) }
+    }
+
+    private fun setPrefs(change: (MatchPreferences) -> MatchPreferences) {
+        syncPrefs()
+        val next = change(_state.value.prefs)
+        _state.update { it.copy(prefs = next) }
+        prefsUid?.let { store.save(it, next) }
+    }
+
+    fun toggleInterest(id: String) = setPrefs { it.copy(interests = if (id in it.interests) it.interests - id else it.interests + id) }
+
+    fun toggleTrait(id: String) = setPrefs { it.copy(traits = if (id in it.traits) it.traits - id else it.traits + id) }
+
+    /** At most one major: choosing the chosen one again clears it. */
+    fun toggleMajor(id: String) = setPrefs { it.copy(major = if (it.major == id) null else id) }
+
+    /** At most one year: choosing the chosen one again clears it. */
+    fun toggleYear(id: String) = setPrefs { it.copy(year = if (it.year == id) null else id) }
+
+    fun clearPrefs() = setPrefs { MatchPreferences() }
+
+    fun openPanel() {
+        syncPrefs()
+        _state.update { it.copy(panelOpen = true) }
+        if (_state.value.options.majors.isEmpty()) loadOptions()
+    }
+
+    fun closePanel() = _state.update { it.copy(panelOpen = false) }
+
+    fun retryOptions() = loadOptions()
+
+    private fun loadOptions() {
+        if (optionsJob?.isActive == true) return
+        _state.update { it.copy(optionsFailed = false) }
+        optionsJob = viewModelScope.launch {
+            try {
+                val o = backend.loadOptions()
+                _state.update { it.copy(options = o, optionsFailed = false) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(optionsFailed = true) }
+            }
+        }
+    }
+
+    /** Removes this account's stored preferences. Call while still signed in, as the account logs out. */
+    fun clearStoredPreferences() {
+        val uid = backend.currentUid() ?: prefsUid
+        uid?.let(store::clear)
+        _state.update { it.copy(prefs = MatchPreferences(), panelOpen = false) }
+    }
+
+    /** Forgets everything (logging out, or leaving the student shell). Stored preferences stay until [clearStoredPreferences]. */
     fun reset() {
         job?.cancel()
         job = null
-        nameCache.clear()
+        optionsJob?.cancel()
+        optionsJob = null
+        hostCache.clear()
+        prefsUid = null
         _state.value = SearchUiState(currentYear = HostingText.yearOf(clock))
     }
 
@@ -98,12 +180,13 @@ class SearchViewModel(
                     Triple(s.await(), p.await(), r.await())
                 }
                 val results = SearchRules.rank(series, picked, clock.instant(), backend.currentUid(), requested, start)
-                val missing = results.map { it.series.hostId }.distinct().filter { it !in nameCache }
-                coroutineScope { missing.map { h -> async { nameCache[h] = backend.loadHostFirstName(h) } }.awaitAll() }
+                val missing = results.map { it.series.hostId }.distinct().filter { it !in hostCache }
+                coroutineScope { missing.map { h -> async { backend.loadHostFields(h)?.let { f -> hostCache[h] = f } } }.awaitAll() }
                 _state.update {
                     it.copy(
                         load = SearchLoad.Loaded, results = results, hasStart = start != null,
-                        hostNames = results.associate { r -> r.series.hostId to nameCache[r.series.hostId] },
+                        hostNames = results.associate { r -> r.series.hostId to hostCache[r.series.hostId]?.firstName },
+                        hostFields = results.associate { r -> r.series.hostId to hostCache[r.series.hostId] },
                         currentYear = HostingText.yearOf(clock),
                         openedSeriesId = it.openedSeriesId?.takeIf { id -> results.any { r -> r.series.id == id } },
                     )

@@ -40,6 +40,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -197,7 +198,7 @@ private fun dayText(st: DayState, open: Int): String = when (st) {
 
 @Composable
 private fun HostCard(state: DetailsUiState) {
-    val fields = state.profile?.let { DetailsRules.hostFields(it, state.options) }.orEmpty()
+    val fields = state.profile?.let { DetailsRules.hostFields(it, state.options, state.prefs) }.orEmpty()
     val name = state.profile?.let { "${it.firstName} ${it.lastName}" } ?: state.firstNameHint ?: stringResource(R.string.details_host_unknown)
     ProfileCard(name, fields, Modifier.testTag(DetailsTags.HostCard))
 }
@@ -213,13 +214,13 @@ fun ProfileCard(name: String, fields: List<HostField>, modifier: Modifier = Modi
                 when (f) {
                     is HostField.Text -> Column {
                         Text(stringResource(f.label), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(f.value, style = MaterialTheme.typography.bodyLarge)
+                        if (f.matched) MatchedValue(f.value) else Text(f.value, style = MaterialTheme.typography.bodyLarge)
                     }
                     is HostField.Chips -> Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(stringResource(f.label), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             f.values.forEach {
-                                Surface(shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), color = Color.Transparent) {
+                                if (it in f.matched) MatchedValue(it) else Surface(shape = RoundedCornerShape(8.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), color = Color.Transparent) {
                                     Text(it, Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurface)
                                 }
                             }
@@ -228,6 +229,18 @@ fun ProfileCard(name: String, fields: List<HostField>, modifier: Modifier = Modi
                 }
             }
         }
+    }
+}
+
+/** A host value the rider asked for: filled, bold and ticked, and announced as a match (not by color alone). */
+@Composable
+private fun MatchedValue(text: String) {
+    val cd = stringResource(R.string.match_highlight_cd)
+    Surface(
+        modifier = Modifier.semantics(mergeDescendants = true) { stateDescription = cd },
+        shape = RoundedCornerShape(8.dp), border = BorderStroke(2.dp, MaterialTheme.colorScheme.outline), color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+    ) {
+        Text("\u2713 $text", Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
     }
 }
 

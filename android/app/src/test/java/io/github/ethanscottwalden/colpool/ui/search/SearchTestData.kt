@@ -1,7 +1,9 @@
 package io.github.ethanscottwalden.colpool.ui.search
 
 import com.google.firebase.Timestamp
+import io.github.ethanscottwalden.colpool.data.model.ProfileOptions
 import io.github.ethanscottwalden.colpool.data.search.GeoPoint
+import io.github.ethanscottwalden.colpool.data.search.HostMatchFields
 import io.github.ethanscottwalden.colpool.data.search.SearchBackend
 import io.github.ethanscottwalden.colpool.data.series.HostedSeries
 import io.github.ethanscottwalden.colpool.data.series.HostedSeriesParser
@@ -17,6 +19,11 @@ class FakeSearchBackend : SearchBackend {
     var start: GeoPoint? = SearchTestData.RIDER
     var requested: Set<String> = emptySet()
     var names: Map<String, String?> = emptyMap()
+    /** Match fields per host (the first name still comes from [names]). */
+    var matchFields: Map<String, HostMatchFields> = emptyMap()
+    var options: ProfileOptions = io.github.ethanscottwalden.colpool.ui.profile.SeededOptions.ALL
+    var optionsError: Exception? = null
+    var optionLoads = 0
     var searchError: Exception? = null
     val searches = mutableListOf<List<String>>()
     var requestLists = 0
@@ -31,7 +38,13 @@ class FakeSearchBackend : SearchBackend {
     }
     override suspend fun loadStartingPoint() = start
     override suspend fun loadRequestedSeriesIds(): Set<String> { requestLists++; return requested }
-    override suspend fun loadHostFirstName(hostId: String): String? { nameReads += hostId; return names[hostId] }
+    override suspend fun loadHostFields(hostId: String): HostMatchFields? {
+        nameReads += hostId
+        val f = matchFields[hostId]
+        val name = if (hostId in names) names[hostId] else f?.firstName
+        return if (f == null && name == null) null else (f ?: HostMatchFields(name)).copy(firstName = name)
+    }
+    override suspend fun loadOptions(): ProfileOptions { optionLoads++; optionsError?.let { throw it }; return options }
 }
 
 /** Made-up Riverside-area data shaped like `series` documents. The clock is the Monday after the fall-back change (Nov 1, 2026). */
