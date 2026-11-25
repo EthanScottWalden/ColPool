@@ -82,8 +82,8 @@ describe("validateSeriesInput: field rules", () => {
 
   it("tooManyStops: over the technical cap", () => {
     const stops = (n: number) => mut((i) => (i.days.mon.toCampus.stops = Array.from({ length: n }, () => ({ address: ADDR, minutes: 1 }))));
-    assert.ok(has(stops(26), "tooManyStops", "days.mon.toCampus.stops"));
-    assert.equal(errorsOf(stops(25)).length, 0);
+    assert.ok(has(stops(11), "tooManyStops", "days.mon.toCampus.stops"));
+    assert.equal(errorsOf(stops(10)).length, 0);
   });
 
   it("weekdays: duplicates, invalid ids, and days keys must match", () => {
@@ -256,7 +256,7 @@ describe("validateSeriesInput: hostile input (#23 review)", () => {
   it("one error for an oversized stops array, none per element", () => {
     const errs = errorsOf(mut((i) => (i.days.mon.toCampus.stops = Array.from({ length: 10000 }, () => ({})))));
     assert.deepEqual(errs.filter((e) => e.path.startsWith("days.mon.toCampus.stops")), [
-      { code: "tooManyStops", path: "days.mon.toCampus.stops", params: { limit: 25 } },
+      { code: "tooManyStops", path: "days.mon.toCampus.stops", params: { limit: 10 } },
     ]);
   });
   it("caps address text and place id length", () => {

@@ -29,5 +29,5 @@ export const SERIES_LIMITS = {
   /** Active hosted series per student (RC-31). */
   maxActiveHosted: 5,
   /** PROVISIONAL technical cap per direction (Routes API waypoint limit; ADR 0006). */
-  maxStopsPerDirection: 25,
+  maxStopsPerDirection: 10,
 } as const;

@@ -22,8 +22,8 @@ object SeriesLimits {
     const val STOP_MINUTES_MAX = 120
 
     /**
-     * Owner decision 2026-11-23: 10 stops per direction. The backend still allows 25
-     * (`SERIES_LIMITS.maxStopsPerDirection`) until contract-change Issue #143 lands; keep this in sync with it then.
+     * Owner decision 2026-11-23: 10 stops per direction. The backend matches since contract-change Issue #143
+     * (`SERIES_LIMITS.maxStopsPerDirection`, now 10); keep the two equal.
      */
     const val MAX_STOPS_PER_DIRECTION = 10
 

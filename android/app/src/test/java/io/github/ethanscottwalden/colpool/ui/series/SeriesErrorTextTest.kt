@@ -23,7 +23,7 @@ class SeriesErrorTextTest {
         assertEquals(UiText(R.string.series_err_invalid_time), text("invalidTime", "days.mon.toCampus.departTime"))
         assertEquals(UiText(R.string.series_err_unknown_campus_point), text("unknownCampusPoint", "days.mon.toCampus.campusPointId"))
         // The app's cap is 10 even when the backend still says 25.
-        assertEquals(UiText(R.string.series_err_too_many_stops, listOf(10)), text("tooManyStops", "days.mon.toCampus.stops", "limit" to 25))
+        assertEquals(UiText(R.string.series_err_too_many_stops, listOf(10)), text("tooManyStops", "days.mon.toCampus.stops", "limit" to 10))
         assertEquals(UiText(R.string.series_err_duplicate_weekday, listOf(StringRef(R.string.weekday_tue_full))), text("duplicateWeekday", "weekdays", "weekday" to "tue"))
         assertEquals(UiText(R.string.series_err_start_in_past), text("startInPast", "startDate"))
         assertEquals(UiText(R.string.series_err_end_before_start), text("endBeforeStart", "endDate"))

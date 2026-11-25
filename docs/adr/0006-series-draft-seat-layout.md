@@ -17,7 +17,7 @@ It would spread a series' seat state across documents, so one transaction touche
 
 ## Provisional, owner to confirm
 1. The collection layout above (`seriesDrafts` auto id, `series` with `seriesId == draftId`).
-2. `maxStopsPerDirection` is 25 (Routes API waypoint limit), a technical cap not in the SDD. **Note 2026-11-23:** the owner decided the cap should be **10** (Routes Essentials covers up to 10 intermediates; the higher rate starts after 10). The code and data-model still say 25 until contract-change Issue #143 (Human Review Pending) lands; then this item, ADR 0007 provisional item 2 and data-model §2.10 change to 10.
+2. `maxStopsPerDirection` is 10 (owner decision 2026-11-23, Issue #143): the Routes API Essentials tier covers a maximum of 10 intermediate waypoints, and requests with more than 10 are billed at a higher rate (Routes usage and billing page, read 2026-11-23). Stops are the only intermediates; the pickup spot and campus point are origin and destination. Supports RC-28. It is a technical cap not in the SDD.
 3. A nonexistent spring-forward local time (for example 02:30 on 2026-03-08) shifts forward to the equivalent after the gap (10:30Z); a repeated fall-back time uses the earlier, PDT instant (like java.time).
 4. A selected weekday with no date in range is allowed; it has no `lastDepartureAt` key and never has trips left.
 

@@ -183,7 +183,7 @@ describe("routePreview (layer 1: fake Routes client)", () => {
     const base = series().days.mon!;
     let k = 0;
     const stops = () =>
-      Array.from({ length: 25 }, () => ({ address: { ...STOP1, placeId: `hostile-${k}`, lat: 30 + (k++) / 1000 }, minutes: 0 }));
+      Array.from({ length: 10 }, () => ({ address: { ...STOP1, placeId: `hostile-${k}`, lat: 30 + (k++) / 1000 }, minutes: 0 }));
     const days = Object.fromEntries(
       wds.map((wd) => [wd, { toCampus: { ...base.toCampus, stops: stops() }, fromCampus: { ...base.fromCampus, stops: stops() } }]),
     );

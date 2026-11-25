@@ -40,4 +40,4 @@
 - Unknown until the live check: whether Routes answers an unroutable pair (Honolulu) with 200 and no routes, as assumed, or with a 4xx (which this code would turn into `internal` and the live check would show as FAIL). If it is a 4xx, a follow-up maps that status to "no route".
 
 ## Review hardening
-- Failure attribution (which address has no route) is capped at `MAX_ATTRIBUTION_CALLS` = 10 Routes calls per review; past that the error names the leg. A hostile all-unroutable input with 7 weekdays and 25 stops per direction costs at most 14 + 10 calls instead of about 370 (RC-28).
+- Failure attribution (which address has no route) is capped at `MAX_ATTRIBUTION_CALLS` = 10 Routes calls per review; past that the error names the leg. A hostile all-unroutable input with 7 weekdays and 10 stops per direction costs at most 14 + 10 calls instead of about 150 (RC-28).
