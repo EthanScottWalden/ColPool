@@ -33,7 +33,7 @@ object SeriesErrorText {
         "invalidDate" -> UiText(R.string.series_err_invalid_date)
         "invalidTime" -> UiText(R.string.series_err_invalid_time)
         "unknownCampusPoint" -> UiText(R.string.series_err_unknown_campus_point)
-        // The app's cap (10) is lower than the backend's until #143; the text states what the app allows.
+        // The text states the app's own cap, which equals the backend's (10, #143).
         "tooManyStops" -> UiText(R.string.series_err_too_many_stops, listOf(SeriesLimits.MAX_STOPS_PER_DIRECTION))
         "duplicateWeekday" -> UiText(R.string.series_err_duplicate_weekday, listOf(weekday(e)))
         "startInPast" -> UiText(R.string.series_err_start_in_past)
