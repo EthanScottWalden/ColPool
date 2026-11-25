@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -81,6 +83,8 @@ fun StudentShell(
     val selected = selectedTab ?: own
     Scaffold(
         modifier = modifier,
+        // Each tab pads for the status bar itself (the shared Header does); passing it down too doubled the gap.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         bottomBar = {
             NavigationBar {
                 StudentTab.entries.forEachIndexed { i, tab ->
@@ -130,7 +134,7 @@ fun StaffExportPlaceholder(onLogOut: () -> Unit, modifier: Modifier = Modifier) 
     Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column {
             Row(
-                Modifier.fillMaxWidth().background(StaffGreen).padding(16.dp),
+                Modifier.fillMaxWidth().background(StaffGreen).statusBarsPadding().padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -174,7 +178,7 @@ fun LoadingScreen(modifier: Modifier = Modifier) {
 @Composable
 private fun Centered(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
     Column(
-        modifier.fillMaxSize().padding(24.dp),
+        modifier.fillMaxSize().statusBarsPadding().padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) { content() }

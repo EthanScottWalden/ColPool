@@ -47,14 +47,14 @@ class SearchViewModelTest {
         assertTrue(vm.state.value.hasStart)
     }
 
-    @Test fun changingDaysUpdatesResultsAndReusesNames() {
+    @Test fun changingDaysUpdatesResultsAndRereadsNames() {
         val vm = vm()
         vm.toggle(Mon)
         vm.toggle(Thu)
         assertEquals(listOf("mon", "thu"), backend.searches.last())
         assertEquals(listOf("near", "last", "mid", "far"), vm.state.value.results.map { it.series.id })
-        // hostA and hostD were already read.
-        assertEquals(listOf("hostA", "hostB", "hostC", "hostD"), backend.nameReads.sorted())
+        // Profiles are re-read on every search; every host in the results was read.
+        assertEquals(setOf("hostA", "hostB", "hostC", "hostD"), backend.nameReads.toSet())
         vm.toggle(Mon)
         assertEquals(listOf("mid", "far"), vm.state.value.results.map { it.series.id })
     }

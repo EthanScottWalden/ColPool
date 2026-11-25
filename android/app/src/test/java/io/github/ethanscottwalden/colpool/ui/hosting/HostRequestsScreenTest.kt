@@ -88,7 +88,7 @@ class HostRequestsScreenTest {
         composeRule.onNodeWithText("Decline").assertDoesNotExist()
     }
 
-    @Test fun tappingARowOpensTheRequester() {
+    @Test fun tappingProfileOpensTheRequester() {
         var opened: String? = null
         details(withMixed(), HostingActions(onOpenRequest = { opened = it }))
         composeRule.onNodeWithTag(HostingTags.request("s1_maya")).performScrollTo().performClick()
@@ -97,7 +97,8 @@ class HostRequestsScreenTest {
 
     @Test fun rowHasADescriptionWithoutIds() {
         details(withMixed())
-        composeRule.onNodeWithContentDescription("Maya Okafor, Tue · pending, Thu · accepted. Opens profile.").assertExists()
+        composeRule.onNodeWithContentDescription("View Maya Okafor’s profile").assertExists()
+        composeRule.onNodeWithText("Tue · pending, Thu · accepted").assertExists()
     }
 
     @Test fun requesterProfileShowsFilledFieldsOnly() {

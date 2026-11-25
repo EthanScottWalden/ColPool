@@ -6,6 +6,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -100,20 +102,27 @@ fun HostedSeriesDetailsScreen(viewModel: HostingViewModel, requests: HostRequest
     )
 }
 
+/**
+ * The compact header every screen shares: a small "COLPOOL" eyebrow over the title, with an optional back button.
+ * It pads for the status bar itself, so hosts must not pass the status-bar inset down as well.
+ */
 @Composable
-internal fun Header(title: String, onBack: (() -> Unit)? = null) {
+internal fun Header(title: String, onBack: (() -> Unit)? = null, backTag: String = HostingTags.Back) {
     val backCd = stringResource(R.string.series_back)
     Row(
-        Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.primary).statusBarsPadding().padding(16.dp),
+        Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.primary).statusBarsPadding().padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (onBack != null) OutlinedButton(
             onClick = onBack,
-            modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).testTag(HostingTags.Back).semantics { contentDescription = backCd },
+            modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).testTag(backTag).semantics { contentDescription = backCd },
             contentPadding = PaddingValues(0.dp),
         ) { Text("‹", Modifier.clearAndSetSemantics {}, style = MaterialTheme.typography.titleLarge) }
-        Text(title, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.semantics { heading() })
+        Column(Modifier.semantics(mergeDescendants = true) {}) {
+            Text(stringResource(R.string.header_eyebrow), Modifier.clearAndSetSemantics {}, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f))
+            Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.semantics { heading() })
+        }
     }
 }
 
@@ -265,15 +274,25 @@ private fun RequestRow(r: IncomingRequest, names: Map<String, HostProfile?>, onO
     val res = LocalContext.current.resources
     val name = names[r.riderId]?.let { "${it.firstName} ${it.lastName}" } ?: stringResource(R.string.requests_unknown_rider)
     val days = HostRequestRules.rowDays(res, r)
-    val cd = stringResource(R.string.requests_row_cd, name, days)
+    val cd = stringResource(R.string.requests_profile_cd, name)
+    val initials = name.split(" ").filter { it.isNotEmpty() }.take(2).joinToString("") { it.first().uppercase() }
+    // The card is not a tap target: the Profile button is the one action, so TalkBack finds it once.
     Surface(
-        onClick = { onOpen(r.riderId) },
-        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag(HostingTags.request(r.id)).semantics(mergeDescendants = true) { contentDescription = cd },
+        modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface, shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
     ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(days, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Surface(Modifier.size(40.dp).clearAndSetSemantics {}, shape = CircleShape, color = MaterialTheme.colorScheme.primary) {
+                Box(contentAlignment = Alignment.Center) { Text(initials, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimary) }
+            }
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text(days, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            OutlinedButton(
+                onClick = { onOpen(r.riderId) },
+                modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).testTag(HostingTags.request(r.id)).semantics { contentDescription = cd },
+            ) { Text(stringResource(R.string.requests_profile), Modifier.clearAndSetSemantics {}) }
         }
     }
 }

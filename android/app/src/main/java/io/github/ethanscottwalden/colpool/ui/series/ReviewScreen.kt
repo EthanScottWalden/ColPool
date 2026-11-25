@@ -51,6 +51,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.ethanscottwalden.colpool.ui.hosting.Header
 import io.github.ethanscottwalden.colpool.R
 import io.github.ethanscottwalden.colpool.data.series.DraftLeg
 import io.github.ethanscottwalden.colpool.data.series.ReviewDraft
@@ -138,21 +139,7 @@ fun ReviewContent(state: ReviewUiState, actions: ReviewActions, modifier: Modifi
 }
 
 @Composable
-private fun ReviewHeader(onBack: () -> Unit) {
-    val backCd = stringResource(R.string.series_back)
-    Row(
-        Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.primary).statusBarsPadding().padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        OutlinedButton(
-            onClick = onBack,
-            modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).testTag(ReviewTags.Back).semantics { contentDescription = backCd },
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
-        ) { Text("‹", Modifier.clearAndSetSemantics {}, style = MaterialTheme.typography.titleLarge) }
-        Text(stringResource(R.string.review_title), style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.semantics { heading() })
-    }
-}
+private fun ReviewHeader(onBack: () -> Unit) = Header(stringResource(R.string.review_title), onBack, ReviewTags.Back)
 
 /** A message in a live region with actions under it. */
 @Composable

@@ -86,9 +86,9 @@ class PreferencesViewModelTest {
         assertEquals(first + 1, backend.nameReads.count { it == "hostA" })
         assertEquals(100, vm.state.value.matchPercent("hostA"))
         assertEquals("Ava", vm.state.value.hostNames["hostA"])
-        // A successful read is cached: no further read.
+        // Profiles are re-read on every search (a host's edits must show), so a further run reads it again.
         vm.retry()
-        assertEquals(first + 1, backend.nameReads.count { it == "hostA" })
+        assertEquals(first + 2, backend.nameReads.count { it == "hostA" })
     }
 
     @Test fun matchPercentComesFromTheHostsProfileAndHidesWithoutPreferences() {
@@ -111,9 +111,26 @@ class PreferencesViewModelTest {
         vm.toggle(Mon)
         val reads = backend.nameReads.size
         vm.toggleInterest("music"); vm.toggleYear("junior"); vm.toggleYear("junior")
-        vm.retry()
         assertEquals(reads, backend.nameReads.size)
         assertEquals(backend.nameReads.distinct(), backend.nameReads)
+    }
+
+    @Test fun hostEditsBetweenSearchesChangeTheNextMatch() {
+        val vm = vm()
+        vm.toggle(Mon)
+        vm.toggleInterest("music")
+        vm.toggleMajor("nursing")
+        assertEquals(100, vm.state.value.matchPercent("hostA"))
+        // The host edits their profile: no longer a nursing major, no music.
+        backend.matchFields = backend.matchFields + ("hostA" to HostMatchFields("Ava", "junior", "biology", listOf("coffee"), listOf("chatty")))
+        val before = backend.nameReads.size
+        vm.retry()
+        assertEquals(0, vm.state.value.matchPercent("hostA"))
+        assertEquals("biology", vm.state.value.hostFields["hostA"]?.major)
+        // One search still reads each host once.
+        val reads = backend.nameReads.drop(before)
+        assertEquals(reads.distinct(), reads)
+        assertEquals(true, reads.isNotEmpty())
     }
 
     @Test fun oneMajorAndOneYearAtMostAndTheSameChoiceClears() {

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Surface
@@ -56,7 +57,7 @@ fun ProfileContent(state: ProfileUiState, actions: ProfileActions, modifier: Mod
     Column(modifier.fillMaxSize()) {
         Text(
             stringResource(R.string.profile_title),
-            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp),
+            Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 16.dp, vertical = 16.dp),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
         )

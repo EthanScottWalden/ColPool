@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">ColPool</string>
+    <string name="header_eyebrow">COLPOOL</string>
     <string name="address_search_label">Search for an address or place</string>
     <string name="address_search_hint">Choose a suggestion. Free text without a match can’t be used.</string>
     <string name="address_search_searching">Searching…</string>
@@ -222,7 +223,8 @@
     <string name="requests_status_declined">declined</string>
     <string name="requests_day_status">%1$s · %2$s</string>
     <string name="requests_unknown_rider">A rider</string>
-    <string name="requests_row_cd">%1$s, %2$s. Opens profile.</string>
+    <string name="requests_profile">Profile</string>
+    <string name="requests_profile_cd">View %1$s’s profile</string>
     <string name="requests_load_failed">Couldn’t load requests. They update when your connection is back.</string>
     <string name="requester_title">Requester</string>
     <string name="requester_unavailable">This profile is no longer available.</string>
@@ -310,7 +312,7 @@
     <string name="search_day_needed">needed</string>
     <string name="search_day_cd">%1$s, %2$s</string>
     <string name="search_day_not_needed">not needed</string>
-    <string name="search_picked_cd">%1$s, needed</string>
+    <string name="search_picked_cd">%1$s, selected</string>
     <string name="search_times">%1$s: leaves %2$s, at campus ~%3$s, leaves campus %4$s</string>
     <string name="search_price">$%1$d cash per round trip</string>
     <string name="details_title">Series details</string>
@@ -360,6 +362,13 @@
     <string name="prefs_major">Major (pick one)</string>
     <string name="prefs_year">Year (pick one)</string>
     <string name="prefs_major_filter">Find a major</string>
+    <string name="prefs_major_filter_change">Find a different major</string>
+    <string name="prefs_major_chosen">Chosen: %1$s</string>
+    <string name="prefs_major_clear">Clear</string>
+    <plurals name="prefs_major_more">
+        <item quantity="one">Keep typing to narrow (%1$d more)</item>
+        <item quantity="other">Keep typing to narrow (%1$d more)</item>
+    </plurals>
     <string name="prefs_major_none">No majors match.</string>
     <string name="prefs_clear">Clear preferences</string>
     <string name="prefs_done">Done</string>
