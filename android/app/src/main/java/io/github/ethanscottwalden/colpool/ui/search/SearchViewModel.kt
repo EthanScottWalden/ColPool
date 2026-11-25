@@ -168,6 +168,9 @@ class SearchViewModel(
 
     private fun run(showLoading: Boolean) {
         job?.cancel()
+        // Host profiles are re-read on every search so a host's edits show up in the match right away; the map still
+        // keeps this run's successful reads so one search never fetches the same host twice.
+        hostCache.clear()
         val picked = _state.value.picked
         if (showLoading) _state.update { it.copy(load = SearchLoad.Loading) }
         job = viewModelScope.launch {

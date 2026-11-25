@@ -13,6 +13,7 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
@@ -20,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.ethanscottwalden.colpool.data.search.HostMatchFields
 import io.github.ethanscottwalden.colpool.data.search.InMemoryPreferenceStore
+import io.github.ethanscottwalden.colpool.ui.profile.SeededOptions
 import io.github.ethanscottwalden.colpool.ui.series.SeriesWeekday
 import io.github.ethanscottwalden.colpool.ui.theme.ColPoolTheme
 import kotlinx.coroutines.Dispatchers
@@ -97,6 +99,7 @@ class PreferencesScreenTest {
         composeRule.onNodeWithTag(SearchTags.PrefsRow).performClick()
         composeRule.onNodeWithTag(SearchTags.interest("music")).performClick()
         composeRule.onNodeWithTag(SearchTags.trait("chatty")).performClick()
+        composeRule.onNodeWithTag(SearchTags.PrefsMajorFilter).performScrollTo().performTextInput("nurs")
         composeRule.onNodeWithTag(SearchTags.major("nursing")).performScrollTo().performClick()
         composeRule.onNodeWithTag(SearchTags.year("junior")).performClick()
         composeRule.onNodeWithTag(SearchTags.PrefsRow).assert(hasText("Host preferences (4)"))
@@ -115,6 +118,43 @@ class PreferencesScreenTest {
         composeRule.onNodeWithTag(SearchTags.PrefsMajorFilter).performTextInput("nurs")
         composeRule.onNodeWithTag(SearchTags.major("nursing")).assertExists()
         assertEquals(0, composeRule.onAllNodes(androidx.compose.ui.test.hasTestTag(SearchTags.major("accounting"))).fetchSemanticsNodes().size)
+    }
+
+    private fun exists(tag: String) = composeRule.onAllNodes(androidx.compose.ui.test.hasTestTag(tag)).fetchSemanticsNodes().isNotEmpty()
+
+    @Test fun majorListIsHiddenUntilTypingAndBoundedWithAHint() {
+        show()
+        composeRule.onNodeWithTag(SearchTags.PrefsRow).performClick()
+        assertEquals(false, exists(SearchTags.PrefsMajorMatches))
+        assertEquals(false, exists(SearchTags.major("nursing")))
+        // "n" matches many majors: only 5 show, with a hint counting the rest.
+        composeRule.onNodeWithTag(SearchTags.PrefsMajorFilter).performTextInput("n")
+        val rows = composeRule.onAllNodes(SemanticsMatcher("a major row") { n ->
+            val t = if (SemanticsProperties.TestTag in n.config) n.config[SemanticsProperties.TestTag] else null
+            t != null && t.startsWith("search_pref_major_") && t.removePrefix("search_pref_major_") in SeededOptions.ALL.majors.map { it.id }
+        }).fetchSemanticsNodes().size
+        assertEquals(MAJOR_MATCHES_SHOWN, rows)
+        composeRule.onNodeWithTag(SearchTags.PrefsMajorMore).assert(hasText("Keep typing to narrow (", substring = true))
+        composeRule.onNodeWithTag(SearchTags.PrefsMajorFilter).performTextInput("ursing pr")
+        assertEquals(false, exists(SearchTags.PrefsMajorMore))
+    }
+
+    @Test fun noMatchSaysSo() {
+        show()
+        composeRule.onNodeWithTag(SearchTags.PrefsRow).performClick()
+        composeRule.onNodeWithTag(SearchTags.PrefsMajorFilter).performTextInput("zzzz")
+        composeRule.onNodeWithText("No majors match.").assertExists()
+    }
+
+    @Test fun chosenMajorShowsAndCanBeCleared() {
+        val vm = show()
+        composeRule.onNodeWithTag(SearchTags.PrefsRow).performClick()
+        composeRule.onNodeWithTag(SearchTags.PrefsMajorFilter).performTextInput("nursing pr")
+        composeRule.onNodeWithTag(SearchTags.major("nursing-practice")).performScrollTo().performClick()
+        composeRule.onNodeWithTag(SearchTags.PrefsMajorChosen).assert(hasText("Chosen: Nursing Practice"))
+        composeRule.onNodeWithTag(SearchTags.PrefsMajorClear).assertHeightIsAtLeast(48.dp).performClick()
+        assertEquals(null, vm.state.value.prefs.major)
+        assertEquals(false, exists(SearchTags.PrefsMajorChosen))
     }
 
     @Test fun badgeAppearsOnlyWithPreferencesAndOrderStays() {
@@ -141,6 +181,7 @@ class PreferencesScreenTest {
     @Test fun chipsAndPanelButtonsAreCheckboxesAtLeast48dp() {
         show()
         composeRule.onNodeWithTag(SearchTags.PrefsRow).performClick()
+        composeRule.onNodeWithTag(SearchTags.PrefsMajorFilter).performTextInput("nurs")
         listOf(SearchTags.interest("music"), SearchTags.trait("chatty"), SearchTags.year("junior"), SearchTags.major("nursing")).forEach {
             composeRule.onNodeWithTag(it).assertHeightIsAtLeast(48.dp).assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Checkbox))
         }

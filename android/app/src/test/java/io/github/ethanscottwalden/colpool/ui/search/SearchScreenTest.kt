@@ -163,7 +163,8 @@ class SearchScreenTest {
         show()
         composeRule.onNodeWithTag(SearchTags.day(SeriesWeekday.Mon)).assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Checkbox))
         composeRule.onNodeWithTag(SearchTags.day(SeriesWeekday.Mon)).performClick()
-        composeRule.onNodeWithTag(SearchTags.day(SeriesWeekday.Mon)).assert(hasText("needed", substring = true))
+        composeRule.onNodeWithTag(SearchTags.day(SeriesWeekday.Mon)).assert(androidx.compose.ui.test.hasContentDescription("Monday, selected"))
+        assertEquals(0, composeRule.onAllNodes(hasText("needed", substring = true).and(androidx.compose.ui.test.hasTestTag(SearchTags.day(SeriesWeekday.Mon)))).fetchSemanticsNodes().size)
         composeRule.onNodeWithTag(SearchTags.day(SeriesWeekday.Mon)).assert(SemanticsMatcher.expectValue(SemanticsProperties.ToggleableState, androidx.compose.ui.state.ToggleableState.On))
         composeRule.onNodeWithTag(SearchTags.day(SeriesWeekday.Mon)).assertHeightIsAtLeast(48.dp)
     }
