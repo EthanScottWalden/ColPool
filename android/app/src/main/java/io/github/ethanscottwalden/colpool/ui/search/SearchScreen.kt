@@ -3,6 +3,7 @@ package io.github.ethanscottwalden.colpool.ui.search
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -37,6 +38,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -61,6 +65,10 @@ object SearchTags {
     const val PrefsClear = "search_prefs_clear"
     const val PrefsDone = "search_prefs_done"
     const val PrefsMajorFilter = "search_prefs_major_filter"
+    const val PrefsMajorChosen = "search_prefs_major_chosen"
+    const val PrefsMajorClear = "search_prefs_major_clear"
+    const val PrefsMajorMatches = "search_prefs_major_matches"
+    const val PrefsMajorMore = "search_prefs_major_more"
     const val PrefsRetry = "search_prefs_retry"
     fun badge(id: String) = "search_match_$id"
     fun interest(id: String) = "search_pref_interest_$id"
@@ -106,16 +114,14 @@ fun SearchContent(state: SearchUiState, actions: SearchActions, modifier: Modifi
             if (state.requestSent) SentBanner(actions.onDismissSent)
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(stringResource(R.string.search_days_label), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.semantics { heading() })
-                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     SeriesWeekday.entries.forEach { w ->
                         val name = stringResource(w.fullName)
                         val cd = stringResource(R.string.search_picked_cd, name)
                         val picked = w in state.picked
-                        DayChip(
-                            selected = picked, enabled = true, onClick = { actions.onToggleDay(w) },
-                            title = stringResource(w.shortName), sub = if (picked) stringResource(R.string.search_day_needed) else null,
-                            modifier = Modifier.weight(1f).fillMaxHeight().heightIn(min = 48.dp).testTag(SearchTags.day(w)).semantics { contentDescription = if (picked) cd else name },
-                            role = Role.Checkbox,
+                        SearchDayChip(
+                            selected = picked, onClick = { actions.onToggleDay(w) }, title = stringResource(w.shortName),
+                            modifier = Modifier.weight(1f).testTag(SearchTags.day(w)).semantics { contentDescription = if (picked) cd else name },
                         )
                     }
                 }
@@ -231,6 +237,23 @@ private fun SentBanner(onDismiss: () -> Unit) {
         Row(Modifier.padding(start = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
             Text(stringResource(R.string.search_request_sent), Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             androidx.compose.material3.TextButton(onClick = onDismiss, modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).testTag(SearchTags.SentDismiss)) { Text(stringResource(R.string.search_request_sent_dismiss)) }
+        }
+    }
+}
+
+/** A one-line day chip for the Search picker: filled when picked, outlined when not. Equal width (the caller weights it) and height. */
+@Composable
+private fun SearchDayChip(selected: Boolean, onClick: () -> Unit, title: String, modifier: Modifier = Modifier) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.heightIn(min = 48.dp).semantics { role = Role.Checkbox; toggleableState = if (selected) ToggleableState.On else ToggleableState.Off },
+        shape = RoundedCornerShape(8.dp),
+        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+        contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+        border = BorderStroke(1.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline),
+    ) {
+        Box(Modifier.fillMaxWidth().heightIn(min = 48.dp), contentAlignment = Alignment.Center) {
+            Text(title, maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelLarge, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal)
         }
     }
 }

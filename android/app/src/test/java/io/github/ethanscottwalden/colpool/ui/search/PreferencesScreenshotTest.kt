@@ -3,7 +3,10 @@ package io.github.ethanscottwalden.colpool.ui.search
 import android.app.Application
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import com.github.takahirom.roborazzi.captureRoboImage
 import io.github.ethanscottwalden.colpool.data.search.HostMatchFields
 import io.github.ethanscottwalden.colpool.ui.details.DetailsActions
@@ -55,6 +58,18 @@ class PreferencesScreenshotTest {
 
     @Config(sdk = [36], qualifiers = "w360dp-h3000dp-xxhdpi", application = Application::class)
     @Test fun panel() = shoot("search_preferences_panel") { SearchContent(state(panel = true), SearchActions()) }
+
+    private fun panelState(major: String?) = state(panel = true).copy(prefs = MatchPreferences(emptySet(), emptySet(), major, null), results = emptyList())
+
+    @Config(sdk = [36], qualifiers = "w360dp-h3000dp-xxhdpi", application = Application::class)
+    @Test fun panelEmptyMajor() = shoot("search_preferences_major_empty") { SearchContent(panelState(null), SearchActions()) }
+
+    @Config(sdk = [36], qualifiers = "w360dp-h3000dp-xxhdpi", application = Application::class)
+    @Test fun panelTypingMajor() {
+        composeRule.setContent { ColPoolTheme { SearchContent(panelState(null), SearchActions()) } }
+        composeRule.onNodeWithTag(SearchTags.PrefsMajorFilter).performScrollTo().performTextInput("a")
+        composeRule.onRoot().captureRoboImage("src/test/screenshots/search_preferences_major_typing.png")
+    }
 
     @Config(sdk = [36], qualifiers = "w360dp-h1800dp-xxhdpi", application = Application::class)
     @Test fun results() = shoot("search_results_match") { SearchContent(state(panel = false), SearchActions()) }

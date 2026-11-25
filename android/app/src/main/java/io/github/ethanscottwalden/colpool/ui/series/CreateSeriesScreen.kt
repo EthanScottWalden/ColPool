@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -66,6 +65,7 @@ import androidx.compose.ui.semantics.toggleableState
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.ethanscottwalden.colpool.ui.hosting.Header
 import io.github.ethanscottwalden.colpool.R
 import io.github.ethanscottwalden.colpool.data.series.CampusPoint
 import io.github.ethanscottwalden.colpool.data.series.SeriesError
@@ -223,7 +223,6 @@ private fun PublicPlaceNote(text: String) {
 fun CreateSeriesContent(state: CreateSeriesUiState, today: LocalDate, actions: CreateSeriesActions, modifier: Modifier = Modifier) {
     var datePicker by remember { mutableStateOf<Boolean?>(null) } // true = start, false = end
     var timePicker by remember { mutableStateOf<Pair<SeriesWeekday, Direction>?>(null) }
-    val backCd = stringResource(R.string.series_back)
     val lessCd = stringResource(R.string.series_riders_less)
     val moreCd = stringResource(R.string.series_riders_more)
     val boxErrors = state.errors.filter { it.path.isEmpty() || !SeriesErrorText.hasInlineSpot(it.path) }
@@ -233,16 +232,7 @@ fun CreateSeriesContent(state: CreateSeriesUiState, today: LocalDate, actions: C
 
     Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.imePadding()) {
-            Row(
-                Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.primary).statusBarsPadding().padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                OutlinedButton(onClick = actions.onBack, modifier = Modifier.sizeIn(minWidth = 48.dp, minHeight = 48.dp).testTag(SeriesTags.Back), contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
-                    Text("←", Modifier.semantics { contentDescription = backCd }, style = MaterialTheme.typography.titleLarge)
-                }
-                Text(stringResource(R.string.series_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            }
+            Header(stringResource(R.string.series_title), actions.onBack, SeriesTags.Back)
             Column(Modifier.weight(1f).verticalScroll(scroll).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (boxErrors.isNotEmpty()) ErrorBox(boxErrors)
 

@@ -25,7 +25,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.TextButton
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -106,29 +110,63 @@ private fun PrefChip(label: String, selected: Boolean, onClick: () -> Unit, modi
     )
 }
 
-/** A filter box over a scrollable list of every major; one can be chosen. */
+/**
+ * A filter box for the major (one can be chosen). The match list stays hidden while the box is empty. A chosen major shows
+ * as a card with a Change button. Typing shows at most [MAJOR_MATCHES_SHOWN] matches in a bordered list, with a
+ * "Keep typing to narrow (N more)" line when there are more, so it never needs hidden scrolling.
+ */
 @Composable
 private fun MajorPicker(majors: List<OptionItem>, chosen: String?, onPick: (String) -> Unit) {
     var filter by rememberSaveable { mutableStateOf("") }
-    val shown = majors.filter { it.label.contains(filter.trim(), ignoreCase = true) }
+    val query = filter.trim()
+    val chosenLabel = majors.firstOrNull { it.id == chosen }?.label
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (chosen != null) {
+            Surface(
+                shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline), modifier = Modifier.fillMaxWidth(),
+            ) {
+                Row(Modifier.padding(start = 12.dp, end = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.prefs_major_chosen, chosenLabel ?: chosen), Modifier.weight(1f).testTag(SearchTags.PrefsMajorChosen), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                    TextButton(onClick = { onPick(chosen) }, Modifier.sizeIn(minHeight = 48.dp).testTag(SearchTags.PrefsMajorClear)) { Text(stringResource(R.string.prefs_major_clear)) }
+                }
+            }
+        }
         OutlinedTextField(
             value = filter, onValueChange = { filter = it }, singleLine = true,
-            label = { Text(stringResource(R.string.prefs_major_filter)) },
+            label = { Text(stringResource(if (chosen != null) R.string.prefs_major_filter_change else R.string.prefs_major_filter)) },
             modifier = Modifier.fillMaxWidth().testTag(SearchTags.PrefsMajorFilter),
         )
-        Column(Modifier.fillMaxWidth().heightIn(max = 240.dp).verticalScroll(rememberScrollState())) {
-            if (shown.isEmpty()) Text(stringResource(R.string.prefs_major_none), Modifier.padding(8.dp), style = MaterialTheme.typography.bodyMedium)
-            shown.forEach { m ->
-                val on = m.id == chosen
-                Surface(
-                    onClick = { onPick(m.id) }, selected = on,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag(SearchTags.major(m.id)).semantics { role = Role.Checkbox },
-                    color = if (on) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surface,
-                ) {
-                    Text((if (on) "✓ " else "") + m.label, Modifier.padding(horizontal = 12.dp, vertical = 12.dp), style = MaterialTheme.typography.bodyLarge, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal)
+        if (query.isNotEmpty()) {
+            val matches = majors.filter { it.label.contains(query, ignoreCase = true) }
+            val shown = matches.take(MAJOR_MATCHES_SHOWN)
+            Surface(
+                shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline), modifier = Modifier.fillMaxWidth().testTag(SearchTags.PrefsMajorMatches),
+            ) {
+                Column(Modifier.fillMaxWidth()) {
+                    if (shown.isEmpty()) Text(stringResource(R.string.prefs_major_none), Modifier.padding(12.dp).semantics { liveRegion = LiveRegionMode.Polite }, style = MaterialTheme.typography.bodyMedium)
+                    shown.forEachIndexed { i, m ->
+                        if (i > 0) HorizontalDivider()
+                        val on = m.id == chosen
+                        Surface(
+                            onClick = { onPick(m.id); filter = "" }, selected = on,
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag(SearchTags.major(m.id)).semantics { role = Role.Checkbox },
+                            color = if (on) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surface,
+                        ) {
+                            Text((if (on) "✓ " else "") + m.label, Modifier.padding(horizontal = 12.dp, vertical = 12.dp), style = MaterialTheme.typography.bodyLarge, fontWeight = if (on) FontWeight.Bold else FontWeight.Normal)
+                        }
+                    }
+                    val more = matches.size - shown.size
+                    if (more > 0) Text(
+                        pluralStringResource(R.plurals.prefs_major_more, more, more), Modifier.padding(12.dp).testTag(SearchTags.PrefsMajorMore),
+                        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
     }
 }
+
+/** How many matching majors show at once; the rest are reached by typing more. */
+internal const val MAJOR_MATCHES_SHOWN = 5
