@@ -10,10 +10,16 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import io.github.ethanscottwalden.colpool.ui.ColPoolRoot
 import io.github.ethanscottwalden.colpool.ui.address.AddressSearchViewModel
 import io.github.ethanscottwalden.colpool.ui.auth.AuthViewModel
+import io.github.ethanscottwalden.colpool.ui.hosting.HostRequestsViewModel
+import io.github.ethanscottwalden.colpool.ui.notifications.NotificationsViewModel
+import io.github.ethanscottwalden.colpool.ui.hosting.HostingViewModel
+import io.github.ethanscottwalden.colpool.ui.details.DetailsViewModel
+import io.github.ethanscottwalden.colpool.ui.search.SearchViewModel
 import io.github.ethanscottwalden.colpool.ui.onboarding.OnboardingViewModel
 import io.github.ethanscottwalden.colpool.ui.profile.EditProfileViewModel
 import io.github.ethanscottwalden.colpool.ui.profile.ProfileViewModel
 import io.github.ethanscottwalden.colpool.ui.series.CreateSeriesViewModel
+import io.github.ethanscottwalden.colpool.ui.series.ReviewViewModel
 import io.github.ethanscottwalden.colpool.ui.session.SessionState
 import io.github.ethanscottwalden.colpool.ui.session.SessionViewModel
 import io.github.ethanscottwalden.colpool.ui.theme.ColPoolTheme
@@ -50,13 +56,37 @@ class MainActivity : ComponentActivity() {
         viewModelFactory { initializer { CreateSeriesViewModel((application as ColPoolApp).container.seriesBackend) } }
     }
 
+    private val review: ReviewViewModel by viewModels {
+        viewModelFactory { initializer { ReviewViewModel((application as ColPoolApp).container.seriesBackend) } }
+    }
+
+    private val hosting: HostingViewModel by viewModels {
+        viewModelFactory { initializer { HostingViewModel((application as ColPoolApp).container.seriesBackend) } }
+    }
+
+    private val search: SearchViewModel by viewModels {
+        viewModelFactory { initializer { SearchViewModel((application as ColPoolApp).container.searchBackend, store = (application as ColPoolApp).container.preferenceStore) } }
+    }
+
+    private val details: DetailsViewModel by viewModels {
+        viewModelFactory { initializer { DetailsViewModel((application as ColPoolApp).container.requestBackend) } }
+    }
+
+    private val hostRequests: HostRequestsViewModel by viewModels {
+        viewModelFactory { initializer { HostRequestsViewModel((application as ColPoolApp).container.hostRequestsBackend) } }
+    }
+
+    private val notifications: NotificationsViewModel by viewModels {
+        viewModelFactory { initializer { NotificationsViewModel((application as ColPoolApp).container.notificationsBackend) } }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
         splash.setKeepOnScreenCondition { session.state.value is SessionState.Resolving }
         setContent {
             ColPoolTheme {
-                ColPoolRoot(session, auth, onboarding, profile, editProfile, addressSearch, createSeries)
+                ColPoolRoot(session, auth, onboarding, profile, editProfile, addressSearch, createSeries, review, hosting, search, details, hostRequests, notifications)
             }
         }
     }

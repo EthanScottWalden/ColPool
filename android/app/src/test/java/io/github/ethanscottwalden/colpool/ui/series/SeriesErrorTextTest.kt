@@ -33,6 +33,7 @@ class SeriesErrorTextTest {
         assertEquals(UiText(R.string.series_err_hosting_overlap, listOf(StringRef(R.string.weekday_fri_full))), text("hostingWeekdayOverlap", "days.fri", "weekday" to "fri"))
         assertEquals(UiText(R.string.series_err_rider_conflict, listOf(StringRef(R.string.weekday_mon_full))), text("riderScheduleConflict", "days.mon", "weekday" to "mon"))
         assertEquals(UiText(R.string.series_err_unavailable), text("unavailable"))
+        assertEquals(UiText(R.string.series_err_draft_changed), text("draftChanged"))
         assertEquals(UiText(R.string.series_err_unknown), text("internal"))
         assertEquals(UiText(R.string.series_err_unknown), text("somethingNew", "pickupSpot"))
     }

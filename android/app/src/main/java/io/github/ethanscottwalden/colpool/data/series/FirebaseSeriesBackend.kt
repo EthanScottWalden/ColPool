@@ -4,11 +4,15 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.FirebaseFunctionsException
 import io.github.ethanscottwalden.colpool.data.session.await
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlin.coroutines.cancellation.CancellationException
 
 class FirebaseSeriesBackend(
     private val firestore: FirebaseFirestore,
     private val functions: FirebaseFunctions,
+    private val uid: () -> String? = { null },
 ) : SeriesBackend {
 
     override suspend fun loadCampusPoints(): List<CampusPoint> {
@@ -28,6 +32,45 @@ class FirebaseSeriesBackend(
         RoutePreviewResult.Failed
     }
 
+    override suspend fun loadDraft(draftId: String): DraftLoadResult = try {
+        val snap = firestore.collection("seriesDrafts").document(draftId).get().await()
+        if (!snap.exists()) DraftLoadResult.NotFound
+        else ReviewDraftParser.parse(snap.data ?: emptyMap())?.let { DraftLoadResult.Loaded(it) } ?: DraftLoadResult.Failed
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        DraftLoadResult.Failed
+    }
+
+    override suspend fun postSeries(draftId: String, series: Map<String, Any>): PostSeriesResult = try {
+        val res = functions.getHttpsCallable("postSeries").call(mapOf("draftId" to draftId, "series" to series)).await()
+        parsePosted(res.getData())
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: FirebaseFunctionsException) {
+        mapPostFailure(e.code.name, e.message, e.details)
+    } catch (e: Exception) {
+        PostSeriesResult.Failed
+    }
+
+    override fun observeHostedSeries(): Flow<HostedSeriesUpdate> = callbackFlow {
+        val me = uid()
+        if (me == null) {
+            trySend(HostedSeriesUpdate.Failed)
+            close()
+            return@callbackFlow
+        }
+        val reg = firestore.collection("series").whereEqualTo("hostId", me).whereEqualTo("status", "active")
+            .addSnapshotListener { snap, err ->
+                if (err != null || snap == null) {
+                    trySend(HostedSeriesUpdate.Failed)
+                } else {
+                    trySend(HostedSeriesUpdate.Loaded(snap.documents.mapNotNull { HostedSeriesParser.parse(it.id, it.data ?: emptyMap()) }))
+                }
+            }
+        awaitClose { reg.remove() }
+    }
+
     companion object {
         /** Active points only, sorted by `order`. A point without a name is skipped. */
         fun parseCampusPoints(docs: List<Pair<String, Map<String, Any?>>>): List<CampusPoint> =
@@ -43,6 +86,21 @@ class FirebaseSeriesBackend(
             val m = data as? Map<*, *> ?: return RoutePreviewResult.Failed
             val id = m["draftId"] as? String ?: return RoutePreviewResult.Failed
             return RoutePreviewResult.Success(id, m["inputHash"] as? String ?: "")
+        }
+
+        fun parsePosted(data: Any?): PostSeriesResult {
+            val m = data as? Map<*, *> ?: return PostSeriesResult.Failed
+            val id = m["seriesId"] as? String ?: return PostSeriesResult.Failed
+            return PostSeriesResult.Posted(id, m["alreadyPosted"] == true)
+        }
+
+        /** [code] is the `FirebaseFunctionsException.Code` name, [message] its message (`draft-id-invalid` arrives there). */
+        fun mapPostFailure(code: String, message: String?, details: Any?): PostSeriesResult = when (code) {
+            "INVALID_ARGUMENT" -> parseErrors(details).takeIf { it.isNotEmpty() }?.let { PostSeriesResult.Invalid(it) }
+                ?: if (message == "draft-id-invalid") PostSeriesResult.NotFound else PostSeriesResult.Failed
+            "NOT_FOUND" -> PostSeriesResult.NotFound
+            "FAILED_PRECONDITION" -> if ((details as? Map<*, *>)?.get("reason") == "draft-changed") PostSeriesResult.DraftChanged else PostSeriesResult.Failed
+            else -> PostSeriesResult.Failed
         }
 
         /** [code] is the `FirebaseFunctionsException.Code` name, e.g. `INVALID_ARGUMENT`. */

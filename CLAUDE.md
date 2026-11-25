@@ -127,6 +127,10 @@ The main session runs as `lead` (`.claude/settings.json`). It is the only agent 
 | `verifier` | UX, QA and security review of a change | No |
 | `docs-keeper` | Doc consistency and drift | Docs (`SPEC.md`/`INTENT.md` only with lead + human approval) |
 
+**Running agents** (owner decision 2026-11-24, after the 2026-11-23 parallel-implementer incident):
+- **One editing agent at a time** (implementer or docs-keeper), in the main checkout, never in a git worktree. Read-only agents (architect, product-domain, verifier) may run alongside it. Approving which Issues may start doesn't change how many editing agents run; only the owner, for a stated session, can.
+- **After any interruption**, the lead lists every background agent (running or stopped, and why), restarts any the owner didn't ask to stop, and says so in one line.
+
 **Skills:**
 - `next-issue` lists eligible Issues in rank order, limited to the current phase. It also lists unblocked Backlog Issues for the lead to move to Ready (owner decision 2026-11-17); it never changes Human Review.
 - Doc-link skills, each with official links plus ColPool constraints: `firebase-auth-docs`, `cloud-functions-docs`, `firestore-docs`, `maps-routes-docs`, `maps-places-docs`, `kotlin-docs`. Use the matching one before relying on memory for an external API.
@@ -135,6 +139,7 @@ The main session runs as `lead` (`.claude/settings.json`). It is the only agent 
 - Deny rules for deploys, Firebase deletes, force-pushes and direct pushes to `dev`/`staging`/`main`.
 - An allowlist for read-only `git` commands and for the GitHub script.
 - **GitHub goes only through `node .claude/hooks/github.mjs <op>`** (run it with no op for the list). It is the only command outside the sandbox with the token, runs no shell, and allows only named operations (`DEVELOPMENT.md` §3). Raw `gh` and `git push` run sandboxed without the token, and the hook denies them.
+- `.claude/hooks/agent-guard.mjs`: blocks starting an implementer or docs-keeper in a worktree.
 - `.claude/hooks/gh-guard.mjs`: who may run which operation (writes lead-only; `push` also implementer `feature/*` and `fix/*`, docs-keeper `docs/*`); the script must be called exactly, on its own; write pacing; a Human Review reminder after Issue edits.
 
 GitHub rulesets remain the real guard for `dev`/`staging`/`main`. PRs into `dev` need no owner approval, including changes to `SPEC.md`, `INTENT.md`, `CLAUDE.md`, `docs/POLICY.md`, `.claude/` and `.github/`; the owner reviews them in the `dev` → `staging` PR (owner decision 2026-11-16). §6 still applies: `SPEC.md` and `INTENT.md` change only with the human's approval.

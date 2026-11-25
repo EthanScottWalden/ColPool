@@ -1,5 +1,7 @@
 package io.github.ethanscottwalden.colpool.data.series
 
+import kotlinx.coroutines.flow.Flow
+
 /** One active campus point (`campusPoints/{id}`, RC-24). Hosts pick from these; there is no free text. */
 data class CampusPoint(val id: String, val name: String)
 
@@ -33,4 +35,13 @@ interface SeriesBackend {
 
     /** Calls `routePreview` with the `SeriesInput` map and, to overwrite a reviewed draft, its [draftId]. Never throws except cancellation. */
     suspend fun routePreview(series: Map<String, Any>, draftId: String? = null): RoutePreviewResult
+
+    /** Reads `seriesDrafts/{draftId}` (the host's own draft, get only). Never throws except cancellation. */
+    suspend fun loadDraft(draftId: String): DraftLoadResult
+
+    /** Calls `postSeries` with the draft id and the stored `SeriesInput`. Never throws except cancellation. */
+    suspend fun postSeries(draftId: String, series: Map<String, Any>): PostSeriesResult
+
+    /** Live listener on the signed-in host's active series (`hostId == uid`, `status == "active"`). Failures arrive as [HostedSeriesUpdate.Failed]. */
+    fun observeHostedSeries(): Flow<HostedSeriesUpdate>
 }

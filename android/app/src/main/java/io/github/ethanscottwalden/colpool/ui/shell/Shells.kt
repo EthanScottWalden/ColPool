@@ -8,8 +8,11 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -26,12 +29,26 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.ethanscottwalden.colpool.R
+import io.github.ethanscottwalden.colpool.ui.notifications.NotificationRules
+
+/** Test tag of the Hosting tab's pending-requests badge. */
+const val HOSTING_BADGE_TAG = "hosting_tab_badge"
+
+/** Test tag of the Notifications tab's unread badge. */
+const val NOTIFICATIONS_BADGE_TAG = "notifications_tab_badge"
+
+/** Index of the Notifications tab in the student footer. */
+const val NOTIFICATIONS_TAB = 3
 
 /** Prototype green for the staff header (26-export-carpool-data.png); dark text on it has strong contrast. */
 private val StaffGreen = Color(0xFFCDE5C4)
@@ -45,10 +62,23 @@ private enum class StudentTab(val label: Int, val glyph: String) {
     Profile(R.string.tab_profile, "P"),
 }
 
-/** Student footer with five tabs. Profile is real; the other tabs are placeholders until their Issues. */
+/** Student footer with five tabs. Search, Profile and Hosting are real; the other tabs are placeholders until their Issues. */
 @Composable
-fun StudentShell(profileTab: @Composable (Modifier) -> Unit, initialTab: Int = 0, modifier: Modifier = Modifier, onHostSeries: () -> Unit = {}) {
-    var selected by rememberSaveable { mutableIntStateOf(initialTab) }
+fun StudentShell(
+    searchTab: @Composable (Modifier) -> Unit,
+    profileTab: @Composable (Modifier) -> Unit,
+    hostingTab: @Composable (Modifier) -> Unit,
+    initialTab: Int = 0,
+    modifier: Modifier = Modifier,
+    hostingBadge: Int = 0,
+    notificationsTab: (@Composable (Modifier) -> Unit)? = null,
+    notificationsBadge: Int = 0,
+    /** When set, the caller owns which tab is open (e.g. the banner opens Notifications). */
+    selectedTab: Int? = null,
+    onTabSelected: (Int) -> Unit = {},
+) {
+    var own by rememberSaveable { mutableIntStateOf(initialTab) }
+    val selected = selectedTab ?: own
     Scaffold(
         modifier = modifier,
         bottomBar = {
@@ -56,8 +86,20 @@ fun StudentShell(profileTab: @Composable (Modifier) -> Unit, initialTab: Int = 0
                 StudentTab.entries.forEachIndexed { i, tab ->
                     NavigationBarItem(
                         selected = selected == i,
-                        onClick = { selected = i },
-                        icon = { Text(tab.glyph, Modifier.clearAndSetSemantics {}, style = MaterialTheme.typography.titleMedium) },
+                        onClick = { own = i; onTabSelected(i) },
+                        icon = {
+                            val glyph = @Composable { Text(tab.glyph, Modifier.clearAndSetSemantics {}, style = MaterialTheme.typography.titleMedium) }
+                            if (tab == StudentTab.Hosting && hostingBadge > 0) {
+                                val cd = pluralStringResource(R.plurals.hosting_tab_badge_cd, hostingBadge, hostingBadge)
+                                BadgedBox(badge = { Badge(Modifier.offset(x = 10.dp, y = (-4).dp).testTag(HOSTING_BADGE_TAG).semantics { contentDescription = cd }) { Text(hostingBadge.toString(), Modifier.clearAndSetSemantics {}) } }) { glyph() }
+                            } else if (tab == StudentTab.Notifications && notificationsBadge > 0) {
+                                val cd = pluralStringResource(R.plurals.notifications_tab_badge_cd, notificationsBadge, notificationsBadge)
+                                val text = NotificationRules.badgeText(notificationsBadge).orEmpty()
+                                BadgedBox(badge = { Badge(Modifier.offset(x = 10.dp, y = (-4).dp).testTag(NOTIFICATIONS_BADGE_TAG).semantics { contentDescription = cd }) { Text(text, Modifier.clearAndSetSemantics {}) } }) { glyph() }
+                            } else {
+                                glyph()
+                            }
+                        },
                         label = { Text(stringResource(tab.label), maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, letterSpacing = 0.sp)) },
                     )
                 }
@@ -65,14 +107,18 @@ fun StudentShell(profileTab: @Composable (Modifier) -> Unit, initialTab: Int = 0
         },
     ) { padding ->
         val tab = StudentTab.entries[selected]
-        if (tab == StudentTab.Profile) {
+        if (tab == StudentTab.Search) {
+            searchTab(Modifier.padding(padding))
+        } else if (tab == StudentTab.Profile) {
             profileTab(Modifier.padding(padding))
+        } else if (tab == StudentTab.Hosting) {
+            hostingTab(Modifier.padding(padding))
+        } else if (tab == StudentTab.Notifications && notificationsTab != null) {
+            notificationsTab(Modifier.padding(padding))
         } else {
             Centered(Modifier.padding(padding)) {
                 Text(stringResource(tab.label), style = MaterialTheme.typography.headlineMedium)
                 Text(stringResource(R.string.placeholder_coming_soon), style = MaterialTheme.typography.bodyMedium)
-                // TODO(#33): the Hosting list replaces this placeholder; this button is the entry point to Create Series until then.
-                if (tab == StudentTab.Hosting) Button(onClick = onHostSeries) { Text(stringResource(R.string.series_host_button)) }
             }
         }
     }

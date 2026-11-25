@@ -35,7 +35,7 @@ class ProfileScreenshotTest {
     /** The student shell with the real Profile tab (footer included). */
     @Test fun inStudentShell() {
         composeRule.setContent {
-            ColPoolTheme { StudentShell(profileTab = { ProfileContent(loaded(FakeProfileBackend.FULL), ProfileActions(), it) }, initialTab = 4) }
+            ColPoolTheme { StudentShell(searchTab = {}, hostingTab = {}, profileTab = { ProfileContent(loaded(FakeProfileBackend.FULL), ProfileActions(), it) }, initialTab = 4) }
         }
         composeRule.onRoot().captureRoboImage("src/test/screenshots/shell_student_profile.png")
     }

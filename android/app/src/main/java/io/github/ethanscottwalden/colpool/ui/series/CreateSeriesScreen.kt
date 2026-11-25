@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.sizeIn
@@ -58,6 +59,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.ethanscottwalden.colpool.R
@@ -301,7 +307,8 @@ fun CreateSeriesContent(state: CreateSeriesUiState, today: LocalDate, actions: C
                             selected = w in state.weekdays, enabled = true, onClick = { actions.onToggleWeekday(w) },
                             title = stringResource(w.shortName),
                             sub = if (w in state.weekdays) stringResource(R.string.series_day_driving) else null,
-                            modifier = Modifier.weight(1f).testTag(SeriesTags.weekday(w)),
+                            modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag(SeriesTags.weekday(w)),
+                            role = Role.Checkbox,
                         )
                     }
                 }
@@ -376,7 +383,7 @@ private fun ErrorBox(errors: List<SeriesError>) {
 }
 
 @Composable
-private fun resolve(t: UiText): String {
+internal fun resolve(t: UiText): String {
     val args = t.args.map { if (it is StringRef) stringResource(it.id) else it }
     return stringResource(t.res, *args.toTypedArray())
 }
@@ -415,6 +422,7 @@ private fun ScheduleCard(state: CreateSeriesUiState, active: SeriesWeekday, acti
                         title = stringResource(w.shortName),
                         sub = if (on) stringResource(if (state.day(w).complete) R.string.series_day_done else R.string.series_day_todo) else null,
                         modifier = Modifier.weight(1f),
+                        role = Role.Tab,
                     )
                 }
             }
@@ -483,26 +491,23 @@ private fun LegSection(state: CreateSeriesUiState, w: SeriesWeekday, dir: Direct
     }
 }
 
-/** Placeholder Review destination until #31 builds the real screen. It only receives the draft id. */
-@Composable
-fun ReviewPlaceholder(draftId: String, onBack: () -> Unit, modifier: Modifier = Modifier) {
-    BackHandler(onBack = onBack)
-    Surface(modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(Modifier.padding(24.dp).statusBarsPadding(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text(stringResource(R.string.series_review_placeholder_title), style = MaterialTheme.typography.headlineSmall)
-            Text(stringResource(R.string.series_review_placeholder_body), style = MaterialTheme.typography.bodyMedium)
-            OutlinedButton(onClick = onBack) { Text(stringResource(R.string.series_back)) }
-        }
-    }
-}
-
 /** A weekday chip with an optional second line ("driving", "done"). Own padding so the labels fit five across a phone. */
 @Composable
-private fun DayChip(selected: Boolean, enabled: Boolean, onClick: () -> Unit, title: String, sub: String?, modifier: Modifier = Modifier) {
+internal fun DayChip(
+    selected: Boolean, enabled: Boolean, onClick: () -> Unit, title: String, sub: String?, modifier: Modifier = Modifier,
+    /** [Role.Tab] where the chips switch the day shown (selected is announced); [Role.Checkbox] where they toggle days. Null keeps the default. */
+    role: Role? = null,
+    /** Lines allowed for [sub]; more than one lets a longer word such as "no trips left" wrap. */
+    subMaxLines: Int = 1,
+) {
     Surface(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier,
+        modifier = modifier.semantics {
+            if (role != null) this.role = role
+            if (role == Role.Tab) this.selected = selected
+            if (role == Role.Checkbox) toggleableState = if (selected) ToggleableState.On else ToggleableState.Off
+        },
         shape = RoundedCornerShape(8.dp),
         color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
         contentColor = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
@@ -510,7 +515,8 @@ private fun DayChip(selected: Boolean, enabled: Boolean, onClick: () -> Unit, ti
     ) {
         Column(Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(title, maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelLarge)
-            if (sub != null) Text(sub, maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, letterSpacing = 0.sp))
+            if (sub != null && subMaxLines > 1) Text(sub, maxLines = subMaxLines, textAlign = androidx.compose.ui.text.style.TextAlign.Center, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, letterSpacing = 0.sp, lineHeight = 12.sp))
+            else if (sub != null) Text(sub, maxLines = 1, softWrap = false, style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, letterSpacing = 0.sp))
         }
     }
 }
