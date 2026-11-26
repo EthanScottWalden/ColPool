@@ -14,6 +14,8 @@ export class ScriptError extends Error {}
 
 export interface CliArgs {
   project?: string;
+  /** Production only: must equal --project (typed twice on purpose). */
+  confirmProject?: string;
 }
 
 export type Target = { mode: "emulator"; projectId: string } | { mode: "production"; projectId: string };
@@ -22,10 +24,11 @@ export function parseArgs(argv: readonly string[]): CliArgs {
   const out: CliArgs = {};
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i] as string;
-    if (flag === "--project") {
+    if (flag === "--project" || flag === "--confirm-project") {
       const value = argv[++i];
-      if (value === undefined || value.startsWith("--")) throw new ScriptError("--project needs a value.");
-      out.project = value;
+      if (value === undefined || value.startsWith("--")) throw new ScriptError(`${flag} needs a value.`);
+      if (flag === "--project") out.project = value;
+      else out.confirmProject = value;
     } else {
       throw new ScriptError(`Unknown argument: ${flag}`);
     }
@@ -47,9 +50,14 @@ export function resolveTarget(args: CliArgs, env: Record<string, string | undefi
   if (args.project.startsWith("demo-")) {
     throw new ScriptError("Refusing to run: a demo- project is emulator-only. Set FIRESTORE_EMULATOR_HOST.");
   }
-  if (!env["GOOGLE_APPLICATION_CREDENTIALS"]) {
-    throw new ScriptError("Production needs GOOGLE_APPLICATION_CREDENTIALS set to a service-account key path (outside the repo).");
+  if (args.confirmProject === undefined) {
+    throw new ScriptError(`Refusing to run: production needs --confirm-project ${args.project} (the same id again).`);
   }
+  if (args.confirmProject !== args.project) {
+    throw new ScriptError("Refusing to run: --confirm-project does not match --project.");
+  }
+  // Credentials: Application Default Credentials (gcloud auth application-default login), or
+  // GOOGLE_APPLICATION_CREDENTIALS when set. Nothing about them is read or printed here.
   return { mode: "production", projectId: args.project };
 }
 
@@ -86,6 +94,7 @@ export async function main(argv: readonly string[], deps: CliDeps): Promise<numb
           `seed-reference-data-${Date.now()}`,
         ),
       );
+    deps.out(`Target project: ${target.projectId} (${target.mode}). Writing now.`);
     const { campusPoints } = await seedReferenceData(db);
     deps.out(`Seeded ${campusPoints} campus points and options/profile in ${target.projectId} (${target.mode}).`);
     return 0;

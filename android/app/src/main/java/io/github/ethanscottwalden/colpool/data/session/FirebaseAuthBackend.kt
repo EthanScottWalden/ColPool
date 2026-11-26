@@ -38,14 +38,7 @@ class FirebaseAuthBackend(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
-            throw AuthFailure(
-                when (e) {
-                    is FirebaseAuthInvalidCredentialsException, is FirebaseAuthInvalidUserException -> AuthFailureKind.InvalidCredentials
-                    is FirebaseNetworkException -> AuthFailureKind.Network
-                    else -> AuthFailureKind.Unknown
-                },
-                e,
-            )
+            throw AuthFailure(signInKindFor(e), e)
         }
     }
 
@@ -79,6 +72,17 @@ class FirebaseAuthBackend(
 
     companion object {
         const val INSTITUTION_CLAIM = "institution"
+
+        /**
+         * Sign-in failure to user text. The real backend (email enumeration protection) reports a wrong email or
+         * password as INVALID_LOGIN_CREDENTIALS, which the SDK raises as FirebaseAuthInvalidCredentialsException;
+         * the emulator may still send user-not-found (FirebaseAuthInvalidUserException). Both read the same.
+         */
+        fun signInKindFor(e: Exception): AuthFailureKind = when (e) {
+            is FirebaseAuthInvalidCredentialsException, is FirebaseAuthInvalidUserException -> AuthFailureKind.InvalidCredentials
+            is FirebaseNetworkException -> AuthFailureKind.Network
+            else -> AuthFailureKind.Unknown
+        }
 
         /** Staff = the claim is present with any value (matches Rules and functions, #18). */
         fun isStaffClaims(claims: Map<String, Any?>): Boolean = claims.containsKey(INSTITUTION_CLAIM)

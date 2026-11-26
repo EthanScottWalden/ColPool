@@ -38,6 +38,7 @@ The authoritative diagram is **SDD Figure 1 (§5.2)**. The one-line model: **the
 | Billing | Firebase **pay-as-you-go** + Google Maps Platform billing, with budget alerts | Required before Phase 1 sign-up and autocomplete. One billing account; alerts at $10/mo (project) and $5/mo (Maps). Setup: [`docs/setup/firebase.md`](setup/firebase.md). | SDD §5.1, INTENT §1.3 |
 | Environments | **One Firebase project**; **Emulator Suite** for local dev, tests and CI | No dev/staging/prod split for the MVP. | INTENT §1.3 |
 | CI | **GitHub Actions** on PRs: Android build + Functions + Rules tests on the emulator | No deploys, no secrets in CI. | INTENT §5.1 (TMP-52, #54) |
+| Deploys | Owner-run, `--project colpool` explicit, pinned firebase-tools, no alias, `.firebaserc` default stays `demo-colpool` | DEVELOPMENT.md §2 "Real-project deploy" | owner decision 2026-11-26 |
 
 Not in the approved stack (don't add without a documented human decision): Cloud Storage, FCM, Firebase App Check (deferred past the MVP), any web hosting/portal, any other mapping/geo service, any third-party backend or database.
 

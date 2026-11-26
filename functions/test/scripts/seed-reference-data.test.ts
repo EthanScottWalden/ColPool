@@ -1,7 +1,7 @@
 import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { initializeApp } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, type Firestore } from "firebase-admin/firestore";
 import { main, parseArgs, resolveTarget, seedReferenceData, ScriptError } from "../../scripts/seed-reference-data.ts";
 import { CAMPUS_POINT_SEED } from "../../src/shared/schema/campusPoints.ts";
 import { buildProfileOptionsDoc, MAJOR_OPTIONS } from "../../src/shared/schema/options.ts";
@@ -69,25 +69,30 @@ describe("seed-reference-data (emulator)", () => {
     const out: string[] = [];
     const code = await main([], { env: { FIRESTORE_EMULATOR_HOST: "127.0.0.1:8080" }, out: (l) => out.push(l), err: () => {}, db });
     assert.equal(code, 0);
-    assert.match(out[0] ?? "", /Seeded 5 campus points/);
+    assert.match(out[0] ?? "", /Target project: demo-colpool/);
+    assert.match(out[1] ?? "", /Seeded 5 campus points/);
   });
 });
 
 describe("seed-reference-data guard (pure)", () => {
-  const prod = { GOOGLE_APPLICATION_CREDENTIALS: "/outside/key.json" };
+  const prod = {};
+  const confirmed = (project: string) => ({ project, confirmProject: project });
   it("refuses with no emulator env and no --project", () => {
     assert.throws(() => resolveTarget({}, {}), ScriptError);
     assert.throws(() => resolveTarget({}, prod), ScriptError);
   });
   it("refuses a demo- project in production mode", () => {
-    assert.throws(() => resolveTarget({ project: "demo-anything" }, prod), ScriptError);
+    assert.throws(() => resolveTarget(confirmed("demo-anything"), prod), ScriptError);
   });
-  it("refuses production without credentials", () => {
-    assert.throws(() => resolveTarget({ project: "real-proj" }, {}), ScriptError);
+  it("refuses production without --confirm-project or with a different one", () => {
+    assert.throws(() => resolveTarget({ project: "real-proj" }, {}), /--confirm-project/);
+    assert.throws(() => resolveTarget({ project: "real-proj", confirmProject: "other-proj" }, {}), /does not match/);
   });
   it("accepts the emulator and a real project with credentials", () => {
     assert.deepEqual(resolveTarget({}, { FIRESTORE_EMULATOR_HOST: "h:1" }), { mode: "emulator", projectId: "demo-colpool" });
-    assert.deepEqual(resolveTarget({ project: "real-proj" }, prod), { mode: "production", projectId: "real-proj" });
+    assert.deepEqual(resolveTarget(confirmed("real-proj"), prod), { mode: "production", projectId: "real-proj" });
+    // ADC needs no key file; a key file is still accepted.
+    assert.deepEqual(resolveTarget(confirmed("real-proj"), { GOOGLE_APPLICATION_CREDENTIALS: "/x/key.json" }), { mode: "production", projectId: "real-proj" });
   });
   it("emulator mode rejects a different --project", () => {
     assert.throws(() => resolveTarget({ project: "real-proj" }, { FIRESTORE_EMULATOR_HOST: "h:1" }), ScriptError);
@@ -96,10 +101,25 @@ describe("seed-reference-data guard (pure)", () => {
     assert.throws(() => parseArgs(["--force"]), ScriptError);
     assert.throws(() => parseArgs(["--project"]), ScriptError);
     assert.deepEqual(parseArgs(["--project", "x"]), { project: "x" });
+    assert.deepEqual(parseArgs(["--project", "x", "--confirm-project", "x"]), { project: "x", confirmProject: "x" });
   });
   it("main refuses and exits 1 without a target", async () => {
     const errs: string[] = [];
     assert.equal(await main([], { env: {}, out: () => {}, err: (l) => errs.push(l) }), 1);
     assert.match(errs[0] ?? "", /Refusing/);
+  });
+  it("main refuses before any write for mismatch, missing confirm, and demo- outside the emulator", async () => {
+    const boom = new Proxy({}, { get: () => { throw new Error("Firestore must not be touched"); } }) as unknown as Firestore;
+    for (const argv of [
+      ["--project", "colpool"],
+      ["--project", "colpool", "--confirm-project", "other"],
+      ["--project", "demo-colpool", "--confirm-project", "demo-colpool"],
+    ]) {
+      const errs: string[] = [];
+      const outs: string[] = [];
+      assert.equal(await main(argv, { env: {}, out: (l) => outs.push(l), err: (l) => errs.push(l), db: boom }), 1);
+      assert.match(errs[0] ?? "", /Refusing/);
+      assert.deepEqual(outs, []);
+    }
   });
 });
