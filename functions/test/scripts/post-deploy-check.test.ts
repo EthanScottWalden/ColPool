@@ -1,6 +1,6 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { layerA, main, parseArgs, resolveConfig, ScriptError, type CliDeps, type FetchFn } from "../../scripts/post-deploy-check.ts";
+import { layerA, main, RULES_DENIAL, parseArgs, resolveConfig, ScriptError, type CliDeps, type FetchFn } from "../../scripts/post-deploy-check.ts";
 
 const KEY = { FIREBASE_API_KEY: "fake-key" };
 
@@ -66,12 +66,20 @@ describe("post-deploy-check main (fake fetch)", () => {
     assert.equal(await main(["--project", "colpool", "--firestore-only"], all), 0);
     assert.match(all.lines.join("\n"), /SKIPPED.*signUp/);
 
-    const open = deps({ fetch: async (url) => (String(url).includes("/series") && !String(url).includes("PATCH") ? json(200, {}) : denied()) });
+    const open = deps({ fetch: async (url) => (String(url).includes("/series") ? json(200, {}) : denied()) });
     assert.equal(await main(["--project", "colpool", "--firestore-only"], open), 1);
 
-    const apiOff = deps({ fetch: async () => json(403, { error: { status: "PERMISSION_DENIED", message: "Cloud Firestore API has not been used" } }) });
+    const apiOff = deps({ fetch: async () => json(403, { error: { status: "PERMISSION_DENIED", message: "Cloud Firestore API has not been used in project 1 before or it is disabled." } }) });
     assert.equal(await main(["--project", "colpool", "--firestore-only"], apiOff), 1);
-    assert.match(apiOff.lines.join("\n"), /not Rules/);
+    assert.match(apiOff.lines.join("\n"), /not a Rules denial/);
+  });
+
+  it("RULES_DENIAL accepts the real and emulator denial texts and nothing else", () => {
+    assert.ok(RULES_DENIAL.test("Missing or insufficient permissions."));
+    assert.ok(RULES_DENIAL.test("\nfalse for 'list' @ L156, false for 'list' @ L186"));
+    for (const m of ["Permission denied on resource project 1.", "Request had insufficient authentication scopes.", "The caller does not have permission", "quota exceeded"]) {
+      assert.ok(!RULES_DENIAL.test(m), m);
+    }
   });
 
   it("Layer A sends only GET, runQuery POST and PATCH probes with currentDocument.exists=true", async () => {

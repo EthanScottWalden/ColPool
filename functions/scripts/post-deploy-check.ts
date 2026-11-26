@@ -116,9 +116,15 @@ interface Expectation {
   http: number;
   /** gRPC-style status in the error body (PERMISSION_DENIED, UNAUTHENTICATED, ...). Omit for success. */
   grpc?: string;
-  /** Firestore denials: a 403 whose message blames a disabled API, billing or quota is not a Rules denial, so it is not a pass. */
+  /** Firestore denials: only a 403 PERMISSION_DENIED whose message matches RULES_DENIAL passes. */
   rulesDenial?: boolean;
 }
+
+/**
+ * Allow-list for a Rules denial. Real Firestore says "Missing or insufficient permissions."; the emulator
+ * says "false for 'get' @ L12" (the rule trace). Any other 403 (disabled API, billing, quota) is not a pass.
+ */
+export const RULES_DENIAL = /missing or insufficient permissions|false for '[a-z]+' @ L\d+/i;
 
 const rand = () => randomBytes(10).toString("hex");
 
@@ -139,7 +145,7 @@ async function probe(fetchFn: FetchFn, url: string, init: RequestInit): Promise<
       | { status?: unknown; message?: unknown }
       | undefined;
     if (err && typeof err.status === "string" && /^[A-Z_]{3,40}$/.test(err.status)) grpc = err.status;
-    if (err && typeof err.message === "string") rules = !/\b(api|disabled|not been used|billing|quota)\b/i.test(err.message);
+    if (err && typeof err.message === "string") rules = RULES_DENIAL.test(err.message);
   } catch {
     // Not JSON: leave grpc as "-".
   }
@@ -165,7 +171,7 @@ function makeRunner(fetchFn: FetchFn, out: (line: string) => void): Runner {
     async expect(what, url, init, exp) {
       const p = await probe(fetchFn, url, init);
       const ok = p.http === exp.http && (exp.grpc === undefined || p.grpc === exp.grpc) && (!exp.rulesDenial || p.rules);
-      const note = !ok && exp.rulesDenial && p.http === exp.http && p.grpc === exp.grpc ? "403, but the message points at an API, billing or quota problem, not Rules" : undefined;
+      const note = !ok && exp.rulesDenial && p.http === exp.http && p.grpc === exp.grpc ? "403, but the message is not a Rules denial (disabled API, billing or quota?)" : undefined;
       record({ what, http: p.http, grpc: p.grpc, verdict: ok ? "PASS" : "FAIL", ...(note ? { note } : {}) });
       if (!ok && !note) out(`        expected HTTP ${exp.http}${exp.grpc ? ` ${exp.grpc}` : ""}`);
     },

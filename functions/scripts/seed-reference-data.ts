@@ -84,6 +84,7 @@ export interface CliDeps {
 export async function main(argv: readonly string[], deps: CliDeps): Promise<number> {
   try {
     const target = resolveTarget(parseArgs(argv), deps.env);
+    deps.out(`Target project: ${target.projectId} (${target.mode}).`);
     const db =
       deps.db ??
       getFirestore(
@@ -94,7 +95,6 @@ export async function main(argv: readonly string[], deps: CliDeps): Promise<numb
           `seed-reference-data-${Date.now()}`,
         ),
       );
-    deps.out(`Target project: ${target.projectId} (${target.mode}). Writing now.`);
     const { campusPoints } = await seedReferenceData(db);
     deps.out(`Seeded ${campusPoints} campus points and options/profile in ${target.projectId} (${target.mode}).`);
     return 0;
