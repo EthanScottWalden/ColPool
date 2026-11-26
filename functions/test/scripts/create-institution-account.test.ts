@@ -118,15 +118,44 @@ describe("create-institution-account (argument and target guards)", () => {
   });
 
   it("refuses a demo- project in production mode", () => {
-    assert.throws(() => resolveTarget({ project: "demo-other" }, { GOOGLE_APPLICATION_CREDENTIALS: "/x/key.json" }), ScriptError);
+    assert.throws(() => resolveTarget({ project: "demo-other", confirmProject: "demo-other" }, {}), ScriptError);
   });
 
-  it("production needs GOOGLE_APPLICATION_CREDENTIALS", () => {
-    assert.throws(() => resolveTarget({ project: "colpool-prod" }, {}), ScriptError);
-    assert.deepEqual(resolveTarget({ project: "colpool-prod" }, { GOOGLE_APPLICATION_CREDENTIALS: "/x/key.json" }), {
-      mode: "production",
-      projectId: "colpool-prod",
+  it("production needs --confirm-project equal to --project, and no key file", () => {
+    assert.throws(() => resolveTarget({ project: "colpool-prod" }, {}), /--confirm-project/);
+    assert.throws(() => resolveTarget({ project: "colpool-prod", confirmProject: "colpool-other" }, {}), /does not match/);
+    // ADC: no GOOGLE_APPLICATION_CREDENTIALS needed; still accepted when set.
+    for (const env of [{}, { GOOGLE_APPLICATION_CREDENTIALS: "/x/key.json" }]) {
+      assert.deepEqual(resolveTarget({ project: "colpool-prod", confirmProject: "colpool-prod" }, env), { mode: "production", projectId: "colpool-prod" });
+    }
+  });
+
+  it("parseArgs reads --confirm-project", () => {
+    assert.deepEqual(parseArgs(["--email", "a@calbaptist.edu", "--project", "p1", "--confirm-project", "p1"]), {
+      email: "a@calbaptist.edu",
+      project: "p1",
+      confirmProject: "p1",
     });
+  });
+
+  it("main refuses before reading the password or touching Auth (mismatch, missing confirm, demo- outside the emulator)", async () => {
+    const boom = new Proxy({}, { get: () => { throw new Error("Auth must not be touched"); } }) as unknown as Auth;
+    for (const extra of [
+      ["--project", "colpool-prod"],
+      ["--project", "colpool-prod", "--confirm-project", "colpool-other"],
+      ["--project", "demo-colpool", "--confirm-project", "demo-colpool"],
+    ]) {
+      const lines: string[] = [];
+      const code = await main(["--email", "a@calbaptist.edu", ...extra], {
+        env: {},
+        readPassword: async () => { throw new Error("password must not be read"); },
+        out: (l) => lines.push(l),
+        err: (l) => lines.push(l),
+        auth: boom,
+      });
+      assert.equal(code, 1);
+      assert.match(lines.join("\n"), /Refusing to run/);
+    }
   });
 
   it("CLI exits non-zero with the guard message when the target is unsafe", async () => {

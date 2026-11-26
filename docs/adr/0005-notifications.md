@@ -1,6 +1,6 @@
 # ADR 0005: Notification records and writer
 
-- **Status:** Accepted for #21 (layout and wording provisional, see below)
+- **Status:** Accepted for #21. Items 1-3 (layout, fields, fixed ids) confirmed final by the owner 2026-11-26; wording items 4-8 stay provisional
 - **Issue:** #21 (TMP-28), contract
 - **Scope:** `functions/src/shared/notifications/`, the `users/{uid}/notifications` rules block, [data model](../data-model.md) §2.9. Depends on [ADR 0002](0002-firestore-layout.md). No push, email or other channels (RC-09, OQ-05).
 
@@ -19,10 +19,13 @@
 - Random ids: a retried function would duplicate notifications.
 - Callers pass finished text: wording drifts and free text could carry private data.
 
-## Provisional, owner to confirm
+## Owner decision 2026-11-26: items 1-3 are final for the first real deploy
 1. Layout `users/{uid}/notifications/{id}` and the field set (no actor uid, no `null`s).
 2. Rules direction: read-only flip to `true`, no client create or delete.
-3. Leaving or withdrawing several days writes one notification per weekday.
+3. Leaving or withdrawing several days writes one notification per weekday (deterministic ids).
+
+## Provisional, owner to confirm (wording only)
+Stored wording affects new documents only, so changing it later does not touch what is already stored.
 4. Conflict auto-decline text: "[Day] in [Host]'s series was declined automatically because you were accepted on [Day] in another series." It never names the other series.
 5. Cancelled to riders: "[Host] cancelled a series you requested to join." (Appendix B says "you were in".)
 6. Ended, to the host: "Your series reached its end date on [date]."; to riders: "[Host]'s series reached its end date on [date]."

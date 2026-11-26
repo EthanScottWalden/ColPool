@@ -8,7 +8,8 @@
       "source": "functions",
       "codebase": "default",
       "runtime": "nodejs22",
-      "ignore": ["node_modules", "test", "scripts", "*.log", ".git"]
+      "ignore": ["node_modules", "test", "scripts", "*.log", ".git"],
+      "predeploy": ["npm --prefix \"$RESOURCE_DIR\" run build"]
     }
   ],
   "emulators": {

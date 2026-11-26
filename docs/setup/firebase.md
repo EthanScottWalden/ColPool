@@ -82,6 +82,6 @@ Agent, in the repo:
 ## 4. Later Issues that build on this
 
 - **#11:** registers the Android app in Firebase. Package is `io.github.ethanscottwalden.colpool` ([ADR 0001](../adr/0001-android-setup.md)). The owner adds `google-services.json` (ignored; steps in `android/app/google-services.README.md`) and the Places key's Android-app restriction once the debug SHA-1s exist. `.gitignore` ignores every `google-services*.json` and `google-services.json*` name, including `.example` and `.template`. A committed placeholder needs a different name or a `!` exception.
-- **#12:** adds `firebase.json` and `.firebaserc` (project `colpool`) for the Emulator Suite.
+- **#12:** adds `firebase.json` and `.firebaserc` for the Emulator Suite. The `.firebaserc` default is `demo-colpool` (no real project, no alias, owner decision 2026-11-26); every real-project command passes `--project colpool` explicitly (DEVELOPMENT.md §2 "Real-project deploy").
 - **#13:** creates Firestore in `us-west2`.
 - Route preview (#28, callable `routePreview`): reads `ROUTES_API_KEY` with `defineSecret`, only inside the handler. The emulator reads a fake value from the git-ignored `functions/.secret.local` (`emulators:dev` creates it) and answers with a straight-line stand-in on a `demo-` project; tests never call the real Routes API. The real-API check is run by the owner by hand ([DEVELOPMENT.md](../../DEVELOPMENT.md) §2, "Routes live check"; [ADR 0008](../adr/0008-route-preview.md)).

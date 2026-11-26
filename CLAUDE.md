@@ -99,6 +99,7 @@ Escalation depends on consequence, not branch. L2 and L3 apply inside `dev` too.
   Reply with A/B/..., or tell me a different direction.
   ```
 
+- **Phone notifications:** when Remote Control is connected, send a push notification (PushNotification) for every L2 and L3 escalation and when a HUMAN ACTION is ready, in addition to the in-session question (owner decision 2026-11-26).
 - **Missing permission:** say it once, clearly, then keep doing independent work:
 
   ```

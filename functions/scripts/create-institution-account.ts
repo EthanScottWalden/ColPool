@@ -17,6 +17,8 @@ export interface CliArgs {
   email: string;
   displayName?: string;
   project?: string;
+  /** Production only: must equal --project (typed twice on purpose). */
+  confirmProject?: string;
 }
 
 export type Target = { mode: "emulator"; projectId: string } | { mode: "production"; projectId: string };
@@ -40,12 +42,13 @@ export function parseArgs(argv: readonly string[]): CliArgs {
   const out: Partial<CliArgs> = {};
   for (let i = 0; i < argv.length; i++) {
     const flag = argv[i] as string;
-    if (flag === "--email" || flag === "--display-name" || flag === "--project") {
+    if (flag === "--email" || flag === "--display-name" || flag === "--project" || flag === "--confirm-project") {
       const value = argv[++i];
       if (value === undefined || value.startsWith("--")) throw new ScriptError(`${flag} needs a value.`);
       if (flag === "--email") out.email = value;
       else if (flag === "--display-name") out.displayName = value;
-      else out.project = value;
+      else if (flag === "--project") out.project = value;
+      else out.confirmProject = value;
     } else {
       // Includes --password: the password is read from stdin only.
       throw new ScriptError(`Unknown argument: ${flag.startsWith("--password") ? "--password (use stdin)" : flag}`);
@@ -56,7 +59,7 @@ export function parseArgs(argv: readonly string[]): CliArgs {
 }
 
 /** Pure guard: decides which project the script may touch. Never reads or prints a key. */
-export function resolveTarget(args: Pick<CliArgs, "project">, env: Record<string, string | undefined>): Target {
+export function resolveTarget(args: Pick<CliArgs, "project" | "confirmProject">, env: Record<string, string | undefined>): Target {
   if (env["FIREBASE_AUTH_EMULATOR_HOST"]) {
     if (args.project !== undefined && args.project !== EMULATOR_PROJECT_ID) {
       throw new ScriptError(`Emulator mode always uses project ${EMULATOR_PROJECT_ID}; drop --project or unset FIREBASE_AUTH_EMULATOR_HOST.`);
@@ -69,9 +72,14 @@ export function resolveTarget(args: Pick<CliArgs, "project">, env: Record<string
   if (args.project.startsWith("demo-")) {
     throw new ScriptError("Refusing to run: a demo- project is emulator-only. Set FIREBASE_AUTH_EMULATOR_HOST.");
   }
-  if (!env["GOOGLE_APPLICATION_CREDENTIALS"]) {
-    throw new ScriptError("Production needs GOOGLE_APPLICATION_CREDENTIALS set to a service-account key path (outside the repo).");
+  if (args.confirmProject === undefined) {
+    throw new ScriptError(`Refusing to run: production needs --confirm-project ${args.project} (the same id again).`);
   }
+  if (args.confirmProject !== args.project) {
+    throw new ScriptError("Refusing to run: --confirm-project does not match --project.");
+  }
+  // Credentials: Application Default Credentials (gcloud auth application-default login), or
+  // GOOGLE_APPLICATION_CREDENTIALS when set. Nothing about them is read or printed here.
   return { mode: "production", projectId: args.project };
 }
 
@@ -124,6 +132,7 @@ export async function main(argv: readonly string[], deps: CliDeps): Promise<numb
     const args = parseArgs(argv);
     const target = resolveTarget(args, deps.env);
     const email = normalizeEmail(args.email);
+    deps.out(`Target project: ${target.projectId} (${target.mode}).`);
     const password = await deps.readPassword();
     validatePassword(password);
     const auth =

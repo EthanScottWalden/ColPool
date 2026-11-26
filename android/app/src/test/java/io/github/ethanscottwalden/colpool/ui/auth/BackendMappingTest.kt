@@ -1,6 +1,10 @@
 package io.github.ethanscottwalden.colpool.ui.auth
 
+import com.google.firebase.FirebaseNetworkException
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.firestore.FirebaseFirestoreException
+import io.github.ethanscottwalden.colpool.data.session.AuthFailureKind
 import io.github.ethanscottwalden.colpool.data.session.FirebaseAuthBackend
 import io.github.ethanscottwalden.colpool.data.session.PrivateDetailsResult
 import org.junit.Assert.assertEquals
@@ -27,5 +31,20 @@ class BackendMappingTest {
         assertEquals(PrivateDetailsResult.NoConsent, b.noConsentOrNull(ex(FirebaseFirestoreException.Code.PERMISSION_DENIED)))
         assertNull(b.noConsentOrNull(ex(FirebaseFirestoreException.Code.UNAVAILABLE)))
         assertNull(b.noConsentOrNull(ex(FirebaseFirestoreException.Code.NOT_FOUND)))
+    }
+
+    @Test fun signInErrorsMapToWrongEmailOrPassword() {
+        val b = FirebaseAuthBackend.Companion
+        // Real project: INVALID_LOGIN_CREDENTIALS arrives as ERROR_INVALID_CREDENTIAL.
+        assertEquals(
+            AuthFailureKind.InvalidCredentials,
+            b.signInKindFor(FirebaseAuthInvalidCredentialsException("ERROR_INVALID_CREDENTIAL", "The supplied auth credential is incorrect.")),
+        )
+        assertEquals(
+            AuthFailureKind.InvalidCredentials,
+            b.signInKindFor(FirebaseAuthInvalidUserException("ERROR_USER_NOT_FOUND", "no user")),
+        )
+        assertEquals(AuthFailureKind.Network, b.signInKindFor(FirebaseNetworkException("offline")))
+        assertEquals(AuthFailureKind.Unknown, b.signInKindFor(IllegalStateException("x")))
     }
 }
