@@ -1,11 +1,11 @@
 # ADR 0010: Requests and send-request
 
-- **Status:** Accepted for #35; items marked PROVISIONAL await owner confirmation
+- **Status:** Accepted for #35. Layout, id, `status` and `createdAt` confirmed by the owner 2026-11-26; error reasons and whole-request rejection stay PROVISIONAL (nothing stored)
 - **Issue:** #35 (TMP-26)
 - **Scope:** `requests/{seriesId}_{riderUid}`, the `sendRequest` callable (`functions/src/sendRequest.ts`), request Security Rules and indexes. Depends on [ADR 0002](0002-firestore-layout.md), [ADR 0005](0005-notifications.md), [ADR 0006](0006-series-draft-seat-layout.md), [ADR 0007](0007-shared-series-validation.md), [ADR 0009](0009-post-series.md).
 
-## Layout (PROVISIONAL)
-Top-level `requests/{seriesId}_{riderUid}`: `{seriesId, riderId, hostId, weekdays, days: {<wd>: {status: "pending"}}, createdAt}`. The deterministic id makes a second request by the same rider for the same series impossible (`tx.create` plus an existence check). `hostId` is copied from the series so one rule can check the host. No names are stored. `status` and `createdAt` are provisional until #26 settles the per-weekday status values and timestamps. Only `COLLECTIONS.requests` was added to the shared schema (additive); `request.ts` is new.
+## Layout (accepted 2026-11-26)
+Top-level `requests/{seriesId}_{riderUid}`: `{seriesId, riderId, hostId, weekdays, days: {<wd>: {status: "pending"}}, createdAt}`. The deterministic id makes a second request by the same rider for the same series impossible (`tx.create` plus an existence check). `hostId` is copied from the series so one rule can check the host. No names are stored. `status` and `createdAt` are accepted. Later work (#26) only adds optional fields: a per-weekday status enum and timestamps. No derived request query fields are added; filter `days` in memory. Only `COLLECTIONS.requests` was added to the shared schema (additive); `request.ts` is new.
 
 ## Callable `sendRequest`
 Region `us-west2`. Input `{seriesId, weekdays}`; output `{requestId}`. Student gate first (`requireStudent`).
@@ -27,5 +27,8 @@ Writes: the request; pending `rider` schedule entries; `profileAccess` for RC-01
 ## Rules and indexes
 `allow get, list` for a consented non-institution student whose uid is the request's `riderId` or `hostId`; client writes are default deny. Queries must filter on `riderId` or `hostId`. Indexes: `riderId` + `createdAt` desc; `hostId` + `seriesId` + `createdAt`; `requests.days` not indexed.
 
+## Owner decision 2026-11-26
+Accepted as final for the first real deploy: the top-level layout and id `requests/{seriesId}_{riderUid}`, and the field names `status` and `createdAt`.
+
 ## PROVISIONAL, for owner confirmation
-Top-level layout and id; field names `status`, `createdAt`; the error reason strings; rejecting the whole request when one weekday fails; pickup spot text as the notification's series name.
+Nothing is stored for these, so they can change later: the error reason strings; rejecting the whole request when one weekday fails; pickup spot text as the notification's series name.
