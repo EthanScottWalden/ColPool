@@ -3,7 +3,7 @@
 > **Contract #13 (TMP-04).** Changes only through a separate, reviewed contract-change Issue.
 > Decisions and rejected alternatives: [ADR 0002](adr/0002-firestore-layout.md).
 > Code: `functions/src/shared/schema/` (names, types, limits, key builders, option seeds). The Android Kotlin models must mirror these names exactly.
-> Series, draft and request collections are in §2.10-2.12. Weekday rosters are planned (§2.10), contract Issue TBD. Notifications are in §2.9 (#21).
+> Series, draft and request collections are in §2.10-2.12. Weekday rosters are planned (§2.10), contract Issue #166. Notifications are in §2.9 (#21).
 
 Conventions:
 - Document ids for per-student docs are the Auth uid.
@@ -185,7 +185,7 @@ Ids are deterministic so a repeated event fails with ALREADY_EXISTS instead of d
 Rules: the recipient (a consented student) may get and list; update may change only `read`, only to `true`; create and delete are denied; no collection-group rule.
 
 ### 2.10 `series/{seriesId}` (contract #20, [ADR 0006](adr/0006-series-draft-seat-layout.md))
-`seriesId` equals the draft id, so posting twice cannot create two series. Written by functions only; any consented student may get or list. Layout confirmed final by the owner 2026-11-26 (ADR 0006): `seriesDrafts` auto id, `series.id == draftId`, abandoned drafts stay `reviewed`. Later work only adds optional fields (`cancelledAt`, `endedAt`). Planned, contract Issue TBD (before #40): weekday rosters at `series/{seriesId}/rosters/{weekday}` = `{hostId, riderIds: string[]}` (uids only, at most 6), created lazily on the first accept inside the seat transaction, readable by the consented host or a listed rider while the series is active. No code or Rules yet.
+`seriesId` equals the draft id, so posting twice cannot create two series. Written by functions only; any consented student may get or list. Layout confirmed final by the owner 2026-11-26 (ADR 0006): `seriesDrafts` auto id, `series.id == draftId`, abandoned drafts stay `reviewed`. Later work only adds optional fields (`cancelledAt`, `endedAt`). Planned, contract Issue #166 (before #40): weekday rosters at `series/{seriesId}/rosters/{weekday}` = `{hostId, riderIds: string[]}` (uids only, at most 6), created lazily on the first accept inside the seat transaction, readable by the consented host or a listed rider while the series is active. No code or Rules yet.
 
 | Field | Type | Notes |
 |---|---|---|

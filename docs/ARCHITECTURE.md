@@ -66,7 +66,7 @@ Not in the approved stack (don't add without a documented human decision): Cloud
 | How rules recognize a consented student (custom claim vs reading the consent record) | #13 (TMP-04) | Rules read the record: `exists(consents/{uid})`; no consent claim. See [ADR 0002](adr/0002-firestore-layout.md) §1. |
 | Institution custom claim key | #18 (TMP-13), #15 | `institution: true` (boolean). Rules treat any `institution` claim as institution; the script sets `true`. Rules check it alongside the consent record (`isInstitution()` in `firestore.rules`); #15's script sets it. Owner decision 2026-11-16. |
 | Role routing signal, splash and Firestore cache | #19 (TMP-06) | Staff = `institution` token claim; students = server read of own `privateDetails` (denied = no consent, missing = Onboarding, address = Search; errors = retry, never a route). Android system splash (core-splashscreen). Firestore memory-only cache. Log out lives on the Profile screen (#27) and Onboarding. See [ADR 0004](adr/0004-sign-in-routing.md). |
-| How profile permissions and weekday rosters are stored | #13 (TMP-04), #44 (TMP-37) | Permissions: one backend-only `profileAccess/{ownerId}` doc with reason sets (idempotent). See [ADR 0002](adr/0002-firestore-layout.md) §3, [data model](data-model.md) §2.5. Weekday rosters: _TBD_ (#44). |
+| How profile permissions and weekday rosters are stored | #13 (TMP-04), #44 (TMP-37) | Permissions: one backend-only `profileAccess/{ownerId}` doc with reason sets (idempotent). See [ADR 0002](adr/0002-firestore-layout.md) §3, [data model](data-model.md) §2.5. Weekday rosters: `series/{seriesId}/rosters/{weekday}` = `{hostId, riderIds}` (owner decision 2026-11-26), contract #166. |
 | How the backend finds a student's accepted and hosted weekdays across series for RC-32 conflict checks (e.g. a per-student schedule record kept in the same transactions) | #13 (TMP-04), #20 (TMP-14) | One `schedules/{uid}` doc per student, kept in the same transactions as every lifecycle change; concurrent accepts serialize on it. See [ADR 0002](adr/0002-firestore-layout.md) §4. Edge semantics: [ADR 0007](adr/0007-shared-series-validation.md). |
 | Route preview | #28 (TMP-16) | Callable `routePreview`, latLng waypoints, per-leg rounding; [ADR 0008](adr/0008-route-preview.md). |
 | Post series | #30 (TMP-17) | `postSeries` callable, one transaction, idempotent on draft id; [ADR 0009](adr/0009-post-series.md). |
@@ -120,7 +120,7 @@ Each exists **exactly once**. Changing one is its own reviewed contract-change i
 
 ### 3.4 Firestore (logical entities)
 
-Core, series and draft collection names are decided ([data model](data-model.md)); the request name is decided (#35, ADR 0010); the roster name is planned (`rosters` subcollection, contract Issue TBD). Logical entities and who may touch them:
+Core, series and draft collection names are decided ([data model](data-model.md)); the request name is decided (#35, ADR 0010); the roster name is planned (`rosters` subcollection, contract Issue #166). Logical entities and who may touch them:
 
 | Entity | Client read | Client write |
 |---|---|---|
@@ -230,7 +230,7 @@ Product privacy and safety rules (who sees what, test data, verification wording
 
 | Item | Status | Owner / where |
 |---|---|---|
-| Request per-weekday status values and timestamps; weekday roster contract (series, draft and request layouts final 2026-11-26) | Decide in issue, record in §2 | #26, roster contract Issue (TBD, before #40) |
+| Request per-weekday status values and timestamps; weekday roster contract (series, draft and request layouts final 2026-11-26) | Decide in issue, record in §2 | #26, #166 (roster contract, before #40) |
 | Performance dataset size | Decide in issue | #50 |
 
 **Accepted architectural risks** (don't "fix" by adding scope): stale permissions if a function fails mid-update (mitigated by same-transaction updates); late series ending of up to a day; partial sign-up leaving a consent-less Auth account (unusable by RC-06, logged); search won't scale past MVP without geo-filtering; unverified emails (RISK-04); estimated, not live, route times (RISK-09); sign-up account enumeration (below); the address sheet not opening on one Medium Phone API 36 emulator ([ADR 0001](adr/0001-android-setup.md#places-autocomplete-16), owner decision 2026-11-19). See SDD §7.2 and INTENT §6.1.
