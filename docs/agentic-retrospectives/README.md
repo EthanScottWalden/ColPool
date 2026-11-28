@@ -86,4 +86,4 @@ The owner presents a weekly progress update for CSCI 5520 (Sunday deadline). Eac
 ## Index
 - [Issue #11](issue-11.md): one-off, #11 Android setup (first run) and the configuration audit.
 - [2026-11-15](2026-11-15.md): #12 and #13 background; #13 to staging, #18, #15, #54 (CI), #14, #17, #16, #19, #27; address-sheet bug (Thu 19 Nov); worktree, git lock and Gradle lock friction.
-- [2026-11-22](2026-11-22.md): two weeks (22 Nov – 5 Dec, Update #2); Phases 2 and 3 concurrently (experiment); per-Issue time log starts; #20 and #21 in parallel.
+- [2026-11-22](2026-11-22.md): two weeks (22 Nov – 5 Dec, Update #2); Phases 2 and 3 concurrently (experiment); per-Issue time log starts; #20 and #21 in parallel. Phases 2–3 done and first real deploy (#151) on Fri 27 Nov.
